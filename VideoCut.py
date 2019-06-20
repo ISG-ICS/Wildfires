@@ -1,5 +1,6 @@
 import cv2
 
+
 vidcap = cv2.VideoCapture('test.mp4')
 success,image = vidcap.read()
 count = 0

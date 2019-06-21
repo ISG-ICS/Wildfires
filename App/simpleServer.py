@@ -1,16 +1,11 @@
-from flask import Flask, request, send_from_directory, make_response,jsonify
-import psycopg2
 
-def load_src(name, fpath):
-    import os, imp
-    return imp.load_source(name, os.path.join(os.path.dirname(__file__), fpath))
-load_src("connection", "../data_preparation/connection.py")
+from flask import Flask, send_from_directory, make_response, jsonify
 
-from connection import Connection
+app = Flask(__name__, static_url_path='')
 
-app = Flask(__name__,static_url_path='')
+from data_preparation.connection import Connection
 
-#establish remote db connection
+conn = Connection()()
 
 cur = Connection()().cursor()
 
@@ -18,19 +13,20 @@ tweet_query = "select r.create_at,l.top_left_long,l.top_left_lat,l.bottom_right_
 
 @app.route("/temp")
 def send_temp_data():
-  resp = make_response(send_from_directory('data','temp.csv'))
-  resp.headers['Access-Control-Allow-Origin'] = '*'
-  return resp
+    resp = make_response(send_from_directory('data', 'temp.csv'))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
 
 @app.route("/realtime")
 def send_realTime_data():
-  resp = make_response(send_from_directory('data','realtime.txt'))
-  resp.headers['Access-Control-Allow-Origin'] = '*'
-  return resp
+    resp = make_response(send_from_directory('data', 'realtime.txt'))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
 
 @app.route("/tweets")
 def send_tweets_data():
-
   cur.execute(tweet_query);
 
   d = []
@@ -47,5 +43,6 @@ def send_tweets_data():
   return resp
 
 
+
 if __name__ == "__main__":
-  app.run()
+    app.run()

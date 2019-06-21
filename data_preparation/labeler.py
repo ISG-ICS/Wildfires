@@ -24,7 +24,7 @@ class Labeler:
     def get_next_unlabeled(self):
 
         cur = self.conn.cursor()
-        sql = f'SELECT id, text FROM records WHERE label{self.role} IS NULL order by random();'
+        sql = f'SELECT id, text FROM records WHERE label{self.role} IS NULL order by random() LIMIT 1;'
         cur.execute(sql)
 
         row = cur.fetchone()
@@ -38,30 +38,33 @@ class Labeler:
         prev_id = None
         prev_text = None
         prev_label = None
-        for id, text in self.get_next_unlabeled():
-            char = None
-            while not char:
-                print(
-                    f'\n\n\n\n{text}\n\n\n\n\n\n\n\n\n\n(1 for True, a for previous, enter for next, other for False) ->')
+        next_batch = self.get_next_unlabeled()
+        while next_batch:
+            for id, text in next_batch:
+                char = None
+                while not char:
+                    print(
+                        f'================================================\n\n\n\n{text}\n\n\n\n\n\n\n\n\n\n([1] for True, [r] for reverse previous, enter for next, other for False) ->')
 
-                char = input().strip()
+                    char = input().strip()
 
-            while char == 'r':
-                if prev_text:
-                    self.mark(prev_id, not prev_label)
-                    print(f"[{prev_text} is changed to {not prev_label}]")
-                    prev_label = not prev_label
-                    self.mark(prev_id, prev_label)
+                while char == 'r':
+                    if prev_text:
+                        self.mark(prev_id, not prev_label)
+                        print(f"[{prev_text} is changed to {not prev_label}]")
+                        prev_label = not prev_label
+                        self.mark(prev_id, prev_label)
 
-                print(
-                    f'\n\n\n\n{text}\n\n\n\n\n\n\n\n\n\n([1] for True, [r] for reverse previous, enter for next, other for False) ->')
-                char = input().strip()
-            label = bool(char == '1')
-            print(label)
-            self.mark(id, label)
-            prev_label = label
-            prev_id = id
-            prev_text = text
+                    print(
+                        f'================================================\n\n\n\n{text}\n\n\n\n\n\n\n\n\n\n([1] for True, [r] for reverse previous, enter for next, other for False) ->')
+                    char = input().strip()
+                label = bool(char == '1')
+                print(label)
+                self.mark(id, label)
+                prev_label = label
+                prev_id = id
+                prev_text = text
+            next_batch = self.get_next_unlabeled()
 
 
 if __name__ == '__main__':

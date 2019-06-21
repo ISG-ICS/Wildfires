@@ -28,6 +28,9 @@ $(window).on("tweetsLoaded",function(ev){
     },
     xAxis: {
         type:"datetime",
+        title:{
+          text:"count"
+        }
     },
     series: [{
         data: chartData,

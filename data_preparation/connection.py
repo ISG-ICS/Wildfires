@@ -2,6 +2,8 @@ from configparser import ConfigParser
 
 import psycopg2
 
+from configurations import DATABASE_CONFIG_PATH
+
 
 class Connection:
 
@@ -12,7 +14,7 @@ class Connection:
         return psycopg2.connect(**self.params)
 
     @staticmethod
-    def config(filename='./database.ini', section='postgresql'):
+    def config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
         # create a parser
         parser = ConfigParser()
         # read config file

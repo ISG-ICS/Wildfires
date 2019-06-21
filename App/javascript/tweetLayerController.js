@@ -31,11 +31,9 @@
               dailyCount[createAt] = 1;
             }
             
-            let leftTop = entry["place"]["bounding_box"][0];
-            let bottomRight  = entry["place"]["bounding_box"][1];
-            let center = [leftTop[0]+bottomRight[0]/2,leftTop[1]+bottomRight[1]/2];
-            tweetData.push([leftTop[1],leftTop[0]]);
-            tweetsPoint.push([new Date(createAt).getTime(),leftTop[1],leftTop[0]]);
+            let leftTop = [entry["lat"],entry["long"]];
+            tweetData.push(leftTop);
+            tweetsPoint.push([new Date(createAt).getTime(),leftTop[0],leftTop[1]]);
             
           })
           

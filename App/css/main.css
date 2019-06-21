@@ -13,7 +13,7 @@
     
     #controlPanel{
       width: 200px;
-      height: 650px;
+      height: 200px;
       background: rgba(255,255,255,0.5);
       position: absolute;
       z-index: 1000;

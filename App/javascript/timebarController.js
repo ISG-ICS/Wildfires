@@ -21,7 +21,10 @@ $(window).on("tweetsLoaded",function(ev){
       }
     },
     title: {
-        text: currentLayer
+        text: "time series",
+        style:{
+          "color":"#e25822"
+        }
     },
     xAxis: {
         type:"datetime",
@@ -29,7 +32,7 @@ $(window).on("tweetsLoaded",function(ev){
     series: [{
         data: chartData,
         color:"#e25822",
-        label:"wildfire tweets"
+        name:"<span style='color:#e25822'>123</span>"
     }]
 
   });  

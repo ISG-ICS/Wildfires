@@ -8,27 +8,55 @@ from configurations import DATABASE_CONFIG_PATH
 class Connection:
 
     def __init__(self):
-        self.params = self.config()
+        self.conn = None
 
     def __call__(self, *args, **kwargs):
-        return psycopg2.connect(**self.params)
+        return psycopg2.connect(**self.config())
+
+    def __enter__(self):
+        self.conn = self()
+        return self.conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.conn.close()
 
     @staticmethod
     def config(filename=DATABASE_CONFIG_PATH, section='postgresql'):
-        # create a parser
         parser = ConfigParser()
-        # read config file
         parser.read(filename)
-        # get section, default to postgresql
-        db = {}
         if parser.has_section(section):
-            params = parser.items(section)
-            for param in params:
-                db[param[0]] = param[1]
+            return dict(parser.items(section))
         else:
-            raise Exception('Section {0} not found in the {1} file'.format(section, filename))
-        return db
+            raise Exception(f'Section {section} not found in the {filename} file')
+
+    def sql_execute(self, sql):
+        with self() as conn:
+            cur = conn.cursor()
+            cur.execute(sql)
+
+            row = cur.fetchone()
+            while row:
+                yield row
+                row = cur.fetchone()
+            cur.close()
 
 
 if __name__ == '__main__':
-    conn = Connection()
+    # use as a context manager
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute("select * from pg_tables")
+        print(cur.fetchall())
+        cur.close()
+
+    # use normally
+    conn = Connection()()  # call the object to return a new connection
+    cur = conn.cursor()
+    cur.execute("select * from pg_tables")
+    print(cur.fetchall())
+    cur.close()
+    conn.close()
+
+    # execute sql directly, with output fetched iteratively
+    for row in Connection().sql_execute("select * from pg_tables"):
+        print(row)

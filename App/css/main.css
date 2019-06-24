@@ -1,0 +1,43 @@
+		html, body {
+			height: 100%;
+			margin: 0;
+		}
+		#map {
+			
+			height: 800px;
+		}
+    
+    #controlPanel h4 {
+        margin-top:80px;
+    }
+    
+    #controlPanel{
+      width: 200px;
+      height: 650px;
+      background: rgba(255,255,255,0.5);
+      position: absolute;
+      z-index: 1000;
+      padding: 10px 15px;
+      font: 14px/16px Arial, Helvetica, sans-serif;
+      text-align: center;
+      display: block;
+    }
+    
+    #selectState{
+      width: 140px;
+    }
+    
+    select {
+      -webkit-appearance: none;
+      -webkit-border-radius: 0px;
+      padding: 0px 5px;
+    }
+    
+
+    
+    #timebar-container{
+      z-index: 1000;
+      position: absolute;
+      top:60%;
+      left:35%;
+    }    

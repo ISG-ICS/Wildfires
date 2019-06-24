@@ -61,7 +61,7 @@ $(document).ready(function() {
 
         $(window).trigger("heatDataLoaded",[]);
         heatmapLayer.setData(testData);
-        mainControl.addOverlay(heatmapLayer,"temperature");
+        mainControl.addOverlay(heatmapLayer,"Temperature");
       }
    });
 });

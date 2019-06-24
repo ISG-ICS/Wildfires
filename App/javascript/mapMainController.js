@@ -33,10 +33,17 @@
        $("#mousePosition").html("Lat: "+Math.round(lat*100)/100+" Lng: "+Math.round(lng*100)/100);
   });
    
+  var liveTweetLayer = L.TileLayer.maskCanvas({
+   radius: 10,  
+   useAbsoluteRadius: true,  
+   color: '#000',  
+   opacity: 1,  
+   noMask: true,  
+   lineColor: '#e25822'
+  });
+
   //Overlay event listener
   var addOverlayHandler = function(event){
-    if(event["name"] == "fire tweet"){
-    }
   }
 
   map.on('overlayadd',addOverlayHandler);

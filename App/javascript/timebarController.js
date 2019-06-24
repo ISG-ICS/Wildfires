@@ -32,7 +32,7 @@ $(window).on("tweetsLoaded",function(ev){
     series: [{
         data: chartData,
         color:"#e25822",
-        name:"<span style='color:#e25822'>123</span>"
+        name:"<span style='color:#e25822'>Wildfire Tweet</span>"
     }]
 
   });  

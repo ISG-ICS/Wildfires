@@ -32,7 +32,7 @@ truncate_table('images')
 
 with open("tweets_urls", 'rb') as file:
     data = json.load(file)
-    tweetPhoto_dict = dict()  # this dictionary stores id: url that contains tweets that have pics
+    tweetPhoto_dict = dict()  # id: url that contains tweets that have pics
     cnt = 0
     amt = 0
     conn = Connection()()
@@ -42,10 +42,8 @@ with open("tweets_urls", 'rb') as file:
             print("ID processed: "+ str(amt) + ", containing images (url): " + str(cnt))
         for element in item:
             try:
-                # print("id is: "+str(id))
-                # print("shorten link is "+element)
                 expandedUrl = requests.get(element).url
-                # print("expandedUrl is: " + expandedUrl)
+            
                 # in the situation that the url links to a tweet with image
                 if (expandedUrl.find("twitter") != -1):
                     # print("the url links to a tweet with photo")
@@ -62,13 +60,9 @@ with open("tweets_urls", 'rb') as file:
                         cur.close()
                         conn.commit()
                         
-
                 break
             except:
                 break
 
-        # else:
-        # print("the url does NOT link to a tweet with photo")
     conn.close()
-    #print(tweetPhoto_dict)
-#json.dump(tweetPhoto_dict, open("tweetPhoto_urls", "w"), separators=(',\n', ': '))
+  

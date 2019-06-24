@@ -21,7 +21,7 @@ $(window).on("tweetsLoaded",function(ev){
       }
     },
     title: {
-        text: "time series",
+        text: "Wildfire",
         style:{
           "color":"#e25822"
         }

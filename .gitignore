@@ -166,4 +166,7 @@ fabric.properties
 out
 gen
 
-*.json
+# data
+data
+
+

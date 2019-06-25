@@ -21,15 +21,18 @@ $(window).on("tweetsLoaded",function(ev){
       }
     },
     title: {
-        text: currentLayer
+        text: "Wildfire",
+        style:{
+          "color":"#e25822"
+        }
     },
     xAxis: {
-        type:"datetime",
+        type:"datetime"
     },
     series: [{
         data: chartData,
         color:"#e25822",
-        label:"wildfire tweets"
+        name:"<span style='color:#e25822'>Wildfire Tweet</span>"
     }]
 
   });  

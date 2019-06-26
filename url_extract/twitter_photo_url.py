@@ -41,6 +41,28 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
     return decorator
 
 
+class URLClassifier:
+    TWEET_IMAGE = 0
+    TWEET_VIDEO = 1
+    INS = 2
+    OTHERS = 3
+
+    @timeout(5)
+    def classify(self, short_link):
+        # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
+        expanded_url = requests.get(short_link).url
+        print(expanded_url)
+        if (expanded_url.find("twitter") != -1) and (expanded_url.find("instagram") == -1):
+            if expanded_url.find("video") != -1:
+                return 1
+            else:
+                return 0
+        elif expanded_url.find("instagram") != -1:
+            return 2
+        else:
+            return 3
+
+
 from data_preparation.connection import Connection
 
 
@@ -52,20 +74,7 @@ def truncate_table(table_name):
     conn.commit()
 
 
-@timeout(5)
-def get_link_type(short_link):
-    # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
-    expanded_url = requests.get(short_link).url
-    print(expanded_url)
-    if expanded_url.find("twitter") != -1:
-        return 3
-    elif expanded_url.find("instagram") != -1:
-        return 4
-    else:
-        return 5
-
-
-def get_ins_image(url):
+def get_ins(url):
     # gets ins image url
     try:
         response = requests.get(url)
@@ -73,8 +82,12 @@ def get_ins_image(url):
             all_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
                                   response.text)
             all_urls_unique = set(all_urls)
+
             img_urls = [url for url in all_urls_unique if
                         "https://scontent-lax3-1.cdninstagram.com" and "e35" in url and "s150x150" not in url]
+            if img_urls == []:
+                img_urls = [url for url in all_urls_unique if
+                            "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
             final_img_url = img_urls[0]
             return [final_img_url]
         else:
@@ -151,31 +164,35 @@ if __name__ == '__main__':
             for id, item in data.items():
                 amt += 1
                 print(amt)
-                if amt >= 7207:
+                cur = conn.cursor()
+                if amt >= 10040:
                     for element in item:
                         print(element)
                         try:
-                            link_type = get_link_type(element)
-                            if link_type == 3:
+                            link_type = URLClassifier.classify(URLClassifier, element)
+                            if link_type == 0:
                                 print("link type: twitter, img")
                                 photoUrl = get_twitter_image(element)
-                            elif link_type == 4:
-                                print("link type: ins, img")
-                                photoUrl = get_ins_image(element)
+                            elif link_type == 1:
+                                photoUrl = get_twitter_video(element)
+                                print("link type: twitter, video")
+                            elif link_type == 2:
+                                print("link type: ins")
+                                photoUrl = get_ins(element)
                             else:
                                 photoUrl = -1
                                 print("link type: others")
                             if (photoUrl != -1) and (photoUrl != []):
                                 cnt += 1
                                 print(photoUrl)
-                                tweetPhoto_dict.update({id: photoUrl})
 
-                                cur = conn.cursor()
                                 insert_query = 'insert into images(id,image_url) values (%s, %s)'
                                 for each_link in photoUrl:
                                     cur.execute(insert_query, (id, each_link))
-                                cur.close()
+
+                            if amt % 20 == 0:
                                 conn.commit()
                         except Exception as err:
                             print("error", err)
+                            conn.commit()
                             continue

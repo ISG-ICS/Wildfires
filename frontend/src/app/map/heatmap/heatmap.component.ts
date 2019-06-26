@@ -26,15 +26,12 @@ export class HeatmapComponent implements OnInit {
     const satellite = L.tileLayer(mbUrl, {id: 'mapbox.satellite', attribution: mbAttr});
     const streets = L.tileLayer(mbUrl, {id: 'mapbox.streets', attribution: mbAttr});
     const dark = L.tileLayer(mbUrl, {id: 'mapbox.dark'});
-    const currentLayer = 'wildfire tweet';
-    const timebarStart = 0;
-    const timebarEnd = 0;
     const map = L.map('map', {
       center: [33.64, -117.84],
       zoom: 5,
       layers: [satellite, streets, dark]
     });
-
+    let tweetData = [];
     const baseLayers = {
       '<span style =\'color:blue\'>Satellite</span>': satellite,
       '<span style =\'color:red\'>Streets</span>': streets,
@@ -48,17 +45,8 @@ export class HeatmapComponent implements OnInit {
     map.addEventListener('mousemove', (ev) => {
       const lat = ev.latlng.lat;
       const lng = ev.latlng.lng;
-      // $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
+      $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
     });
-
-    // Overlay event listener
-    const addOverlayHandler = (event) => {
-      if (event.name === 'fire tweet') {
-      }
-    };
-
-    map.on('overlayadd', addOverlayHandler);
-
 
     const heatmapConfig = {
         // radius should be small ONLY if scaleRadius is true (or small radius is intended)
@@ -83,9 +71,9 @@ export class HeatmapComponent implements OnInit {
     // Cache heat data in the frontend
     $(window).on('heatDataLoaded', (event, data) => {
       heatmapLayer.setData(data);
-      mainControl.addOverlay(heatmapLayer, 'temperature');
+      mainControl.addOverlay(heatmapLayer, 'Temperature');
     });
-
+    // Tweets related layers
     const tweetLayer = L.TileLayer.maskCanvas({
         radius: 10,
         useAbsoluteRadius: true,
@@ -95,15 +83,100 @@ export class HeatmapComponent implements OnInit {
         lineColor: '#e25822'
     });
 
-    // Request tweets data from server
     this.mapService.getTweetsData();
 
-    $(window).on('tweetsLoaded', (event, data) => {
-        tweetLayer.setData(data.tweetData);
-        mainControl.addOverlay(tweetLayer, 'Fire tweet');
+    let liveTweet = L.layerGroup();
+    const liveTweetList = [];
+    const htmlSelectElements = $(window).on('tweetsLoaded', (event, data) => {
+
+      const tempData = [];
+      tweetData = data.tweetData;
+      data.tweetData.forEach(x => {
+        tempData.push([x[0], x[1]]);
+      });
+
+      tweetLayer.setData(tempData);
+      mainControl.addOverlay(tweetLayer, 'Fire tweet');
+
+      const fireEventList = [];
+      for (let i = 0; i < data.tweetData.length; i++) {
+          if (i % 1000 === 0) {
+            const point = [data.tweetData[i][0], data.tweetData[i][1]];
+            const size = Math.floor(Math.random() * 80);
+            const fireIcon = L.icon({
+                iconUrl: 'assets/image/pixelfire.gif',
+                iconSize:     [ size, size],
+            });
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire');
+            fireEventList.push(marker);
+          }
+      }
+
+      const fireEvents = L.layerGroup(fireEventList);
+      mainControl.addOverlay(fireEvents, 'Fire event');
+
+      for (let i = 0; i < data.tweetData.length; i++) {
+        if (i % 2000 === 0) {
+          const point = [data.tweetData[i][0], data.tweetData[i][1]];
+          const icon = L.icon({
+              iconUrl: 'assets/image/perfectBird.gif',
+              iconSize: [20, 20]
+          });
+          const marker = L.marker(point, {icon}).bindPopup('I am a live tweet');
+          liveTweetList.push(marker);
+        }
+      }
+
+      liveTweet = L.layerGroup(liveTweetList);
+      $('.switch').css('display', 'inline-block');
     });
 
+    const liveTweetLayer = L.TileLayer.maskCanvas({
+      radius: 10,
+      useAbsoluteRadius: true,
+      color: '#000',
+      opacity: 1,
+      noMask: true,
+      lineColor: '#e25822'
+    });
 
+    function liveTweetHandler(ev) {
+      liveTweet.addTo(map);
+      const temp = [];
+      liveTweetList.forEach(x => {
+          temp.push([x._latlng.lat, x._latlng.lng]);
+      });
+
+      liveTweetLayer.setData(temp);
+      const birds = $('.leaflet-marker-icon');
+      window.setTimeout(() => {
+          liveTweet.clearLayers();
+          liveTweet.addLayer(liveTweetLayer);
+      }, 3200);
+      let bird: any = 0;
+      for ( bird of birds) {
+        if (bird.src.indexOf('perfectBird') !== -1) {
+          $(bird).css('animation', 'fly 3s linear');
+        }
+      }
+    }
+
+    $('#liveTweetSwitch').on('click', liveTweetHandler);
+
+
+    const timeRangeHandler = (ev, data) => {
+      const tempData = [];
+      tweetData.forEach(entry => {
+        if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
+          tempData.push([entry[0], entry[1]]);
+        }
+      });
+      tweetLayer.setData(tempData);
+    };
+
+
+
+    $(window).on('timeRangeChange', timeRangeHandler);
   }
 
 

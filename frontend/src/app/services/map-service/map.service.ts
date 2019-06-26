@@ -70,7 +70,6 @@ export class MapService {
   getTweetsData(): void {
 
       const chartData = [];
-      const tweetsPoint = [];
       const dailyCount = {};
 
       $.ajax({
@@ -80,9 +79,8 @@ export class MapService {
       }).done(data => {
 
           const tempData = JSON.parse(data);
-          const tweetData = [];
+          const dataArray = [];
           tempData.forEach(entry => {
-
               const createAt = entry.create_at.split('T')[0];
 
               if (dailyCount.hasOwnProperty(createAt)) {
@@ -92,9 +90,7 @@ export class MapService {
               }
 
               const leftTop = [entry.lat, entry.long];
-              tweetData.push(leftTop);
-              tweetsPoint.push([new Date(createAt).getTime(), leftTop[0], leftTop[1]]);
-
+              dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
           });
 
 
@@ -105,7 +101,8 @@ export class MapService {
 
           });
 
-          $(window).trigger('tweetsLoaded', {tweetData});
+          $(window).trigger('tweetsLoaded', {tweetData: dataArray});
+          $(window).trigger('timebarLoaed', {chartData});
       });
   }
 

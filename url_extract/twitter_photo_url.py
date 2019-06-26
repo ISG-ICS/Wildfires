@@ -54,6 +54,7 @@ def truncate_table(table_name):
 
 @timeout(5)
 def get_link_type(short_link):
+    # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
     expanded_url = requests.get(short_link).url
     print(expanded_url)
     if expanded_url.find("twitter") != -1:
@@ -64,22 +65,28 @@ def get_link_type(short_link):
         return 5
 
 
-# def get_ins_image(link):
-#     print("link")
-#     if requests.get(link).status_code < 300:
-#         source = urllib.request.urlopen(link).read()
-#         soup = BeautifulSoup(source, 'html.parser')
-#         imgs = soup.findAll("div", {"class": "AdaptiveMedia-photoContainer js-adaptive-photo"})
-#         img_url = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
-#                              str(imgs))
-#         unique_img_url = list(set(img_url))
-#         return unique_img_url
-#     else:
-#         # print("404 not found")
-#         return -1
+def get_ins_image(url):
+    # gets ins image url
+    try:
+        response = requests.get(url)
+        if response.status_code < 300:
+            all_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+                                  response.text)
+            all_urls_unique = set(all_urls)
+            img_urls = [url for url in all_urls_unique if
+                        "https://scontent-lax3-1.cdninstagram.com" and "e35" in url and "s150x150" not in url]
+            final_img_url = img_urls[0]
+            return [final_img_url]
+        else:
+            print('error: ', response.status_code)
+            return -1
+    except Exception as e:
+        print(e)
+        return -1
 
 
 def get_twitter_image(link):
+    # gets twitter image ur;
     if requests.get(link).status_code < 300:
         source = urllib.request.urlopen(link).read()
         soup = BeautifulSoup(source, 'html.parser')
@@ -89,13 +96,51 @@ def get_twitter_image(link):
         unique_img_url = list(set(img_url))
         return unique_img_url
     else:
-        # print("404 not found")
+        return -1
+
+
+def get_ins_video(url):
+    # gets ins video url
+    try:
+        response = requests.get(url)
+        if response.status_code < 300:
+            all_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+                                  response.text)
+            all_urls_unique = set(all_urls)
+            img_urls = [url for url in all_urls_unique if
+                        "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
+            final_img_url = img_urls[0]
+            return [final_img_url]
+        else:
+            print('error: ', response.status_code)
+            return -1
+    except Exception as e:
+        print(e)
+        return -1
+
+
+def get_twitter_video(link):
+    # gets twitter video url
+    from selenium import webdriver
+    driver = webdriver.PhantomJS()
+    driver.get(link)
+    html = driver.execute_script("return document.getElementsByTagName('html')[0].innerHTML")
+    if requests.get(link).status_code < 300:
+        soup = BeautifulSoup(html, 'html.parser')
+        imgs = soup.find_all("meta")
+        img_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+                              str(imgs))
+        img_url = [url for url in img_urls if "facebook" in url]
+        unique_url = list(set(img_url))
+        return unique_url
+    else:
         return -1
 
 
 if __name__ == '__main__':
 
-    truncate_table('images')
+    # truncate_table('images')
+    # start from 10041
 
     with open("tweets_urls.json", 'rb') as file:
         data = json.load(file)
@@ -106,16 +151,20 @@ if __name__ == '__main__':
             for id, item in data.items():
                 amt += 1
                 print(amt)
-                for element in item:
-                    print(element)
-                    try:
-                        link_type = get_link_type(element)
-                        if link_type == 3:
-                            photoUrl = get_twitter_image(element)
-                            # elif link_type == 4:
-                            #     photoUrl = get_twitter_image(expandedUrl)
-                            # else:
-                            #     print("others")
+                if amt >= 7207:
+                    for element in item:
+                        print(element)
+                        try:
+                            link_type = get_link_type(element)
+                            if link_type == 3:
+                                print("link type: twitter, img")
+                                photoUrl = get_twitter_image(element)
+                            elif link_type == 4:
+                                print("link type: ins, img")
+                                photoUrl = get_ins_image(element)
+                            else:
+                                photoUrl = -1
+                                print("link type: others")
                             if (photoUrl != -1) and (photoUrl != []):
                                 cnt += 1
                                 print(photoUrl)
@@ -127,6 +176,6 @@ if __name__ == '__main__':
                                     cur.execute(insert_query, (id, each_link))
                                 cur.close()
                                 conn.commit()
-                    except Exception as err:
-                        print("error", err)
-                        continue
+                        except Exception as err:
+                            print("error", err)
+                            continue

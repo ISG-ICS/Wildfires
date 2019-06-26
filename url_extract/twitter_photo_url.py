@@ -1,68 +1,12 @@
-import errno
+
+
 import json
-import os
 import re
-import signal
 import urllib.request
-from functools import wraps
 
 import requests
 from bs4 import BeautifulSoup
-
-
-class TimeoutError(Exception):
-    def __init__(self, value="Timed Out"):
-        self.value = value
-
-    def __str__(self):
-        return repr(self.value)
-
-
-class TimeoutException(Exception):
-    pass
-
-
-def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
-    def decorator(func):
-        def _handle_timeout(signum, frame):
-            raise TimeoutException(error_message)
-
-        def wrapper(*args, **kwargs):
-            signal.signal(signal.SIGALRM, _handle_timeout)
-            signal.alarm(seconds)
-            try:
-                result = func(*args, **kwargs)
-            finally:
-                signal.alarm(0)
-            return result
-
-        return wraps(func)(wrapper)
-
-    return decorator
-
-
-class URLClassifier:
-    TWEET_IMAGE = 0
-    TWEET_VIDEO = 1
-    INS = 2
-    OTHERS = 3
-
-    @timeout(5)
-    def classify(self, short_link):
-        # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
-        expanded_url = requests.get(short_link).url
-        print(expanded_url)
-        if (expanded_url.find("twitter") != -1) and (expanded_url.find("instagram") == -1):
-            if expanded_url.find("video") != -1:
-                return 1
-            else:
-                return 0
-        elif expanded_url.find("instagram") != -1:
-            return 2
-        else:
-            return 3
-
-
+from url_extract.URL_Classifier import URLClassifier
 from data_preparation.connection import Connection
 
 
@@ -75,7 +19,7 @@ def truncate_table(table_name):
 
 
 def get_ins(url):
-    # gets ins image url
+    # gets ins image or video url
     try:
         response = requests.get(url)
         if response.status_code < 300:
@@ -109,26 +53,6 @@ def get_twitter_image(link):
         unique_img_url = list(set(img_url))
         return unique_img_url
     else:
-        return -1
-
-
-def get_ins_video(url):
-    # gets ins video url
-    try:
-        response = requests.get(url)
-        if response.status_code < 300:
-            all_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
-                                  response.text)
-            all_urls_unique = set(all_urls)
-            img_urls = [url for url in all_urls_unique if
-                        "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
-            final_img_url = img_urls[0]
-            return [final_img_url]
-        else:
-            print('error: ', response.status_code)
-            return -1
-    except Exception as e:
-        print(e)
         return -1
 
 

@@ -1,4 +1,3 @@
-
 #Imageai: free, but perform worse, able to detect obvious object.
 #eg: car, obvious fire. Unable to do sth not obvious.
 

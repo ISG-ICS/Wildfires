@@ -1,3 +1,15 @@
 #map {
     height: 800px;
 }
+
+@keyframes fly {
+    0%{
+        margin-left:-100px;
+        margin-top:-100px;
+    }
+
+    100%{
+        margin-left: 0px;
+        margin-top: 0px;
+    }
+}

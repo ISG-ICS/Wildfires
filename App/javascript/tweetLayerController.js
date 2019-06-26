@@ -86,7 +86,7 @@ $(window).on("tweetsLoaded",function(){
       iconUrl: 'image/pixelfire.gif',
       iconSize:     [ size, size],
     });
-     var marker = L.marker(point,{icon:fireIcon}).bindPopup("I am a fire");
+     var marker = L.marker(point,{icon:fireIcon}).bindPopup("I am on fire");
      fireEventList.push(marker);
      
    } 

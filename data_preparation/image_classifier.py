@@ -1,48 +1,54 @@
-#Imageai: free, but perform worse, able to detect obvious object.
-#eg: car, obvious fire. Unable to do sth not obvious.
+# Imageai: free, but perform worse, able to detect obvious object.
+# eg: car, obvious fire. Unable to do sth not obvious.
 
-#0. This libarary also deal with video.
-#1. Can use image to filter out some obvious irrelevant images then use Google cloud Vision which has cost.
-#2. Can do custom training for imageai，the library has the custom function, but need training database.
+# 0. This libarary also deal with video.
+# 1. Can use image to filter out some obvious irrelevant images then use Google cloud Vision which has cost.
+# 2. Can do custom training for imageai，the library has the custom function, but need training database.
 
 from imageai.Prediction import ImagePrediction
 import os
 import json
 import sys
 from connection import Connection
+from imageai.Prediction.Custom import CustomImagePrediction
 
-#if sys.version_info[0] >= 3:
-#    from urllib.request import urlretrieve
-#else:
-#    from urllib import urlretrieve
 
-#This model also need install -- tensorflow, numpy, scipy, opencv-python, h5py, keras
-#pip3 install https://github.com/OlafenwaMoses/ImageAI/releases/download/2.0.2/imageai-2.0.2-py3-none-any.whl
+# This model also need install -- tensorflow, numpy, scipy, opencv-python, h5py, keras
+# pip3 install https://github.com/OlafenwaMoses/ImageAI/releases/download/2.0.2/imageai-2.0.2-py3-none-any.whl
 
-#url = "https://pbs.twimg.com/media/CVBkO6hVEAEZlG2.jpg"
-#label_list = ["vocano","wildfire","web_site", "comic_book"]
+# url = "https://pbs.twimg.com/media/CVBkO6hVEAEZlG2.jpg"
+# label_list = ["vocano","wildfire","web_site", "comic_book"]
+
 
 def label_pic(url, label_list):
-    execution_path = os.getcwd()
+    # execution_path = os.getcwd()
 
-    prediction = ImagePrediction()
-    prediction.setModelTypeAsResNet()
-    prediction.setModelPath(os.path.join(execution_path, "./models/resnet50_weights_tf_dim_ordering_tf_kernels.h5"))
-    prediction.loadModel()
+    ##prediction = ImagePrediction()
+    ##prediction.setModelTypeAsResNet()
+    ##prediction.setModelPath(os.path.join(execution_path, r"./models/resnet50_weights_tf_dim_ordering_tf_kernels.h5"))
+    ##prediction.loadModel()
 
-    #custom = detector.CustomObjects(person=True, dog=True)
-    #predictions, probabilities = prediction.predictImage(os.path.join(execution_path, "/Users/fuyuan/Desktop/Wildfire/2.jpg"), result_count=20)
+    predictor = CustomImagePrediction()
+    predictor.setModelTypeAsResNet()
+    predictor.setModelPath("models/model_ex-084_acc-0.537500.h5")
+    predictor.setJsonPath("model_class.json")
+    predictor.loadModel(num_objects=4)
+    # predictor.save_model_for_deepstack(new_model_folder=os.path.join(execution_path, "deepstack_model"),
+    #                                   new_model_name="wildfire_resnet_deepstack.h5")
+
+    # custom = detector.CustomObjects(person=True, dog=True)
+    # predictions, probabilities = prediction.predictImage(os.path.join(execution_path, "/Users/fuyuan/Desktop/Wildfire/2.jpg"), result_count=20)
     download_name = "current.jpg"
-    #urlretrieve(url, download_name)
+    # urlretrieve(url, download_name)
     print(f"curl {url} --output {download_name}")
     os.system(f"curl {url} --output {download_name}")
 
-    #download_path = "/Users/fuyuan/Desktop/Wildfire/" + download_name
-    predictions, probabilities = prediction.predictImage(os.path.join(execution_path, download_name), result_count=40)
+    # download_path = "/Users/fuyuan/Desktop/Wildfire/" + download_name
+    predictions, probabilities = predictor.predictImage(download_name)
     label_rank_dict = dict()
     for eachPrediction, eachProbability in zip(predictions, probabilities):
-        label_rank_dict[eachPrediction] = eachProbability/100
-        #print(eachPrediction , "\t" , eachProbability)
+        label_rank_dict[eachPrediction] = eachProbability
+        # print(eachPrediction , "\t" , eachProbability)
     os.remove("current.jpg")
     percentage_list = []
     for target in label_list:
@@ -52,37 +58,26 @@ def label_pic(url, label_list):
             percentage_list.append(0)
     return percentage_list
 
-#print(label_pic(url, label_list))
 
-
-def load_picture(url_file): #from json
+def load_picture(url_file):  # from json
     with open(url_file, 'rb') as file:
         try:
             data = json.load(file)
             tweetPhoto_url_dict = dict()  # this dictionary stores id: url that contains tweets that have pics
             for id, urls in data.items():
                 for url in urls:
-                    #pic_id = id + '-' + str(urls.index(url))
-                    #print(url, pic_id)
+                    # pic_id = id + '-' + str(urls.index(url))
+                    # print(url, pic_id)
                     print(label_pic(url, label_list))
         except ValueError as e:
             print("JSON object issue")
 
-def get_image_url(feature): #from database
-    '''
-    conn = Connection()()
-    cur = conn.cursor()
-    role = 1
-    sql = f'SELECT id, text FROM records WHERE label{role} IS NOT NULL order by random() LIMIT 1;'
-    cur.execute(sql)
-    for row in list(cur):
-       print(row)
-    return row
-    '''
+
+def get_image_url(feature):  # from database
     return next(Connection().sql_execute(f"select id, image_url from images where {feature} IS NULL limit 1"))
 
-def upload_features(id, features, results):
 
+def upload_features(id, features, results):
     with Connection() as conn:
         cur = conn.cursor()
         for feature, result in zip(features, results):
@@ -90,20 +85,16 @@ def upload_features(id, features, results):
         cur.close()
         conn.commit()
 
-
 if __name__ == '__main__':
-    features = ["wildfires","fountain"]
+    features = ["wildfire", "fountain"]
     while True:
         for feature in features:
             id, url = get_image_url(feature)
 
         print(id, url)
-        results = label_pic(url,features)
+        results = label_pic(url, features)
         print(results)
         upload_features(id, features, results)
 
-
-
-
-    #url_file = "../data/image_urls.json"  # this data set is generated by kerry's branch code
-    #load_picture(url_file)
+    # url_file = "../data/image_urls.json"  # this data set is generated by kerry's branch code
+    # load_picture(url_file)

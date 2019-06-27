@@ -12,7 +12,6 @@ import sys
 from connection import Connection
 from imageai.Prediction.Custom import CustomImagePrediction
 
-
 # This model also need install -- tensorflow, numpy, scipy, opencv-python, h5py, keras
 # pip3 install https://github.com/OlafenwaMoses/ImageAI/releases/download/2.0.2/imageai-2.0.2-py3-none-any.whl
 

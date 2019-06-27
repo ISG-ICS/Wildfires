@@ -20,8 +20,6 @@ import webbrowser
 # label_list = ["vocano","wildfire","web_site", "comic_book"]
 
 
-
-
 def load_picture(url_file):  # from json
     with open(url_file, 'rb') as file:
         try:

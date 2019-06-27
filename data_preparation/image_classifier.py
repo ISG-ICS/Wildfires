@@ -1,10 +1,3 @@
-# Imageai: free, but perform worse, able to detect obvious object.
-# eg: car, obvious fire. Unable to do sth not obvious.
-
-# 0. This libarary also deal with video.
-# 1. Can use image to filter out some obvious irrelevant images then use Google cloud Vision which has cost.
-# 2. Can do custom training for imageai，the library has the custom function, but need training database.
-
 from imageai.Prediction import ImagePrediction
 import os
 import json
@@ -40,6 +33,9 @@ def label_pic(url, label_list):
     download_name = "current.jpg"
     # urlretrieve(url, download_name)
     print(f"curl {url} --output {download_name}")
+    ####
+    ####!!!!
+    # ask about deal with invalid url
     os.system(f"curl {url} --output {download_name}")
 
     # download_path = "/Users/fuyuan/Desktop/Wildfire/" + download_name
@@ -74,6 +70,9 @@ def load_picture(url_file):  # from json
 
 
 def get_image_url(feature):  # from database
+    ####
+    ####!!!!
+    #ask about deal with invalid url
     return next(Connection().sql_execute(f"select id, image_url from images where {feature} IS NULL limit 1"))
 
 

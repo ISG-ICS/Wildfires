@@ -1,5 +1,3 @@
-
-
 import json
 import re
 import urllib.request
@@ -8,6 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 from url_extract.URL_Classifier import URLClassifier
 from data_preparation.connection import Connection
+import webbrowser
 
 
 def truncate_table(table_name):
@@ -18,19 +17,18 @@ def truncate_table(table_name):
     conn.commit()
 
 
-def get_ins(url):
+def get_ins(link):
     # gets ins image or video url
     try:
-        response = requests.get(url)
+        response = requests.get(link)
         if response.status_code < 300:
             all_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
                                   response.text)
             all_urls_unique = set(all_urls)
-
-            img_urls = [url for url in all_urls_unique if
+            img_urls = [url for url in all_urls_unique if  # ins image
                         "https://scontent-lax3-1.cdninstagram.com" and "e35" in url and "s150x150" not in url]
-            if img_urls == []:
-                img_urls = [url for url in all_urls_unique if
+            if not img_urls:
+                img_urls = [url for url in all_urls_unique if  # ins video
                             "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
             final_img_url = img_urls[0]
             return [final_img_url]
@@ -67,53 +65,67 @@ def get_twitter_video(link):
         imgs = soup.find_all("meta")
         img_urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
                               str(imgs))
-        img_url = [url for url in img_urls if "facebook" in url]
+        img_url = [url for url in img_urls if "facebook" in url]  # twitter video links usually have keyword "facebook"
         unique_url = list(set(img_url))
         return unique_url
     else:
         return -1
 
 
+def img_vdo_auto_opener(id, url_list):
+    label_dict = dict()
+    for each_url in url_list:
+        webbrowser.open(each_url)
+        label = input("1 for yes, 0 for no")
+        label_dict.update({id: (each_url, label)})
+    return label_dict
+
+
 if __name__ == '__main__':
 
     # truncate_table('images')
-    # start from 10041
+    # uncomment the truncate_table line when you need to restart the whole data base uploading process
+
+    # last stopped at 10041
 
     with open("tweets_urls.json", 'rb') as file:
         data = json.load(file)
-        tweetPhoto_dict = dict()  # id: url that contains tweets that have pics
-        cnt = 0
-        amt = 0
+        img_vdo_label_dict = dict()
+        amt = 0  # counts the number of link processed
+        cnt = 0  # the number of pic
         with Connection() as conn:
             for id, item in data.items():
                 amt += 1
                 print(amt)
                 cur = conn.cursor()
-                if amt >= 10040:
+                if amt < 500:  # stop at 500
                     for element in item:
-                        print(element)
+                        print("shorten link:", element)
+
                         try:
-                            link_type = URLClassifier.classify(URLClassifier, element)
+                            link_type = URLClassifier.classify(URLClassifier, element)  # classifies link type
                             if link_type == 0:
                                 print("link type: twitter, img")
-                                photoUrl = get_twitter_image(element)
+                                photo_url = get_twitter_image(element)
                             elif link_type == 1:
-                                photoUrl = get_twitter_video(element)
                                 print("link type: twitter, video")
+                                photo_url = get_twitter_video(element)
                             elif link_type == 2:
                                 print("link type: ins")
-                                photoUrl = get_ins(element)
+                                photo_url = get_ins(element)
                             else:
-                                photoUrl = -1
                                 print("link type: others")
-                            if (photoUrl != -1) and (photoUrl != []):
-                                cnt += 1
-                                print(photoUrl)
+                                photo_url = -1
 
+                            if (photo_url != -1) and (photo_url != []):
+                                print(photo_url)
+                                label_dict = img_vdo_auto_opener(id, photo_url)
+                                img_vdo_label_dict.update(label_dict)
                                 insert_query = 'insert into images(id,image_url) values (%s, %s)'
-                                for each_link in photoUrl:
+                                for each_link in photo_url:
                                     cur.execute(insert_query, (id, each_link))
-
+                            json.dump(img_vdo_label_dict, open("media_label.json", "a"))
+                            # img_vdo_label_dict.clear()
                             if amt % 20 == 0:
                                 conn.commit()
                         except Exception as err:

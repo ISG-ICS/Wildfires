@@ -26,17 +26,20 @@ export class HeatmapComponent implements OnInit {
   }
 
   ngOnInit() {
-    const mbAttr = 'Credit to yc';
-    const mbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiY' +
+
+    // Initialize map and 3 base layers
+    const mapBoxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiY' +
       'SI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
-    const satellite = L.tileLayer(mbUrl, {id: 'mapbox.satellite', attribution: mbAttr});
-    const streets = L.tileLayer(mbUrl, {id: 'mapbox.streets', attribution: mbAttr});
-    const dark = L.tileLayer(mbUrl, {id: 'mapbox.dark'});
+    const satellite = L.tileLayer(mapBoxUrl, {id: 'mapbox.satellite'});
+    const streets = L.tileLayer(mapBoxUrl, {id: 'mapbox.streets'});
+    const dark = L.tileLayer(mapBoxUrl, {id: 'mapbox.dark'});
     this.map = L.map('map', {
       center: [33.64, -117.84],
       zoom: 5,
       layers: [satellite, streets, dark]
     });
+
+    // Initialize base layer group
     const baseLayers = {
       '<span style =\'color:blue\'>Satellite</span>': satellite,
       '<span style =\'color:red\'>Streets</span>': streets,
@@ -45,27 +48,29 @@ export class HeatmapComponent implements OnInit {
 
     this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
-    // Coordinate
+    // Generate coordinate in siderbar
     this.map.addEventListener('mousemove', (ev) => {
       const lat = ev.latlng.lat;
       const lng = ev.latlng.lng;
       $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
     });
 
+    // Get heatmap data from service
     this.mapService.getHeatmapData();
-    // Cache heat data in the frontend
     this.mapService.heatmapDataLoaded.subscribe( this.heatmapDataHandler);
 
+    // Get tweets data from service
     this.mapService.getTweetsData();
     this.mapService.tweetDataLoaded.subscribe( this.tweetDataHandler);
 
+    // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
+
+    // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);
   }
 
   tweetDataHandler = (data) => {
-
-    // Tweets related layers
     this.tweetLayer = L.TileLayer.maskCanvas({
       radius: 10,
       useAbsoluteRadius: true,
@@ -124,15 +129,9 @@ export class HeatmapComponent implements OnInit {
 
   heatmapDataHandler = (data) => {
     const heatmapConfig = {
-      // radius should be small ONLY if scaleRadius is true (or small radius is intended)
-      // if scaleRadius is false it will be the constant radius used in pixels
       radius: 1,
       maxOpacity: 0.5,
-      // scales the radius based on map zoom
       scaleRadius: true,
-      // if set to false the heatmap uses the global maximum for colorization
-      // if activated: uses the data maximum within the current map boundaries
-      //   (there will always be a red spot with useLocalExtremas true)
       useLocalExtrema: true,
       latField: 'lat',
       lngField: 'lng',
@@ -147,7 +146,6 @@ export class HeatmapComponent implements OnInit {
   }
 
   liveTweetSwitchHandler = (event) => {
-
     this.liveTweetMarkers = L.TileLayer.maskCanvas({
       radius: 10,
       useAbsoluteRadius: true,
@@ -177,7 +175,7 @@ export class HeatmapComponent implements OnInit {
     }
   }
 
-  timeRangeChangeHandler = (event,data) => {
+  timeRangeChangeHandler = (event, data) => {
     const tempData = [];
     this.tweetData.forEach(entry => {
       if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
@@ -186,7 +184,4 @@ export class HeatmapComponent implements OnInit {
     });
     this.tweetLayer.setData(tempData);
   }
-
-
-
 }

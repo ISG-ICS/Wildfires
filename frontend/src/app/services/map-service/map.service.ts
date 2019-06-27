@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {EventEmitter, Injectable, Output} from '@angular/core';
 import * as $ from 'jquery';
 
 @Injectable({
@@ -6,7 +6,11 @@ import * as $ from 'jquery';
 })
 export class MapService {
 
-  constructor() { }
+  // Declare data events for components to action
+  @Output() tweetDataLoaded = new EventEmitter();
+  @Output() heatmapDataLoaded = new EventEmitter();
+  @Output() timeseriesDataLoaded = new EventEmitter();
+  constructor() {}
 
   processCSVData(allText, limit, delim= ',') {
         const allTextLines = allText.split(/\r\n|\n/);
@@ -32,7 +36,7 @@ export class MapService {
           type: 'GET',
           url: 'http://127.0.0.1:5000/temp',
           dataType: 'text',
-      }).done(data => {
+      }).done( data => {
           const tempData = that.processCSVData(data, 60000);
           const tempDataArray = [];
           const coorSet = new Set();
@@ -62,8 +66,7 @@ export class MapService {
               max: 8,
               data: tempDataArray
           };
-
-          $(window).trigger('heatDataLoaded', testData);
+          this.heatmapDataLoaded.emit({heatmapData: testData});
       });
   }
 
@@ -71,7 +74,7 @@ export class MapService {
 
       const chartData = [];
       const dailyCount = {};
-
+      const that = this;
       $.ajax({
           type: 'GET',
           url: 'http://127.0.0.1:5000/tweets',
@@ -101,8 +104,8 @@ export class MapService {
 
           });
 
-          $(window).trigger('tweetsLoaded', {tweetData: dataArray});
-          $(window).trigger('timebarLoaed', {chartData});
+          this.tweetDataLoaded.emit({tweetData: dataArray});
+          this.timeseriesDataLoaded.emit({chartData});
       });
   }
 

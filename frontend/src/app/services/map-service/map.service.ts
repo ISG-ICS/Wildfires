@@ -13,7 +13,7 @@ export class MapService {
   timeseriesDataLoaded = new EventEmitter();
   fireEventDataLoaded = new EventEmitter();
   liveTweetLoaded = new EventEmitter();
-  liveTweetCycle = {}
+  liveTweetCycle: any;
 
   constructor() {}
 
@@ -142,6 +142,8 @@ export class MapService {
 
   }
 
-
+  stopliveTweet(): void {
+    window.clearInterval(this.liveTweetCycle);
+  }
 
 }

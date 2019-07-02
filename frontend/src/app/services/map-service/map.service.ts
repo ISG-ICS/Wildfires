@@ -1,4 +1,5 @@
 import {EventEmitter, Injectable, Output} from '@angular/core';
+import {Observable} from 'rxjs';
 import * as $ from 'jquery';
 
 @Injectable({
@@ -7,9 +8,13 @@ import * as $ from 'jquery';
 export class MapService {
 
   // Declare data events for components to action
-  @Output() tweetDataLoaded = new EventEmitter();
-  @Output() heatmapDataLoaded = new EventEmitter();
-  @Output() timeseriesDataLoaded = new EventEmitter();
+  tweetDataLoaded = new EventEmitter();
+  heatmapDataLoaded = new EventEmitter();
+  timeseriesDataLoaded = new EventEmitter();
+  fireEventDataLoaded = new EventEmitter();
+  liveTweetLoaded = new EventEmitter();
+  liveTweetCycle = {}
+
   constructor() {}
 
   processCSVData(allText, limit, delim= ',') {
@@ -96,8 +101,6 @@ export class MapService {
               dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
           });
 
-
-
           // timebar
           Object.keys(dailyCount).sort().forEach(key => {
               chartData.push([new Date(key).getTime(), dailyCount[key]]);
@@ -108,5 +111,37 @@ export class MapService {
           this.timeseriesDataLoaded.emit({chartData});
       });
   }
+
+  getWildfirePredictionData(): void {
+    const that = this;
+    $.ajax({
+      type: 'GET',
+      url: 'http://127.0.0.1:5000/wildfire_prediction',
+      dataType: 'text'}).done( (data) => {
+        const wildfire = JSON.parse(data).filter( entry => entry.nlp === true);
+        this.fireEventDataLoaded.emit({fireEvents: wildfire});
+    });
+  }
+
+  getLiveTweetData(): void {
+    const that = this;
+    $.ajax({
+      type: 'GET',
+      url: 'http://127.0.0.1:5000/live_tweet'
+    }).done( (data) => {
+      that.liveTweetLoaded.emit({ data });
+    });
+    this.liveTweetCycle = setInterval( () => {
+      $.ajax({
+        type: 'GET',
+        url: 'http://127.0.0.1:5000/live_tweet'
+      }).done( (data) => {
+        that.liveTweetLoaded.emit({ data });
+      });
+    }, 20000);
+
+  }
+
+
 
 }

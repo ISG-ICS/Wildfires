@@ -28,6 +28,7 @@
     "leaflet": "^1.5.1",
     "leaflet-heatmap": "^1.0.0",
     "leaflet-maskcanvas": "^1.0.0",
+    "leaflet-rain": "^0.2.0",
     "npm": "^6.9.1",
     "rxjs": "~6.4.0",
     "tslib": "^1.9.0",

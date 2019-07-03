@@ -13,6 +13,7 @@ export class MapService {
   timeseriesDataLoaded = new EventEmitter();
   fireEventDataLoaded = new EventEmitter();
   liveTweetLoaded = new EventEmitter();
+  mapLoaded = new EventEmitter();
   liveTweetCycle: any;
 
   constructor() {}

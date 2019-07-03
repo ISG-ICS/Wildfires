@@ -6,12 +6,10 @@ import {AppRoutingModule} from './app-routing.module';
 
 import {MapModule} from './map/map.module';
 import {AppComponent} from './app.component';
-import { SearchComponent } from './map/search/search.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    SearchComponent
   ],
   imports: [
     BrowserModule,

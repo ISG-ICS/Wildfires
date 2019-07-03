@@ -6,7 +6,7 @@ from nltk import word_tokenize
 from nltk.classify import NaiveBayesClassifier
 from nltk.corpus import stopwords
 
-from data_preparation.connection import Connection
+from backend.data_preparation.connection import Connection
 
 
 class NLTKTest:

@@ -8,7 +8,7 @@ from flask import Flask, send_from_directory, make_response, jsonify
 
 app = Flask(__name__, static_url_path='')
 
-from data_preparation.connection import Connection
+from backend.data_preparation.connection import Connection
 from classifiers.nltktest import NLTKTest
 
 conn = Connection()()

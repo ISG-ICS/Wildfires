@@ -28,7 +28,6 @@ export class HeatmapComponent implements OnInit {
   }
 
   ngOnInit() {
-
     // A hacky way to declare that
     const that = this;
     // Initialize map and 3 base layers
@@ -53,6 +52,7 @@ export class HeatmapComponent implements OnInit {
 
     this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
+    this.mapService.mapLoaded.emit(this.map);
     // Generate coordinate in siderbar
     this.map.addEventListener('mousemove', (ev) => {
       const lat = ev.latlng.lat;
@@ -118,8 +118,15 @@ export class HeatmapComponent implements OnInit {
   }
 
   liveTweetSwitchHandler = (event) => {
+    if (this.switchStatus === 1) {
+      this.liveTweetLayer.clearLayers();
+      this.mapService.stopliveTweet();
+      this.switchStatus = 0;
+      return;
+    }
     this.mapService.getLiveTweetData();
     this.mapService.liveTweetLoaded.subscribe(this.liveTweetDataHandler);
+    this.switchStatus = 1;
   }
 
   liveTweetDataHandler = (data) => {
@@ -132,14 +139,6 @@ export class HeatmapComponent implements OnInit {
       lineColor: '#e25822'
     });
 
-    if (this.switchStatus === 1) {
-      this.liveTweetLayer.clearLayers();
-
-      this.switchStatus = 0;
-      return;
-    }
-
-    this.switchStatus = 1;
     // Mockup Data for liveTweetLayer
     const birdIcon = L.icon({
       iconUrl: 'assets/image/perfectBird.gif',

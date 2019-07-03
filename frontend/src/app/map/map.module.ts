@@ -4,15 +4,13 @@ import {LeafletModule} from '@asymmetrik/ngx-leaflet';
 import {HeatmapComponent} from './heatmap/heatmap.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { TimeSeriesComponent } from './time-series/time-series.component';
-import {SearchComponent} from './search/search.component';
 
 @NgModule({
-  declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent, SearchComponent],
+  declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent],
   exports: [
     HeatmapComponent,
     SidebarComponent,
     TimeSeriesComponent,
-    SearchComponent
   ],
   imports: [
     CommonModule,

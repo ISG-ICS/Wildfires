@@ -1,4 +1,5 @@
 $(window).on("tweetsLoaded",function(ev){
+  console.log(chartData);
   chart = Highcharts.chart('timebar-container', {
     chart:{
       type:"line",

@@ -15,10 +15,10 @@ conn = Connection()()
 
 nl =  NLTKTest()
 nl.train()
-api = twitter.Api(consumer_key="v2AuZDaEtm9YDCThm4ER7reC0",
-                  consumer_secret="P1p9yDVH7pBbhzM5nUj7I6d4lCnthafKwiOLahzV2Sba1fZgmQ",
-                  access_token_key="718186099-RR2MmCc3J5jiuxV1l6BUomBsz9ggPLcmxEQf7hXI",
-                  access_token_secret="mD2GIRR4ctcjiWUmpIBudGA0EkiJL0IboHr8nmxTZ2ZvY")
+api = twitter.Api(consumer_key="",
+                  consumer_secret="",
+                  access_token_key="",
+                  access_token_secret="")
 
 tweet_query = "select r.create_at,l.top_left_long,l.top_left_lat,l.bottom_right_long,l.bottom_right_lat from records r,locations l where r.id=l.id";
 

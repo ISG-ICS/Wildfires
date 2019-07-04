@@ -1,3 +1,4 @@
+import pickle
 import random
 import re
 from collections import defaultdict
@@ -107,15 +108,12 @@ if __name__ == '__main__':
 
     nl = NLTKTest()
 
-    # plot(range(1, 20), [n_fold(x) for x in range(1, 20)])
-    # plot.show()
-
-    # print(nl.n_fold(20))
-    # for n in range(1, 20):
-    #     print(nl.n_fold(n))
-
-    print(nl.f1_score())
     nl.train()
+
+    # Store data (serialize)
+    with open('../models/nltk_model.pickle', 'wb') as handle:
+        pickle.dump(nl, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     for text, in Connection().sql_execute("select text from records where label1 is NULL"):
         print(text)
         print(nl.predict(text))

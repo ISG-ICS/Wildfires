@@ -2,6 +2,7 @@ from typing import Dict
 import pygrib
 import json
 
+
 class GRIBExtractor:
     def __init__(self, open_file_name, prop_name, prop_typeOfLevel):
         self.file_handler = pygrib.open(open_file_name)

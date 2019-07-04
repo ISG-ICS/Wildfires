@@ -47,13 +47,12 @@ class URLClassifier:
     def classify(self, short_link):
         # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
         expanded_url = requests.get(short_link).url
-        print(expanded_url)
-        if (expanded_url.find("twitter") != -1) and (expanded_url.find("instagram") == -1):
+        if expanded_url.find("twitter") != -1 and expanded_url.find("instagram") == -1:
             if expanded_url.find("video") != -1:
-                return 1
+                return URLClassifier.TWEET_VIDEO
             else:
-                return 0
+                return URLClassifier.TWEET_IMAGE
         elif expanded_url.find("instagram") != -1:
-            return 2
+            return URLClassifier.INS
         else:
-            return 3
+            return URLClassifier.OTHERS

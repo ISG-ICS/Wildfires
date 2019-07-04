@@ -5,9 +5,9 @@ import webbrowser
 
 import requests
 from bs4 import BeautifulSoup
-
-from data_preparation.connection import Connection
-from url_extract.URL_Classifier import URLClassifier
+from selenium import webdriver
+from backend.data_preparation.connection import Connection
+from backend.extractor.url_classifier import URLClassifier
 
 
 def truncate_table(table_name):
@@ -57,7 +57,7 @@ def get_twitter_image(link):
 
 def get_twitter_video(link):
     # gets twitter video url
-    from selenium import webdriver
+
     driver = webdriver.PhantomJS()
     driver.get(link)
     html = driver.execute_script("return document.getElementsByTagName('html')[0].innerHTML")

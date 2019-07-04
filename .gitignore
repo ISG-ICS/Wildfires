@@ -169,4 +169,5 @@ gen
 # data
 data
 
-
+# mac DS
+*/.DS_Store

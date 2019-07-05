@@ -14,6 +14,7 @@ export class MapService {
   fireEventDataLoaded = new EventEmitter();
   liveTweetLoaded = new EventEmitter();
   mapLoaded = new EventEmitter();
+  windDataLoaded = new EventEmitter();
   liveTweetCycle: any;
 
   constructor() {}
@@ -141,6 +142,17 @@ export class MapService {
       });
     }, 20000);
 
+  }
+
+  getWindData(): void {
+    const that = this;
+    $.ajax({
+      type: 'GET',
+      url: 'http://127.0.0.1:5000/wind'
+    }).done( (data) => {
+      this.windDataLoaded.emit({ data });
+
+    });
   }
 
   stopliveTweet(): void {

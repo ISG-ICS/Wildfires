@@ -1,11 +1,11 @@
-import {Component, EventEmitter, Input, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import 'leaflet/dist/leaflet.css';
 declare let L;
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
-import 'leaflet-rain';
+import 'leaflet-velocity-ts';
 
 @Component({
   selector: 'app-heatmap',
@@ -72,8 +72,12 @@ export class HeatmapComponent implements OnInit {
     this.mapService.getWildfirePredictionData();
     this.mapService.fireEventDataLoaded.subscribe( this.fireEventHandler);
 
+    // Get wind data from service
+    this.mapService.getWindData();
+
     // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
+    this.mapService.windDataLoaded.subscribe(this.windDataHandler);
 
     // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);
@@ -145,8 +149,6 @@ export class HeatmapComponent implements OnInit {
       iconSize: [20, 20]
     });
 
-    console.log(data);
-
     const birdCoordinates = [];
 
     data.data.forEach( (x) => {
@@ -157,7 +159,7 @@ export class HeatmapComponent implements OnInit {
         this.liveTweetBird.push(marker);
         this.liveTweetIdSet.add(x.id);
       }
-    })
+    });
 
     this.liveTweetLayer = L.layerGroup(this.liveTweetBird);
     this.liveTweetLayer.addTo(this.map);
@@ -192,8 +194,8 @@ export class HeatmapComponent implements OnInit {
 
     const fireEventList = [];
 
-    for (let i = 0; i < data.fireEvents.length; i++) {
-      const point = [data.fireEvents[i].lat, data.fireEvents[i].long];
+    for (const ev of  data.fireEvents) {
+      const point = [ev.lat, ev.long];
       const size = 40;
       const fireIcon = L.icon({
         iconUrl: 'assets/image/pixelfire.gif',
@@ -207,6 +209,22 @@ export class HeatmapComponent implements OnInit {
     this.mainControl.addOverlay(fireEvents, 'Fire event');
   }
 
+  windDataHandler = (wind) => {
+    const velocityLayer = L.velocityLayer({
+      displayValues: true,
+      displayOptions: {
+        position: 'bottomleft',
+        velocityType: 'Global Wind',
+        displayPosition: 'bottomleft',
+        displayEmptyString: 'No wind data',
+        angleConvention: 'bearingCW',
+        speedUnit: 'm/s'
+      },
+      data: wind.data,
+      maxVelocity: 100
+    });
 
+    this.mainControl.addOverlay(velocityLayer, 'Global wind');
+  }
 
 }

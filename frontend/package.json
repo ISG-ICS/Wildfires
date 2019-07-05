@@ -30,6 +30,7 @@
     "leaflet-maskcanvas": "^1.0.0",
     "leaflet-rain": "^0.2.0",
     "leaflet-velocity": "^1.3.0",
+    "leaflet-velocity-ts": "^1.1.7",
     "npm": "latest",
     "rxjs": "~6.4.0",
     "tslib": "^1.9.0",

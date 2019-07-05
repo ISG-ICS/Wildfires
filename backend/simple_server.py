@@ -7,6 +7,9 @@ import json
 import requests
 import re
 import string
+import pygrib
+import numpy as np
+
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
@@ -29,6 +32,40 @@ tweet_query = "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_rig
 @app.route("/temp")
 def send_temp_data():
     resp = make_response(send_from_directory('data', 'temp.csv'))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+@app.route("/wind")
+def send_wind_data():
+    grbs = pygrib.open('gfs.t12z.pgrb2.0p25.anl')
+    grbs.seek(0)
+    result_list = []
+    result = {}
+    result['header'] = {}
+    result['data'] = np.array([])
+    for g in grbs:
+        for row in g['values']:
+            result['data'] = np.concatenate((result['data'], row), axis=0)
+        result['header']['parameterCategory'] = g["parameterCategory"]
+        result['header']['parameterNumber'] = g['parameterNumber']
+        result['header']['numberPoints'] = len(result['data'])
+        result['header']['nx'] = g['Ni']
+        result['header']['ny'] = g['Nj']
+        result['header']['lo1'] = g['longitudeOfFirstGridPointInDegrees']
+        result['header']['lo2'] = g['longitudeOfLastGridPointInDegrees']
+        result['header']['la1'] = g['latitudeOfFirstGridPointInDegrees']
+        result['header']['la2'] = g['latitudeOfLastGridPointInDegrees']
+        result['header']['dx'] = g['iDirectionIncrementInDegrees']
+        result['header']['dy'] = g['jDirectionIncrementInDegrees']
+        result['header']['refTime'] = '2019-07-03T12:00:00.000Z'
+        result['header']['forecastTime'] = 0
+        result['data'] = result['data'].tolist()
+        result_list.append(result)
+        result = {}
+        result['header'] = {}
+        result['data'] = []
+    resp = make_response(jsonify(result_list))
+    #resp = make_response(send_from_directory('','2019070312.json'))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 

@@ -7,6 +7,7 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import * as turf from '@turf/turf'
 
 @Component({
   selector: 'app-heatmap',
@@ -64,6 +65,12 @@ export class HeatmapComponent implements OnInit {
     // Get heatmap data from service
     this.mapService.getHeatmapData();
     this.mapService.heatmapDataLoaded.subscribe(this.heatmapDataHandler);
+
+    // Get my heatmap data from service
+    this.mapService.getmyTempData();
+    this.mapService.contourDataLoaded.subscribe( this.contourDataHandler);
+    this.mapService.contourDataLoaded.subscribe( this.polygonDataHandler);
+    //this.contourDataHandler()
 
     // Get tweets data from service
     this.mapService.getTweetsData();
@@ -210,6 +217,116 @@ export class HeatmapComponent implements OnInit {
     this.mainControl.addOverlay(fireEvents, 'Fire event');
   }
 
+  contourDataHandler = (data) => {
+      let tempPointsList = [];
+      for (let points of data.contourData){
+        const tempPoint = turf.point([points.lat, points.long], {'temperature':points.temp});
+        tempPointsList.push(tempPoint);
+      }
+      console.log(tempPointsList);
+      const pointGrid = turf.featureCollection(tempPointsList)
+      const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+      //const breaks = [0.08, 0.09, 0.10, 0.11, 0.12];
+      let lines = turf.isolines(pointGrid, breaks, { zProperty: 'temperature' });
+      console.log(lines)
+
+      var _lFeatures = lines.features;
+      for(var i=0;i<_lFeatures.length;i++){
+          var _coords = _lFeatures[i].geometry.coordinates;
+          var _lCoords = [];
+          for(var j=0;j<_coords.length;j++){
+                                  var _coord = _coords[j];
+                                  var line = turf.lineString(_coord);
+                                  var curved = turf.bezierSpline(line);
+                                  _lCoords.push(curved.geometry.coordinates);
+                              }
+          _lFeatures[i].geometry.coordinates = _lCoords;
+      }
+
+
+      const region = L.geoJSON(lines).addTo(this.map);
+      this.map.fitBounds(region.getBounds());
+  }
+
+  polygonDataHandler  = (data) => {
+    let my = data.contourData;
+    let all_latlng = []
+    for (let t = 17; t < 23; t++) {
+      //console.log(my[i].lat);
+      let latlng_list = [];
+      for (let i = 0; i < my.length; i++) {
+        if (my[i].temp >= t && my[i].temp <= t + 1) {
+          latlng_list.push([Number(my[i].lat), Number(my[i].long)]);
+        }
+      }
+      all_latlng.push(latlng_list)
+
+
+    }
+      console.log(all_latlng);
+
+      for (let i of all_latlng[0]) {
+        const points1 = L.circle(i, {
+          color: 'blue',
+          fillColor: 'blue',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      for (let i of all_latlng[1]) {
+        const points1 = L.circle(i, {
+          color: 'green',
+          fillColor: 'green',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      for (let i of all_latlng[2]) {
+        const points1 = L.circle(i, {
+          color: 'yellow',
+          fillColor: 'yellow',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      for (let i of all_latlng[3]) {
+        const points1 = L.circle(i, {
+          color: 'orange',
+          fillColor: 'orange',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      for (let i of all_latlng[4]) {
+        const points1 = L.circle(i, {
+          color: 'red',
+          fillColor: 'red',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      for (let i of all_latlng[5]) {
+        const points1 = L.circle(i, {
+          color: 'purple',
+          fillColor: 'purple',
+          fillOpacity: 1
+        }).addTo(this.map);
+      }
+
+      /*
+      const polyline0 = L.polyline(all_latlng[0], {color: 'blue', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
+      this.map.fitBounds(polyline0.getBounds());
+      const polyline1 = L.polyline(all_latlng[1], {color: 'green', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
+      this.map.fitBounds(polyline1.getBounds());
+      const polyline2 = L.polyline(all_latlng[2], {color: 'yellow', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
+      this.map.fitBounds(polyline2.getBounds());
+      const polyline3 = L.polyline(all_latlng[3], {color: 'orange', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
+      this.map.fitBounds(polyline3.getBounds());
+      const polyline4 = L.polyline(all_latlng[4], {color: 'red', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
+      this.map.fitBounds(polyline4.getBounds());
+       */
+  }
+
   windDataHandler = (wind) => {
     // there's not much document about leaflet-velocity.
     // all we got is an example usage from
@@ -228,7 +345,6 @@ export class HeatmapComponent implements OnInit {
       data: wind.data,
       maxVelocity: 12 // affect color and animation speed of wind
     });
-
     this.mainControl.addOverlay(velocityLayer, 'Global wind');
   }
 

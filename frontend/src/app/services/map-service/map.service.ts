@@ -14,6 +14,7 @@ export class MapService {
   fireEventDataLoaded = new EventEmitter();
   liveTweetLoaded = new EventEmitter();
   mapLoaded = new EventEmitter();
+  contourDataLoaded = new EventEmitter();
   windDataLoaded = new EventEmitter();
   liveTweetCycle: any;
 
@@ -135,6 +136,22 @@ export class MapService {
 
   stopliveTweet(): void {
     window.clearInterval(this.liveTweetCycle);
+  }
+
+
+
+  getmyTempData(): void {
+      const that = this;
+      $.ajax({
+          type: 'GET',
+          url: 'http://127.0.0.1:5000/fuyuan',
+          dataType: 'text',
+      }).done(data => {
+
+          const myTempData = JSON.parse(data);
+          this.contourDataLoaded.emit({contourData: myTempData});
+      });
+
   }
 
 }

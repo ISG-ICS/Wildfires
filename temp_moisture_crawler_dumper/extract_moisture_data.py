@@ -8,6 +8,8 @@ class GRIBExtractor:
         self.file_handler = pygrib.open(open_file_name)
         self.data: Dict = self.extract(prop_name, prop_first, prop_second)
 
+    def extract(self, prop_name: str, prop_typeOfLevel: str) -> dict:
+        prop_msg = self.file_handler.select(name=prop_name, typeOfLevel=prop_typeOfLevel, shortName='SOILL0-10cm')[0]
     def extract(self, prop_name: str, prop_first: int, prop_second: int) -> dict:
         prop_msg = self.file_handler.select(name=prop_name, scaledValueOfFirstFixedSurface=prop_first,
                                             scaledValueOfSecondFixedSurface=prop_second)[0]
@@ -27,8 +29,7 @@ class GRIBExtractor:
         value = self.data.get(str(lat_lng_pair))
         return value
 
-# if __name__ == '__main__':
-# exp = pygrib.open('moisture_data/cdas1.t00z.sfluxgrbf02.grib2.txt').read()
-# for line in exp:
-#     print(line)
-# file = pygrib.open('moisture_data/cdas1.t00z.sfluxgrbf02.grib2.txt')
+
+if __name__ == '__main__':
+    grib_extractor = GRIBExtractor('cdas1.t00z.sfluxgrbf02.grib2.txt', 'Temperature', 'surface')
+    temperature = grib_extractor[89.84351351786847, 1.8409067652075042]

@@ -44,34 +44,11 @@ export class MapService {
           url: 'http://127.0.0.1:5000/temp',
           dataType: 'text',
       }).done( data => {
-          const tempData = that.processCSVData(data, 60000);
-          const tempDataArray = [];
-          const coorSet = new Set();
-          const dailyCount = {};
-          for (const entry of tempData) {
-              const createAt = entry[6];
-
-              if (dailyCount.hasOwnProperty(createAt)) {
-                  dailyCount[createAt] = entry[8];
-              } else {
-                  dailyCount[createAt] = entry[8];
-              }
-              if (!coorSet.has(entry[3] + entry[4])) {
-                  tempDataArray.push({lat: entry[3], lng: entry[4], temperature: entry[8]});
-              }
-              const station = entry[3] + entry[4];
-              coorSet.add(station);
-              if (heatData.hasOwnProperty(station)) {
-                  heatData[station].push([new Date(createAt).getTime(), parseFloat(entry[8])]);
-              } else {
-                  heatData[station] = [[new Date(createAt).getTime(), parseFloat(entry[8])]];
-              }
-
-          }
-
+          const dataList = JSON.parse(data);
+          console.log(dataList);
           const testData = {
               max: 8,
-              data: tempDataArray
+              data: dataList
           };
           this.heatmapDataLoaded.emit({heatmapData: testData});
       });

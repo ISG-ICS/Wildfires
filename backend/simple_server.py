@@ -19,6 +19,7 @@ from paths import NLTK_MODEL_PATH
 
 app = Flask(__name__, static_url_path='')
 
+
 nl: NLTKTest = pickle.load(open(NLTK_MODEL_PATH, 'rb'))
 api = twitter.Api(consumer_key="",
                   consumer_secret="",
@@ -127,8 +128,8 @@ def send_tweets_data():
         cur.execute(tweet_query)
 
         resp = make_response(
-            jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in
-                     cur.fetchall()]))
+            jsonify(
+                [{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp
@@ -146,6 +147,26 @@ def send_wildfire():
             jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
+    return resp
+
+
+
+@app.route("/fuyuan")
+def send_myTemp_data():
+    fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from historical_temperature t where t.temperature is not NULL")
+    d = []
+    #fetch = Connection().sql_execute(
+    #    "select t.lat, t.long, t.moisture from recent_moisture t where t.moisture is not NULL")
+
+    for row in fetch:
+        object = {}
+        object["lat"] = row[0]
+        object["long"] = row[1]
+        object["temp"]  = row[2]
+        d.append(object)
+
+    resp = make_response(jsonify(d))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 

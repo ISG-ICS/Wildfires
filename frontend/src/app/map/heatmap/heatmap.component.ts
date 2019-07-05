@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import 'leaflet/dist/leaflet.css';
 declare let L;
 import * as $ from 'jquery';
@@ -161,7 +161,7 @@ export class HeatmapComponent implements OnInit {
         this.liveTweetBird.push(marker);
         this.liveTweetIdSet.add(x.id);
       }
-    })
+    });
 
     this.liveTweetLayer = L.layerGroup(this.liveTweetBird);
     this.liveTweetLayer.addTo(this.map);
@@ -196,8 +196,8 @@ export class HeatmapComponent implements OnInit {
 
     const fireEventList = [];
 
-    for (let i = 0; i < data.fireEvents.length; i++) {
-      const point = [data.fireEvents[i].lat, data.fireEvents[i].long];
+    for (const ev of  data.fireEvents.length) {
+      const point = [ev.lat, ev.long];
       const size = 40;
       const fireIcon = L.icon({
         iconUrl: 'assets/image/pixelfire.gif',
@@ -212,7 +212,6 @@ export class HeatmapComponent implements OnInit {
   }
 
   windDataHandler = (wind) => {
-    console.log( wind.data[0]);
     const velocityLayer = L.velocityLayer({
       displayValues: true,
       displayOptions: {

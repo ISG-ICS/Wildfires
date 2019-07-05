@@ -17,8 +17,6 @@ from configurations import NLTK_MODEL_PATH
 
 app = Flask(__name__, static_url_path='')
 
-conn = Connection()()
-
 nl: NLTKTest = pickle.load(open(NLTK_MODEL_PATH, 'rb'))
 api = twitter.Api(consumer_key="",
                   consumer_secret="",
@@ -31,8 +29,13 @@ tweet_query = "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_rig
 
 @app.route("/temp")
 def send_temp_data():
-    resp = make_response(send_from_directory('data', 'temp.csv'))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
+    query = "select * from recent_temperature "
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query);
+        resp = make_response(jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value, _ in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
     return resp
 
 @app.route("/wind")
@@ -46,25 +49,26 @@ def send_wind_data():
     for g in grbs:
         for row in g['values']:
             result['data'] = np.concatenate((result['data'], row), axis=0)
-        result['header']['parameterCategory'] = g["parameterCategory"]
-        result['header']['parameterNumber'] = g['parameterNumber']
-        result['header']['numberPoints'] = len(result['data'])
-        result['header']['nx'] = g['Ni']
-        result['header']['ny'] = g['Nj']
-        result['header']['lo1'] = g['longitudeOfFirstGridPointInDegrees']
-        result['header']['lo2'] = g['longitudeOfLastGridPointInDegrees']
-        result['header']['la1'] = g['latitudeOfFirstGridPointInDegrees']
-        result['header']['la2'] = g['latitudeOfLastGridPointInDegrees']
-        result['header']['dx'] = g['iDirectionIncrementInDegrees']
-        result['header']['dy'] = g['jDirectionIncrementInDegrees']
-        result['header']['refTime'] = '2019-07-03T12:00:00.000Z'
-        result['header']['forecastTime'] = 0
+
+        result['header'] = {
+          'parameterCategory' : g["parameterCategory"],
+          'parameterNumber':  g['parameterNumber'],
+          'numberPoints' :  len(result['data']),
+          'nx' : g['Ni'],
+          'ny' : g['Nj'],
+          'lo1': g['longitudeOfFirstGridPointInDegrees'],
+          'lo2': g['longitudeOfLastGridPointInDegrees'],
+          'la1': g['latitudeOfFirstGridPointInDegrees'],
+          'la2': g['latitudeOfLastGridPointInDegrees'],
+          'dx': g['iDirectionIncrementInDegrees'],
+          'dy': g['jDirectionIncrementInDegrees'],
+        }
         result['data'] = result['data'].tolist()
         result_list.append(result)
         result = {}
         result['header'] = {}
         result['data'] = []
-    resp = make_response(jsonify(result_list))
+        resp = make_response(jsonify(result_list))
     #resp = make_response(send_from_directory('','2019070312.json'))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
@@ -113,13 +117,14 @@ def send_live_tweet():
 
 @app.route("/tweets")
 def send_tweets_data():
-    cur = Connection()().cursor()
-    cur.execute(tweet_query)
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(tweet_query)
 
-    resp = make_response(
-        jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat,_,_ in cur.fetchall()]))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
-    cur.close()
+        resp = make_response(
+            jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat,_,_ in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
     return resp
 
 
@@ -127,13 +132,14 @@ def send_tweets_data():
 def send_wildfire():
     query = "select l.top_left_long, l.top_left_lat, r.text from locations l, images i, records r " \
             "where l.id = i.id and r.id = l.id and i.wildfire > 40;"
-    cur = Connection()().cursor()
-    cur.execute(query)
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query)
 
-    resp = make_response(
-        jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
-    cur.close()
+        resp = make_response(
+            jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
     return resp
 
 

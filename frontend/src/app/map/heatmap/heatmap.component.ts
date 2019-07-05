@@ -221,7 +221,7 @@ export class HeatmapComponent implements OnInit {
         speedUnit: 'm/s'
       },
       data: wind.data,
-      maxVelocity: 100
+      maxVelocity: 12
     });
 
     this.mainControl.addOverlay(velocityLayer, 'Global wind');

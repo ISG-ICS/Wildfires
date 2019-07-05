@@ -80,7 +80,6 @@ export class HeatmapComponent implements OnInit {
 
     // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
-    this.mapService.windDataLoaded.subscribe(this.windDataHandler);
 
     // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);

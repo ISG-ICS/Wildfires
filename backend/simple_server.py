@@ -1,5 +1,4 @@
 import pickle
-
 from backend.data_preparation.connection import Connection
 from backend.classifiers.nltktest import NLTKTest
 import twitter
@@ -90,13 +89,26 @@ def send_tweets_data():
 def send_wildfire():
     query = "select l.top_left_long, l.top_left_lat, r.text from locations l, images i, records r " \
             "where l.id = i.id and r.id = l.id and i.wildfire > 40;"
-    cur = Connection()().cursor()
-    cur.execute(query)
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query)
+
+        resp = make_response(
+            jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
+    return resp
+
+
+@app.route("/moisture")
+def send_moisture():
+    query = "select m.lat, m.long, m.moisture from historical_moisture m where m.moisture is not null"
 
     resp = make_response(
-        jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
+        jsonify([{"lng": lng, "lat": lat, "moisture": moisture} for lat, lng, moisture in Connection().sql_execute(query)
+    ]))
+
     resp.headers['Access-Control-Allow-Origin'] = '*'
-    cur.close()
     return resp
 
 

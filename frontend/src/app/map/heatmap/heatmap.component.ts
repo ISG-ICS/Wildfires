@@ -6,6 +6,7 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-rain';
+import * as turf from '@turf/turf';
 
 @Component({
   selector: 'app-heatmap',
@@ -71,6 +72,11 @@ export class HeatmapComponent implements OnInit {
     // Get rainfall data from service
     this.mapService.getWildfirePredictionData();
     this.mapService.fireEventDataLoaded.subscribe( this.fireEventHandler);
+
+    // Get moisture data from service
+    this.mapService.getMoistureData();
+    this.mapService.moistureEventDataLoaded.subscribe( this.moistureDataHandler);
+
 
     // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
@@ -157,7 +163,7 @@ export class HeatmapComponent implements OnInit {
         this.liveTweetBird.push(marker);
         this.liveTweetIdSet.add(x.id);
       }
-    })
+    });
 
     this.liveTweetLayer = L.layerGroup(this.liveTweetBird);
     this.liveTweetLayer.addTo(this.map);
@@ -205,6 +211,45 @@ export class HeatmapComponent implements OnInit {
     }
     const fireEvents = L.layerGroup(fireEventList);
     this.mainControl.addOverlay(fireEvents, 'Fire event');
+  }
+
+  moistureDataHandler = (data) => {
+      const moisturePointsList = [];
+      for (const each of data.moistureEvents) {
+          const moisturePoint = turf.point( [each.lat, each.lng], {moisture: each.moisture});
+          moisturePointsList.push(moisturePoint);
+      }
+      console.log(moisturePointsList);
+      const tempFeatures = turf.featureCollection(moisturePointsList );
+      const pointGrid = turf.explode(tempFeatures);
+
+      const breaks = [19.5, 40.0, 43.2, 44.2, 50.0, 70.0];
+      const lines = turf.isolines(pointGrid, breaks, {zProperty: 'moisture' });
+
+      const myStyle = {
+                      color: '#ff7800',
+                      weight: 3,
+                      opacity: 0.65
+                  };
+
+      // Make smooth
+      const _lFeatures = lines.features;
+      for (let i = 0; i < _lFeatures.length; i++) {
+          const _coords = _lFeatures[i].geometry.coordinates;
+          const _lCoords = [];
+          for (let j = 0; j < _coords.length; j++) {
+                                  const _coord = _coords[j];
+                                  const line = turf.lineString(_coord);
+                                  const curved = turf.bezierSpline(line);
+                                  _lCoords.push(curved.geometry.coordinates);
+                              }
+          _lFeatures[i].geometry.coordinates = _lCoords;
+      }
+      // Add to map
+      const region = L.geoJSON(lines, {style: myStyle}).addTo(this.map);
+      console.log(lines);
+      this.map.fitBounds(region.getBounds());
+
   }
 
 

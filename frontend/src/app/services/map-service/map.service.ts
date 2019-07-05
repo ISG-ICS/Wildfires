@@ -14,6 +14,7 @@ export class MapService {
   fireEventDataLoaded = new EventEmitter();
   liveTweetLoaded = new EventEmitter();
   mapLoaded = new EventEmitter();
+  moistureEventDataLoaded = new EventEmitter();
   liveTweetCycle: any;
 
   constructor() {}
@@ -146,5 +147,19 @@ export class MapService {
   stopliveTweet(): void {
     window.clearInterval(this.liveTweetCycle);
   }
+
+  getMoistureData(): void {
+    const that = this;
+    $.ajax({
+      type: 'GET',
+      url: 'http://127.0.0.1:5000/moisture',
+      dataType: 'text'}).done( data => {
+        const moisture = JSON.parse(data);
+        this.moistureEventDataLoaded.emit({moistureEvents: moisture});
+      });
+  }
+
+  
+
 
 }

@@ -149,8 +149,6 @@ export class HeatmapComponent implements OnInit {
       iconSize: [20, 20]
     });
 
-    console.log(data);
-
     const birdCoordinates = [];
 
     data.data.forEach( (x) => {
@@ -196,7 +194,7 @@ export class HeatmapComponent implements OnInit {
 
     const fireEventList = [];
 
-    for (const ev of  data.fireEvents.length) {
+    for (const ev of  data.fireEvents) {
       const point = [ev.lat, ev.long];
       const size = 40;
       const fireIcon = L.icon({

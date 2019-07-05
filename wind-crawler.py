@@ -4,13 +4,12 @@ import math
 import os
 import subprocess
 
-# baseDir = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_1p00.pl'
 baseDir = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl'
 
 
 def main():
     t = datetime.today()
-    runQuery(t - timedelta(hours=0))
+    runQuery(t + timedelta(hours=6))
 
 
 def runQuery(t):
@@ -20,25 +19,10 @@ def runQuery(t):
     stamp = date + hour
     stamp2 = date + '/' + hour
 
-    # qs = {
-    #     'file': 'gfs.t' + hour + 'z.pgrb2.1p00.f000',
-    #     'lev_10_m_above_ground': 'on',
-    #     'lev_surface': 'on',
-    #     'var_TMP': 'on',
-    #     'var_UGRD': 'on',
-    #     'var_VGRD': 'on',
-    #     'leftlon': 0,
-    #     'rightlon': 360,
-    #     'toplat': 90,
-    #     'bottomlat': -90,
-    #     'dir': '/gfs.' + stamp2
-    # }
-
+    # parameters of GET
     qs = {
         'file': 'gfs.t' + hour + 'z.pgrb2.0p25.anl',
-        'lev_10_m_above_ground': 'on',
-        'lev_surface': 'on',
-        'var_TMP': 'on',
+        'lev_20_m_above_ground': 'on',
         'var_UGRD': 'on',
         'var_VGRD': 'on',
         'leftlon': 0,
@@ -50,13 +34,16 @@ def runQuery(t):
     try:
         r = requests.get(url=baseDir, params=qs)
         if r.status_code != 200:
+            # try -6h
             print(stamp + ' not found')
             runQuery(t - timedelta(hours=6))
         else:
+            # create dirs
             if not os.path.isdir('grib-data'):
                 os.makedirs('grib-data')
             if not os.path.isdir('json-data'):
                 os.makedirs('json-data')
+            # write file
             with open(os.path.join('grib-data', stamp + '.f000'), 'wb') as f:
                 f.write(r.content)
             print('saved')
@@ -70,6 +57,7 @@ def runQuery(t):
             if process.returncode == 0:
                 print('converted')
     except IOError as e:
+        # try -6h
         print(e)
         runQuery(t - timedelta(hours=6))
 

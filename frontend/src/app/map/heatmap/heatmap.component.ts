@@ -229,4 +229,5 @@ export class HeatmapComponent implements OnInit {
 
     this.mainControl.addOverlay(velocityLayer, 'Global wind');
   }
+
 }

@@ -57,5 +57,5 @@ if __name__ == '__main__':
     # for line in exp:
     #     print(line)
     # file = pygrib.open('moisture_data/cdas1.t00z.sfluxgrbf02.grib2.txt')
-    exp = TIFExtractor('historical_temperature_data/t.full.1stday_month_20130717.tif')
+    exp = TIFExtractor('historical_temperature_data/t.full.1stday_month_20140820.tif')
     exp.extract()

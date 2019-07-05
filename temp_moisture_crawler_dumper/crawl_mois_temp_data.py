@@ -48,7 +48,6 @@ class MoistureTemperatureCrawler:
                 html = urlopen('https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/')
                 bsObj = BeautifulSoup(html, 'html.parser')
                 fileList = bsObj.find_all('a')
-                locations
                 count = 1
                 for file in fileList:
                     fileLink = file.get('href')
@@ -58,7 +57,7 @@ class MoistureTemperatureCrawler:
                             continue
                         url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/' + fileLink
                         req = requests.get(url)
-                        with open('./recent_moisture_data/' + fileLink + '_' + date + '.txt', 'wb') as file_to_write:
+                        with open('./recent_mois_temp_data/' + fileLink + '_' + date + '.txt', 'wb') as file_to_write:
                             file_to_write.write(req.content)
                         count += 1
 

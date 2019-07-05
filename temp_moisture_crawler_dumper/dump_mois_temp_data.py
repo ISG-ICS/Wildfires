@@ -80,10 +80,10 @@ class MoistureTemperatureDumper:
 
 if __name__ == '__main__':
     # path to datafile, data_date = 'historical' or 'recent', data_type = 'temperature' or 'moisture'
-    # dumper = MoistureTemperatureDumper('historical_moisture_data','historical','moisture')
-    # dumper.extract_and_dump()
-    dumper = MoistureTemperatureDumper('historical_temperature_data', 'historical', 'temperature')
+    dumper = MoistureTemperatureDumper('historical_moisture_data', 'historical', 'moisture')
     dumper.extract_and_dump()
+    # dumper = MoistureTemperatureDumper('historical_temperature_data', 'historical', 'temperature')
+    # dumper.extract_and_dump()
     # conn = psycopg2.connect(dbname="testdb", user="tester", password="testpassword",
     #                         host="cloudberry05.ics.uci.edu", port="5432")
     # cur = conn.cursor()

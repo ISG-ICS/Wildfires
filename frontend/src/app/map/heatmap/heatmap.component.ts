@@ -5,7 +5,7 @@ import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
-import 'leaflet-rain';
+import 'leaflet-velocity';
 
 @Component({
   selector: 'app-heatmap',
@@ -72,8 +72,12 @@ export class HeatmapComponent implements OnInit {
     this.mapService.getWildfirePredictionData();
     this.mapService.fireEventDataLoaded.subscribe( this.fireEventHandler);
 
+    // Get wind data from service
+    this.mapService.getWindData();
+
     // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
+    this.mapService.windDataLoaded.subscribe(this.windDataHandler);
 
     // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);
@@ -207,6 +211,20 @@ export class HeatmapComponent implements OnInit {
     this.mainControl.addOverlay(fireEvents, 'Fire event');
   }
 
+  windDataHandler = (wind) => {
+    console.log( wind.data[0]);
+    const velocityLayer = L.velocityLayer({
+      displayValues: true,
+      displayOptions: {
+        velocityType: 'Global Wind',
+        displayPosition: 'bottomleft',
+        displayEmptyString: 'No wind data'
+      },
+      data: wind.data,
+      maxVelocity: 15
+    });
 
+    this.mainControl.addOverlay(velocityLayer, 'Global wind');
+  }
 
 }

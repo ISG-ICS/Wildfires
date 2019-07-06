@@ -167,11 +167,16 @@ out
 gen
 
 # node
-*/node_modules/
+**/node_modules/
 
 # data
 data/*
 !data/test/*  ### except for test data
 
 # mac DS
-*/.DS_Store
+.DS_Store
+._.DS_Store
+**/._.DS_Store
+**/.DS_Store
+
+

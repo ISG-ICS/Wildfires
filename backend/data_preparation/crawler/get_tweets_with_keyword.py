@@ -8,10 +8,22 @@ import json
 from backend.data_preparation.connection import Connection
 
 # account info can be found on slack
+from backend.data_preparation.crawler.crawlerbase import CrawlerBase
+
 api = twitter.Api(consumer_key="",
                   consumer_secret="",
                   access_token_key="",
                   access_token_secret="")
+
+
+class TweetCrawler(CrawlerBase):
+
+    # TODO: please fill in the crawler definition follow the comments in base class CrawlerBase
+    def start(self, end_clause=None, *args, **kwargs):
+        pass
+
+    def __getitem__(self, index):
+        pass
 
 
 def crawl_content_according_to_keywords(keywords: list):
@@ -32,7 +44,7 @@ def crawl_content_according_to_keywords(keywords: list):
         content_list.append(content)
     return content_list
 
-
+# TODO: separate this part into Extractor and Dumper class, injecting to Crawler.
 def send_live_tweets(keywords: list, batch_number, hasGeoLocation):  # keywords:list, hasGeoLocation, batch_number,
     cnt = 0
     # to keep track of the # of id
@@ -52,6 +64,9 @@ def send_live_tweets(keywords: list, batch_number, hasGeoLocation):  # keywords:
     returned_id = api.GetStatuses(id_list)
     for item in returned_id:
         obj = json.loads(str(item))
+
+        # OPTIMIZE: eliminate code duplication by extracting a function.
+
         if "place" in obj and obj["id"] not in id_set:
             left = obj["place"]['bounding_box']['coordinates'][0][0]
             right = obj["place"]['bounding_box']['coordinates'][0][2]
@@ -78,8 +93,8 @@ def insert_one_record(id: int, date: datetime, text: str, lat, long, hash_tag: l
         f"insert into new_records (id, create_at, text, hash_tag) values ({id}, '{date}', '{text}', "
         f"{', '.join(hash_tag) if hash_tag else 'NULL'});", commit=True)
 
-    # insert the geo-location to table `locations` instead of `records`;
-    # for testing purpose, please use some temp table like `new_locations`
+    # TODO: insert the geo-location to table `locations` instead of `records`;
+    # TODO: for testing purpose, please use some temp table like `new_locations`
 
 
 if __name__ == '__main__':

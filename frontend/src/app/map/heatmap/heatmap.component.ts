@@ -6,7 +6,6 @@ import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
-import 'leaflet-rain';
 import 'leaflet-velocity-ts';
 
 @Component({
@@ -212,18 +211,22 @@ export class HeatmapComponent implements OnInit {
   }
 
   windDataHandler = (wind) => {
+    // there's not much document about leaflet-velocity.
+    // all we got is an example usage from
+    // github.com/0nza1101/leaflet-velocity-ts
     const velocityLayer = L.velocityLayer({
       displayValues: true,
       displayOptions: {
-        position: 'bottomleft',
+        position: 'bottomleft', // REQUIRED !
+        emptyString: 'No velocity data', // REQUIRED !
+        angleConvention: 'bearingCW', // REQUIRED !
         velocityType: 'Global Wind',
         displayPosition: 'bottomleft',
         displayEmptyString: 'No wind data',
-        angleConvention: 'bearingCW',
         speedUnit: 'm/s'
       },
       data: wind.data,
-      maxVelocity: 12
+      maxVelocity: 12 // affect color and animation speed of wind
     });
 
     this.mainControl.addOverlay(velocityLayer, 'Global wind');

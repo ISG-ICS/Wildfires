@@ -31,17 +31,23 @@ class Connection:
         else:
             raise Exception(f'Section {section} not found in the {filename} file')
 
-    def sql_execute(self, sql) -> Iterator:
+    def sql_execute(self, sql, commit = False) -> Iterator:
         """to execute an SQL query and iterate the output"""
         with self() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
 
-            row = cursor.fetchone()
-            while row:
-                yield row
+            try:
                 row = cursor.fetchone()
-            cursor.close()
+                while row:
+                    yield row
+                    row = cursor.fetchone()
+            except psycopg2.ProgrammingError:
+                pass
+            finally:
+                cursor.close()
+                if commit:
+                    connection.commit()
 
 
 if __name__ == '__main__':

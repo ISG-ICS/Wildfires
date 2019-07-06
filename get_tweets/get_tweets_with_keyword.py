@@ -7,11 +7,11 @@ from datetime import datetime
 import json
 from backend.data_preparation.connection import Connection
 
+# account info can be found on slack
 api = twitter.Api(consumer_key="",
                   consumer_secret="",
                   access_token_key="",
                   access_token_secret="")
-# account info can be found on slack
 
 
 def crawl_content_according_to_keywords(keywords: list):
@@ -33,7 +33,7 @@ def crawl_content_according_to_keywords(keywords: list):
     return content_list
 
 
-def send_livetweet(keywords: list, batch_number, hasGeoLocation):  # keywords:list, hasGeoLocation, batch_number,
+def send_live_tweets(keywords: list, batch_number, hasGeoLocation):  # keywords:list, hasGeoLocation, batch_number,
     cnt = 0
     # to keep track of the # of id
     id_set = set()
@@ -58,7 +58,6 @@ def send_livetweet(keywords: list, batch_number, hasGeoLocation):  # keywords:li
             center = [(x + y) / 2.0 for x, y in zip(left, right)]
             id_set.add(obj["id"])
             date = datetime.strptime(obj["created_at"], '%a %b %d %H:%M:%S %z %Y')
-            date = datetime.timestamp(date)
             # changes string date into timestamp form
             return_dict.append({"id": id, "created_at": date, "text": obj["text"], "lat": center[1], "long": center[0],
                                 "hashtags": obj["hashtags"]})
@@ -69,22 +68,26 @@ def send_livetweet(keywords: list, batch_number, hasGeoLocation):  # keywords:li
         return returned_id
 
 
-def insert_one_record(id, date, text, lat, long, hash_tag):
+def insert_one_record(id: int, date: datetime, text: str, lat, long, hash_tag: list):
     # template = f"insert into new_records (id, create_at, text, lat, long, hash_tag) values ({id}, {date}, '{text}', {lat}, {long}, '{hash_tag}');"
     # with Connection() as conn:
     #     cur = conn.cursor()
     #     cur.execute(template)
     #     count = conn.commit()
     Connection().sql_execute(
-        f"insert into new_records (id, create_at, text, lat, long, hash_tag) values ({id}, {date}, {text}, {lat}, {long}, {hash_tag});")
+        f"insert into new_records (id, create_at, text, hash_tag) values ({id}, '{date}', '{text}', "
+        f"{', '.join(hash_tag) if hash_tag else 'NULL'});", commit=True)
+
+    # insert the geo-location to table `locations` instead of `records`;
+    # for testing purpose, please use some temp table like `new_locations`
 
 
 if __name__ == '__main__':
     t0 = time.time()
-    returned_dict = send_livetweet(['wildfire'], 20, True)
+    returned_dict = send_live_tweets(['wildfire'], 20, True)
     t = time.time()
     timeCounted = t - t0
     for value in returned_dict:
         print(value)
-    insert_one_record("100293033", 20394843920, 'hello', 23.44, 48.22, 'hii')
+    insert_one_record("100293033", 20394843920, 'hello', 23.44, 48.22, ['hii'])
     print('time:', timeCounted)

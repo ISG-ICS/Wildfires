@@ -12,7 +12,19 @@ class Connection:
         self.conn = None
 
     def __call__(self, *args, **kwargs):
-        return psycopg2.connect(**self.config())
+        connection = psycopg2.connect(**self.config())
+        cursor = connection.cursor()
+        cursor.execute("SELECT sum(numbackends) FROM pg_stat_database;")
+        connection_count, = cursor.fetchone()
+        cursor.execute("SHOW max_connections;")
+        connection_max_count, = cursor.fetchone()
+
+        # adding this log to show current database connection status
+        print(
+            f"[DATABASE] HOST = {self.config().get('host')}, CONNECTION COUNT "
+            f"= {connection_count}, MAXIMUM = {connection_max_count}")
+        cursor.close()
+        return connection
 
     def __enter__(self):
         self.conn = self()
@@ -31,8 +43,10 @@ class Connection:
         else:
             raise Exception(f'Section {section} not found in the {filename} file')
 
-    def sql_execute(self, sql, commit = False) -> Iterator:
+    def sql_execute(self, sql, commit=False) -> Iterator:
         """to execute an SQL query and iterate the output"""
+        if not commit and any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
+            print("You are running SELECT or UPDATE without committing, retry with argument commit=True")
         with self() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
@@ -40,6 +54,7 @@ class Connection:
             try:
                 row = cursor.fetchone()
                 while row:
+                    print(row)
                     yield row
                     row = cursor.fetchone()
             except psycopg2.ProgrammingError:

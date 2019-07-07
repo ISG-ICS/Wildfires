@@ -3,15 +3,25 @@ import random
 import re
 from collections import defaultdict
 
-from nltk import word_tokenize
+from nltk import word_tokenize, find, download
+
+try:
+    find("corpora/stopwords.zip")
+except LookupError:
+    download('stopwords')
 from nltk.classify import NaiveBayesClassifier
 from nltk.corpus import stopwords
+import rootpath
 
+rootpath.append()
 from backend.data_preparation.connection import Connection
 
 
 class NLTKTest:
     def __init__(self):
+        if not find("corpora/stopwords.zip"):
+            download('stopwords')
+
         self.link_regex = re.compile(
             r'(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+'
             r'[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})',

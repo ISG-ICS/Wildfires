@@ -1,5 +1,7 @@
 import pickle
+import rootpath
 
+rootpath.append()
 from backend.data_preparation.connection import Connection
 from backend.classifiers.nltktest import NLTKTest
 import twitter
@@ -9,7 +11,6 @@ import re
 import string
 import pygrib
 import numpy as np
-
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
@@ -32,11 +33,13 @@ def send_temp_data():
     query = "select * from recent_temperature "
     with Connection() as conn:
         cur = conn.cursor()
-        cur.execute(query);
-        resp = make_response(jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value, _ in cur.fetchall()]))
+        cur.execute(query)
+        resp = make_response(
+            jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value, _ in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp
+
 
 @app.route("/wind")
 def send_wind_data():
@@ -51,17 +54,17 @@ def send_wind_data():
             result['data'] = np.concatenate((result['data'], row), axis=0)
 
         result['header'] = {
-          'parameterCategory' : g["parameterCategory"],
-          'parameterNumber':  g['parameterNumber'],
-          'numberPoints' :  len(result['data']),
-          'nx' : g['Ni'],
-          'ny' : g['Nj'],
-          'lo1': g['longitudeOfFirstGridPointInDegrees'],
-          'lo2': g['longitudeOfLastGridPointInDegrees'],
-          'la1': g['latitudeOfFirstGridPointInDegrees'],
-          'la2': g['latitudeOfLastGridPointInDegrees'],
-          'dx': g['iDirectionIncrementInDegrees'],
-          'dy': g['jDirectionIncrementInDegrees'],
+            'parameterCategory': g["parameterCategory"],
+            'parameterNumber': g['parameterNumber'],
+            'numberPoints': len(result['data']),
+            'nx': g['Ni'],
+            'ny': g['Nj'],
+            'lo1': g['longitudeOfFirstGridPointInDegrees'],
+            'lo2': g['longitudeOfLastGridPointInDegrees'],
+            'la1': g['latitudeOfFirstGridPointInDegrees'],
+            'la2': g['latitudeOfLastGridPointInDegrees'],
+            'dx': g['iDirectionIncrementInDegrees'],
+            'dy': g['jDirectionIncrementInDegrees'],
         }
         result['data'] = result['data'].tolist()
         result_list.append(result)
@@ -69,7 +72,7 @@ def send_wind_data():
         result['header'] = {}
         result['data'] = []
         resp = make_response(jsonify(result_list))
-    #resp = make_response(send_from_directory('','2019070312.json'))
+    # resp = make_response(send_from_directory('','2019070312.json'))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
@@ -122,7 +125,8 @@ def send_tweets_data():
         cur.execute(tweet_query)
 
         resp = make_response(
-            jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat,_,_ in cur.fetchall()]))
+            jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in
+                     cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp

@@ -2,6 +2,9 @@ from configparser import ConfigParser
 from typing import Iterator, Dict
 
 import psycopg2
+import rootpath
+
+rootpath.append()
 
 from configurations import DATABASE_CONFIG_PATH
 

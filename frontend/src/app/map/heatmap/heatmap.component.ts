@@ -152,13 +152,13 @@ export class HeatmapComponent implements OnInit {
 
     const birdCoordinates = [];
 
-    data.data.forEach((x) => {
-      if (!this.liveTweetIdSet.has(x.id)) {
-        const point = [x.lat, x.long];
-        birdCoordinates.push([x.lat, x.long]);
+    data.data.forEach((tweet) => {
+      if (!this.liveTweetIdSet.has(tweet.id)) {
+        const point = [tweet.lat, tweet.long];
+        birdCoordinates.push([tweet.lat, tweet.long]);
         const marker = L.marker(point, {icon: birdIcon}).bindPopup('I am a live tweet');
         this.liveTweetBird.push(marker);
-        this.liveTweetIdSet.add(x.id);
+        this.liveTweetIdSet.add(tweet.id);
       }
     });
 

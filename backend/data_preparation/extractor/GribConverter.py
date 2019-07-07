@@ -1,17 +1,13 @@
-import json
 import pygrib
 import numpy as np
 
 
-class GribConvertor:
+class GribConverter:
     @staticmethod
     def convert(filepath):
         grbs = pygrib.open(filepath)
-        grbs.seek(0)
-        result_list = []
-        result = {}
-        result['header'] = {}
-        result['data'] = np.array([])
+        result_list = list()
+        result = {'header': dict(), 'data': np.array(list())}
         for g in grbs:
             for row in g['values']:
                 result['data'] = np.concatenate((result['data'], row), axis=0)
@@ -30,7 +26,5 @@ class GribConvertor:
             }
             result['data'] = result['data'].tolist()
             result_list.append(result)
-            result = {}
-            result['header'] = {}
-            result['data'] = []
+            result = {'header': dict(), 'data': list()}
         return result_list

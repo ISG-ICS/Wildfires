@@ -1,5 +1,6 @@
 import {Component, OnInit} from '@angular/core';
 import 'leaflet/dist/leaflet.css';
+
 declare let L;
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
@@ -62,7 +63,7 @@ export class HeatmapComponent implements OnInit {
 
     // Get heatmap data from service
     this.mapService.getHeatmapData();
-    this.mapService.heatmapDataLoaded.subscribe( this.heatmapDataHandler);
+    this.mapService.heatmapDataLoaded.subscribe(this.heatmapDataHandler);
 
     // Get tweets data from service
     this.mapService.getTweetsData();
@@ -70,14 +71,14 @@ export class HeatmapComponent implements OnInit {
 
     // Get rainfall data from service
     this.mapService.getWildfirePredictionData();
-    this.mapService.fireEventDataLoaded.subscribe( this.fireEventHandler);
+    this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
 
     // Get wind data from service
     this.mapService.getWindData();
+    this.mapService.windDataLoaded.subscribe(this.windDataHandler);
 
     // Add event Listener to live tweet switch
     $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
-    this.mapService.windDataLoaded.subscribe(this.windDataHandler);
 
     // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);
@@ -151,13 +152,13 @@ export class HeatmapComponent implements OnInit {
 
     const birdCoordinates = [];
 
-    data.data.forEach( (x) => {
-      if (!this.liveTweetIdSet.has(x.id)) {
-        const point = [x.lat, x.long];
-        birdCoordinates.push([x.lat, x.long]);
+    data.data.forEach((tweet) => {
+      if (!this.liveTweetIdSet.has(tweet.id)) {
+        const point = [tweet.lat, tweet.long];
+        birdCoordinates.push([tweet.lat, tweet.long]);
         const marker = L.marker(point, {icon: birdIcon}).bindPopup('I am a live tweet');
         this.liveTweetBird.push(marker);
-        this.liveTweetIdSet.add(x.id);
+        this.liveTweetIdSet.add(tweet.id);
       }
     });
 
@@ -173,7 +174,7 @@ export class HeatmapComponent implements OnInit {
       this.liveTweetLayer.addLayer(this.liveTweetMarkers);
     }, 3200);
     let bird: any = 0;
-    for ( bird of birds) {
+    for (bird of birds) {
       if (bird.src.indexOf('perfectBird') !== -1) {
         $(bird).css('animation', 'fly 3s linear');
       }
@@ -199,7 +200,7 @@ export class HeatmapComponent implements OnInit {
       const size = 40;
       const fireIcon = L.icon({
         iconUrl: 'assets/image/pixelfire.gif',
-        iconSize: [ size, size],
+        iconSize: [size, size],
       });
       const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%)');
       fireEventList.push(marker);
@@ -210,18 +211,22 @@ export class HeatmapComponent implements OnInit {
   }
 
   windDataHandler = (wind) => {
+    // there's not much document about leaflet-velocity.
+    // all we got is an example usage from
+    // github.com/0nza1101/leaflet-velocity-ts
     const velocityLayer = L.velocityLayer({
       displayValues: true,
       displayOptions: {
-        position: 'bottomleft',
+        position: 'bottomleft', // REQUIRED !
+        emptyString: 'No velocity data', // REQUIRED !
+        angleConvention: 'bearingCW', // REQUIRED !
         velocityType: 'Global Wind',
         displayPosition: 'bottomleft',
         displayEmptyString: 'No wind data',
-        angleConvention: 'bearingCW',
         speedUnit: 'm/s'
       },
       data: wind.data,
-      maxVelocity: 12
+      maxVelocity: 12 // affect color and animation speed of wind
     });
 
     this.mainControl.addOverlay(velocityLayer, 'Global wind');

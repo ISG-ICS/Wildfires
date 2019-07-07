@@ -52,6 +52,7 @@ export class MapService {
           };
           this.heatmapDataLoaded.emit({heatmapData: testData});
       });
+
   }
 
   getTweetsData(): void {

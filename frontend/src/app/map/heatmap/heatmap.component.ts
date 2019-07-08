@@ -63,13 +63,14 @@ export class HeatmapComponent implements OnInit {
     });
 
     // Get heatmap data from service
-    this.mapService.getHeatmapData();
-    this.mapService.heatmapDataLoaded.subscribe(this.heatmapDataHandler);
+    //this.mapService.getHeatmapData();
+    //this.mapService.heatmapDataLoaded.subscribe(this.heatmapDataHandler);
 
     // Get my heatmap data from service
     this.mapService.getmyTempData();
     this.mapService.contourDataLoaded.subscribe( this.contourDataHandler);
     this.mapService.contourDataLoaded.subscribe( this.polygonDataHandler);
+    this.mapService.contourDataLoaded.subscribe( this.heatmapDataHandler);
     //this.contourDataHandler()
 
     // Get tweets data from service
@@ -118,14 +119,14 @@ export class HeatmapComponent implements OnInit {
       scaleRadius: true,
       useLocalExtrema: true,
       latField: 'lat',
-      lngField: 'lng',
-      valueField: 'temperature'
+      lngField: 'long',
+      valueField: 'temp'
     };
-
+    console.log(data);
     // Create heatmap overaly for temperature data with heatmap configuration
     const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-    heatmapLayer.setData(data.heatmapData);
-    this.mainControl.addOverlay(heatmapLayer, 'Temperature');
+    heatmapLayer.setData({max: null,data:data.contourData});
+    this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
 
   }
 
@@ -220,15 +221,17 @@ export class HeatmapComponent implements OnInit {
   contourDataHandler = (data) => {
       let tempPointsList = [];
       for (let points of data.contourData){
-        const tempPoint = turf.point([points.lat, points.long], {'temperature':points.temp});
+        const tempPoint = turf.point([points.long, points.lat], {'temperature':points.temp});
         tempPointsList.push(tempPoint);
       }
-      console.log(tempPointsList);
-      const pointGrid = turf.featureCollection(tempPointsList)
+      //console.log(tempPointsList);
+      //const pointGrid = turf.featureCollection(tempPointsList)
+      const tempFeatures = turf.featureCollection(tempPointsList);
+      const pointGrid = turf.explode(tempFeatures);
       const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
       //const breaks = [0.08, 0.09, 0.10, 0.11, 0.12];
       let lines = turf.isolines(pointGrid, breaks, { zProperty: 'temperature' });
-      console.log(lines)
+      //console.log(lines)
 
       var _lFeatures = lines.features;
       for(var i=0;i<_lFeatures.length;i++){
@@ -243,15 +246,16 @@ export class HeatmapComponent implements OnInit {
           _lFeatures[i].geometry.coordinates = _lCoords;
       }
 
-
-      const region = L.geoJSON(lines).addTo(this.map);
+      const region = L.geoJSON(lines, {style: {color: '#49ebd8', weight: 1.8 ,opacity: 0.5}}).addTo(this.map);
       this.map.fitBounds(region.getBounds());
+
+
   }
 
   polygonDataHandler  = (data) => {
     let my = data.contourData;
     let all_latlng = []
-    for (let t = 17; t < 23; t++) {
+    for (let t = 17; t < 32; t++) {
       //console.log(my[i].lat);
       let latlng_list = [];
       for (let i = 0; i < my.length; i++) {
@@ -264,54 +268,175 @@ export class HeatmapComponent implements OnInit {
 
     }
       console.log(all_latlng);
-
+      let points17 = [];
       for (let i of all_latlng[0]) {
         const points1 = L.circle(i, {
-          color: 'blue',
-          fillColor: 'blue',
+          color: '#393fb8',
+          fillColor: '#393fb8',
           fillOpacity: 1
-        }).addTo(this.map);
+        })
+        points17.push(points1);
       }
+      const temp_plot17 = L.layerGroup(points17);
+      this.mainControl.addOverlay(temp_plot17, 'blue-17C');
 
+
+      let points18 = [];
       for (let i of all_latlng[1]) {
         const points1 = L.circle(i, {
-          color: 'green',
-          fillColor: 'green',
+          color: '#45afd6',
+          fillColor: '#45afd6',
           fillOpacity: 1
-        }).addTo(this.map);
+        })
+        points18.push(points1);
       }
+      const temp_plot18 = L.layerGroup(points18);
+      this.mainControl.addOverlay(temp_plot18, 'lightblue-18C');
 
+      let points19 = [];
       for (let i of all_latlng[2]) {
         const points1 = L.circle(i, {
-          color: 'yellow',
-          fillColor: 'yellow',
+          color: '#49ebd8',
+          fillColor: '#49ebd8',
           fillOpacity: 1
-        }).addTo(this.map);
+        });
+        points19.push(points1);
       }
+      const temp_plot19 = L.layerGroup(points19);
+      this.mainControl.addOverlay(temp_plot19, 'greenblue-19C');
 
+      let points20 = [];
       for (let i of all_latlng[3]) {
         const points1 = L.circle(i, {
-          color: 'orange',
-          fillColor: 'orange',
+          color: '#49eb8f',
+          fillColor: '#49eb8f',
           fillOpacity: 1
-        }).addTo(this.map);
+        });
+        points20.push(points1);
       }
+      const temp_plot20 = L.layerGroup(points20);
+      this.mainControl.addOverlay(temp_plot20, 'green-20C');
 
+      let points21 = [];
       for (let i of all_latlng[4]) {
         const points1 = L.circle(i, {
-          color: 'red',
-          fillColor: 'red',
+          color: '#a6e34b',
+          fillColor: '#a6e34b',
           fillOpacity: 1
-        }).addTo(this.map);
+        });
+        points21.push(points1);
       }
+      const temp_plot21 = L.layerGroup(points21);
+      this.mainControl.addOverlay(temp_plot21, 'lightgreen-21C');
 
+
+      let points22 = []
       for (let i of all_latlng[5]) {
         const points1 = L.circle(i, {
-          color: 'purple',
-          fillColor: 'purple',
+          color: '#f2de5a',
+          fillColor: '#f2de5a',
           fillOpacity: 1
-        }).addTo(this.map);
+        })//.addTo(this.map);
+        points22.push(points1)
       }
+      const temp_plot22 = L.layerGroup(points22);
+      this.mainControl.addOverlay(temp_plot22, 'yellow-22C');
+
+      let points23 = []
+      for (let i of all_latlng[6]) {
+        const points1 = L.circle(i, {
+          color: '#edbf18',
+          fillColor: '#edbf18',
+          fillOpacity: 1
+        })
+        points23.push(points1)
+      }
+      const temp_plot23 = L.layerGroup(points23);
+      this.mainControl.addOverlay(temp_plot23, 'darkyellow-23C');
+
+      let points24 = []
+      for (let i of all_latlng[7]) {
+        const points1 = L.circle(i, {
+          color: '#e89c20',
+          fillColor: '#e89c20',
+          fillOpacity: 1
+        })
+        points24.push(points1)
+      }
+      const temp_plot24 = L.layerGroup(points24);
+      this.mainControl.addOverlay(temp_plot24, 'lightorange-24C');
+
+      let points25 = []
+      for (let i of all_latlng[8]) {
+        const points1 = L.circle(i, {
+          color: '#f27f02',
+          fillColor: '#f27f02',
+          fillOpacity: 1
+        })
+        points25.push(points1)
+      }
+      const temp_plot25 = L.layerGroup(points25);
+      this.mainControl.addOverlay(temp_plot25, 'orange-25C');
+
+      let points26 = []
+      for (let i of all_latlng[9]) {
+        const points1 = L.circle(i, {
+          color: '#f25a02',
+          fillColor: '#f25a02',
+          fillOpacity: 1
+        })
+        points26.push(points1)
+      }
+      const temp_plot26 = L.layerGroup(points26);
+      this.mainControl.addOverlay(temp_plot26, 'richorange-26C');
+
+      let points27 = []
+      for (let i of all_latlng[10]) {
+        const points1 = L.circle(i, {
+          color: '#f23a02',
+          fillColor: '#f23a02',
+          fillOpacity: 1
+        })
+        points27.push(points1)
+      }
+      const temp_plot27 = L.layerGroup(points27);
+      this.mainControl.addOverlay(temp_plot27, 'red-27C');
+
+      let points28 = []
+      for (let i of all_latlng[11]) {
+        const points1 = L.circle(i, {
+          color: '#f0077f',
+          fillColor: '#f0077f',
+          fillOpacity: 1
+        })
+        points28.push(points1)
+      }
+      const temp_plot28 = L.layerGroup(points28);
+      this.mainControl.addOverlay(temp_plot28, 'purplered-28C');
+
+      let points29 = []
+      for (let i of all_latlng[12]) {
+        const points1 = L.circle(i, {
+          color: '#f205c3',
+          fillColor: '#f205c3',
+          fillOpacity: 1
+        })
+        points29.push(points1)
+      }
+      const temp_plot29 = L.layerGroup(points29);
+      this.mainControl.addOverlay(temp_plot29, 'lightpurple-29C');
+
+      let points30 = []
+      for (let i of all_latlng[13]) {
+        const points1 = L.circle(i, {
+          color: '#9306ba',
+          fillColor: '#9306ba',
+          fillOpacity: 1
+        })
+        points30.push(points1)
+      }
+      const temp_plot30 = L.layerGroup(points30);
+      this.mainControl.addOverlay(temp_plot30, 'purple-30C');
 
       /*
       const polyline0 = L.polyline(all_latlng[0], {color: 'blue', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
@@ -325,7 +450,11 @@ export class HeatmapComponent implements OnInit {
       const polyline4 = L.polyline(all_latlng[4], {color: 'red', smoothFactor: 1, opacity: 0.3 }).addTo(this.map);
       this.map.fitBounds(polyline4.getBounds());
        */
+
   }
+
+
+
 
   windDataHandler = (wind) => {
     // there's not much document about leaflet-velocity.

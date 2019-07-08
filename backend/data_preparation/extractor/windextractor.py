@@ -17,7 +17,7 @@ class WindExtractor(ExtractorBase):
         if useJavaConverter:
             # use grib2json
             cmd = [GRIB2JSON_PATH, '--data', '--output',
-                   os.path.join(WIND_DATA_DIR, 'latest.json'), '--names', '--compact',
+                   os.path.join(WIND_DATA_DIR, stamp + '.json'), '--names', '--compact',
                    os.path.join(GRIB2_DATA_DIR, stamp + '.f000')]
             process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
             process.wait()
@@ -28,7 +28,7 @@ class WindExtractor(ExtractorBase):
             try:
                 from backend.data_preparation.extractor.GribConverter import GribConverter  # deferred import
                 self.data = GribConverter.convert(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'))
-                self.export('json', 'latest.json')
+                self.export('json', stamp + '.json')
             except ModuleNotFoundError as e:
                 print(e)
                 print("\n\tpygrib is not supported on Windows, please use '-j' to use grib2json\n")

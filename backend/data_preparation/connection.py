@@ -46,9 +46,9 @@ class Connection:
         else:
             raise Exception(f'Section {section} not found in the {filename} file')
 
-    def sql_execute(self, sql, commit=False) -> Iterator:
+    def sql_execute(self, sql) -> Iterator:
         """to execute an SQL query and iterate the output"""
-        if not commit and any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
+        if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             print("You are running SELECT or UPDATE without committing, retry with argument commit=True")
         with self() as connection:
             cursor = connection.cursor()
@@ -57,15 +57,20 @@ class Connection:
             try:
                 row = cursor.fetchone()
                 while row:
-                    print(row)
                     yield row
                     row = cursor.fetchone()
             except psycopg2.ProgrammingError:
                 pass
             finally:
                 cursor.close()
-                if commit:
-                    connection.commit()
+
+    def sql_execute_commit(self, sql) -> None:
+        """to execute and commit an SQL query"""
+        with self() as connection:
+            cursor = connection.cursor()
+            cursor.execute(sql)
+            cursor.close()
+            connection.commit()
 
 
 if __name__ == '__main__':

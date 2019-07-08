@@ -17,8 +17,15 @@ EVENT2MIND_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/event2mind-2018.1
 
 TEST_DATA_PATH = os.path.join(ROOT_DIR, 'data/test')
 
+
 GRIB2_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grib-data')
 
 WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')
 
 GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
+
+HIS_TEMP_PATH = os.path.join(ROOT_DIR, 'data/histoical_temp')
+
+HIS_MOIS_PATH = os.path.join(ROOT_DIR, 'data/histoical_mois')
+
+REC_TEMP_MOIS_PATH = os.path.join(ROOT_DIR, 'data/recent_temp_mois')

@@ -22,7 +22,7 @@ class GRIBExtractor:
                 prop_dict[str((lats[row_cnt][col_cnt], lons[row_cnt][col_cnt]))] = prop_vals[row_cnt][col_cnt]
         return prop_dict  # the location coordinates are different, don't need to worry about duplicated keys
 
-    def extractTemperatrue(self):
+    def extractTemperature(self):
         prop_msg = self.file_handler.select(name=self.prop_name, typeOfLevel=self.prop_typeOfLevel)[0]
         prop_dict = dict()  # creates a new dictionary to store data
         prop_vals = prop_msg.values  # values under the started property

@@ -83,6 +83,8 @@ class MoistureTemperatureDumper:
                     xyzFile.close()
 
     def dump_data(self, p_lat, p_long, p_value, p_time=0, p_start=0, p_end=0, attri_name=''):
+        if p_lat > 49 or p_lat < 25 or p_long < 230 or p_long > 290:
+            return
         cur = self.conn.cursor()
         if attri_name == 'rec_temp':
             cur.execute(

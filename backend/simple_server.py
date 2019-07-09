@@ -153,10 +153,10 @@ def send_wildfire():
 
 @app.route("/fuyuan")
 def send_myTemp_data():
-    fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from historical_temperature t where t.temperature is not NULL ")
+    #fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from historical_temperature t where t.temperature is not NULL ")
+    fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t where t.endtime = (select max(t.endtime) from recent_temperature t where t.endtime <(select max(t.endtime) from recent_temperature t)) ")
+
     d = []
-    #fetch = Connection().sql_execute(
-    #    "select t.lat, t.long, t.moisture from recent_moisture t where t.moisture is not NULL")
 
     for row in fetch:
         object = {}

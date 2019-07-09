@@ -24,8 +24,8 @@ WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')
 
 GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
 
-HIS_TEMP_PATH = os.path.join(ROOT_DIR, 'data/histoical_temp')
+HIS_TEMP_PATH = os.path.join(ROOT_DIR, 'data/historical_temp')
 
-HIS_MOIS_PATH = os.path.join(ROOT_DIR, 'data/histoical_mois')
+HIS_MOIS_PATH = os.path.join(ROOT_DIR, 'data/historical_mois')
 
 REC_TEMP_MOIS_PATH = os.path.join(ROOT_DIR, 'data/recent_temp_mois')

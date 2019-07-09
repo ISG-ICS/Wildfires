@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-import datetime
 import os
 from urllib.request import urlopen
 
@@ -10,7 +9,7 @@ import rootpath
 from bs4 import BeautifulSoup
 
 rootpath.append()
-from configurations import REC_TEMP_MOIS_PATH
+from configurations import HIS_TEMP_PATH
 
 
 class MoistureTemperatureCrawler:
@@ -60,20 +59,20 @@ if __name__ == '__main__':
     # exp.crawl_data('http://ftp.cpc.ncep.noaa.gov/GIS/USDM_Products/soil/total/daily/')
 
     # crawl historical temperature data
-    # exp = MoistureTemperatureCrawler(HIS_TEMP_PATH, 'historical')
-    # exp.crawl_data('http://ftp.cpc.ncep.noaa.gov/GIS/USDM_Products/temp/total/daily/')
+    exp = MoistureTemperatureCrawler(HIS_TEMP_PATH, 'historical')
+    exp.crawl_data('http://ftp.cpc.ncep.noaa.gov/GIS/USDM_Products/temp/total/daily/')
 
     # crawl past 6 days of recent data
-    exp = MoistureTemperatureCrawler(REC_TEMP_MOIS_PATH, 'recent')
-    for countDate in range(1, 7):
-        curDate = datetime.datetime.today() - datetime.timedelta(days=countDate)
-        formattedDate = curDate.strftime('%y%m%d')
-        date = '20' + str(formattedDate)
-        exp.crawl_data('https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/', date)
+    # exp = MoistureTemperatureCrawler(REC_TEMP_MOIS_PATH, 'recent')
+    # for countDate in range(1, 7):
+    #     curDate = datetime.datetime.today() - datetime.timedelta(days=countDate)
+    #     formattedDate = curDate.strftime('%y%m%d')
+    #     date = '20' + str(formattedDate)
+    #     exp.crawl_data('https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/', date)
 
     # crawl yesterday's recent data
-    # curDate = datetime.datetime.today()
-    # yesterday = curDate.strftime('%y%m%d') - 1
+    # yesterday = datetime.datetime.today() - datetime.timedelta(days=1)
+    # yesterday = yesterday.strftime('%y%m%d')
     # date = '20' + str(yesterday)
     # url = 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/'
     # exp.crawl_data('https://nomads.ncep.noaa.gov/pub/data/nccf/com/cfs/prod/cdas.' + date + '/')

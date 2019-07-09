@@ -90,6 +90,9 @@ export class HeatmapComponent implements OnInit {
 
     // Add event Listener when user specify a time range on time series
     $(window).on('timeRangeChange', this.timeRangeChangeHandler);
+
+    // Add event Listener when user specify a temperature range on temp series
+    $(window).on('tempRangeChange', this.tempRangeChangeHandler);
   }
 
   tweetDataHandler = (data) => {
@@ -224,12 +227,12 @@ export class HeatmapComponent implements OnInit {
         const tempPoint = turf.point([points.long, points.lat], {'temperature':points.temp});
         tempPointsList.push(tempPoint);
       }
-      //console.log(tempPointsList);
+      console.log(tempPointsList);
       //const pointGrid = turf.featureCollection(tempPointsList)
       const tempFeatures = turf.featureCollection(tempPointsList);
       const pointGrid = turf.explode(tempFeatures);
-      const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
-      //const breaks = [0.08, 0.09, 0.10, 0.11, 0.12];
+      //const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+      const breaks = [265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335];
       let lines = turf.isolines(pointGrid, breaks, { zProperty: 'temperature' });
       //console.log(lines)
 
@@ -246,20 +249,36 @@ export class HeatmapComponent implements OnInit {
           _lFeatures[i].geometry.coordinates = _lCoords;
       }
 
+
+
       const region = L.geoJSON(lines, {style: {color: '#49ebd8', weight: 1.8 ,opacity: 0.5}}).addTo(this.map);
       this.map.fitBounds(region.getBounds());
 
 
   }
 
+
+   tempRangeChangeHandler = (event, data) => {
+    const tempData = [];
+    this.tweetData.forEach(entry => {
+      if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
+        tempData.push([entry[0], entry[1]]);
+      }
+    });
+    this.tweetLayer.setData(tempData);
+  }
+
+
   polygonDataHandler  = (data) => {
     let my = data.contourData;
     let all_latlng = []
-    for (let t = 17; t < 32; t++) {
+    //const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+    const breaks = [265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335];
+    for (let t = 0; t < breaks.length-1; t++) {
       //console.log(my[i].lat);
       let latlng_list = [];
       for (let i = 0; i < my.length; i++) {
-        if (my[i].temp >= t && my[i].temp <= t + 1) {
+        if (my[i].temp >= breaks[t] && my[i].temp <= breaks[t+1]) {
           latlng_list.push([Number(my[i].lat), Number(my[i].long)]);
         }
       }
@@ -270,10 +289,11 @@ export class HeatmapComponent implements OnInit {
       console.log(all_latlng);
       let points17 = [];
       for (let i of all_latlng[0]) {
-        const points1 = L.circle(i, {
+        const points1 = L.circle(i,{
           color: '#393fb8',
           fillColor: '#393fb8',
-          fillOpacity: 1
+          opacity: 0.5,
+          radius: 300
         })
         points17.push(points1);
       }
@@ -286,7 +306,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#45afd6',
           fillColor: '#45afd6',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points18.push(points1);
       }
@@ -298,7 +318,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#49ebd8',
           fillColor: '#49ebd8',
-          fillOpacity: 1
+          opacity: 0.5
         });
         points19.push(points1);
       }
@@ -310,7 +330,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#49eb8f',
           fillColor: '#49eb8f',
-          fillOpacity: 1
+          opacity: 0.5
         });
         points20.push(points1);
       }
@@ -322,7 +342,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#a6e34b',
           fillColor: '#a6e34b',
-          fillOpacity: 1
+          opacity: 0.5
         });
         points21.push(points1);
       }
@@ -335,7 +355,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f2de5a',
           fillColor: '#f2de5a',
-          fillOpacity: 1
+          opacity: 0.5
         })//.addTo(this.map);
         points22.push(points1)
       }
@@ -347,7 +367,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#edbf18',
           fillColor: '#edbf18',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points23.push(points1)
       }
@@ -359,7 +379,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#e89c20',
           fillColor: '#e89c20',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points24.push(points1)
       }
@@ -371,7 +391,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f27f02',
           fillColor: '#f27f02',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points25.push(points1)
       }
@@ -383,7 +403,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f25a02',
           fillColor: '#f25a02',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points26.push(points1)
       }
@@ -395,7 +415,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f23a02',
           fillColor: '#f23a02',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points27.push(points1)
       }
@@ -407,7 +427,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f0077f',
           fillColor: '#f0077f',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points28.push(points1)
       }
@@ -419,7 +439,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#f205c3',
           fillColor: '#f205c3',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points29.push(points1)
       }
@@ -431,7 +451,7 @@ export class HeatmapComponent implements OnInit {
         const points1 = L.circle(i, {
           color: '#9306ba',
           fillColor: '#9306ba',
-          fillOpacity: 1
+          opacity: 0.5
         })
         points30.push(points1)
       }

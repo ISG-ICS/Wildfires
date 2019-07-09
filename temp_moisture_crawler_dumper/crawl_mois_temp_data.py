@@ -35,7 +35,7 @@ class MoistureTemperatureCrawler():
                     if not os.path.exists(self.path):
                         os.makedirs(self.path)
 
-                    if end_time - start_time > 0.01:
+                    if end_time - start_time > 10:
                         with open(self.path + '/error_urls.txt', 'a') as error_file:
                             error_file.write(url_temp + '\n')
                             continue
@@ -60,7 +60,7 @@ class MoistureTemperatureCrawler():
                     if not os.path.exists(self.path):
                         os.makedirs(self.path)
 
-                    if end_time - start_time > 1:
+                    if end_time - start_time > 20:
                         with open(self.path + '/error_urls.txt', 'a') as error_file:
                             error_file.write(url_temp + '\n')
                             continue
@@ -79,7 +79,7 @@ class MoistureTemperatureCrawler():
             if not os.path.exists(self.path):
                 os.makedirs(self.path)
 
-            if end_time - start_time > 10:
+            if end_time - start_time > 20:
                 with open(self.path + '/error_urls_new.txt', 'a') as error_file:
                     error_file.write(line)
                     continue

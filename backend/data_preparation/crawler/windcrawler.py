@@ -73,17 +73,9 @@ class WindCrawler(CrawlerBase):
                 # try -6h
                 print(stamp + ' not found')
             else:
-                # create dirs
-                if not os.path.isdir(GRIB2_DATA_DIR):
-                    os.makedirs(GRIB2_DATA_DIR)
-                # write file
-                with open(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'wb') as f:
-                    f.write(response.content)
-                print('saved')
-
                 # convert format
-                self.inject_extractor(WindExtractor(os.path.join('grib-data', stamp + '.f000'), None, None))
-                self.extractor.extract(stamp, self.useJavaConverter)
+                self.inject_extractor(WindExtractor())
+                self.extractor.extract(stamp, self.useJavaConverter, response.content)
                 # dump into DB
                 self.inject_dumper(WindDumper())
                 self.dumper.insert_one(stamp, 'backend/data/')

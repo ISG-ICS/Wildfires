@@ -6,14 +6,21 @@ import json
 
 
 class WindExtractor(ExtractorBase):
-    def __init__(self, filename, prop_name, prop_typeOfLevel):
-        super().__init__(filename)
+    def __init__(self):
+        super().__init__('')
 
     # may use GribConverter or grib2json to convert to json file.
-    def extract(self, stamp, useJavaConverter):
-        # make dir
+    def extract(self, stamp, useJavaConverter, content=None):
+
+        # create dirs
+        if not os.path.isdir(GRIB2_DATA_DIR):
+            os.makedirs(GRIB2_DATA_DIR)
         if not os.path.isdir(WIND_DATA_DIR):
             os.makedirs(WIND_DATA_DIR)
+        # write file
+        with open(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'wb') as f:
+            f.write(content)
+            print('saved')
         if useJavaConverter:
             # use grib2json
             cmd = [GRIB2JSON_PATH, '--data', '--output',

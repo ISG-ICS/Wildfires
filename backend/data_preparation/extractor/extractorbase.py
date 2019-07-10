@@ -1,27 +1,29 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Tuple
+from typing import Dict, Union, List
+
+
+class ExtractorException(Exception):
+    pass
 
 
 class ExtractorBase(ABC):
-    def __init__(self, filename: str):
+    def __init__(self, *args, **kwargs):
         super().__init__()
-        self.data: Dict = dict()
-        self.filename: str = filename
+        self.data: Union[List, Dict, None] = None
 
     @abstractmethod
-    def extract(self, *args, **kwargs):
+    def extract(self, *args, **kwargs) -> Union[List, Dict]:
         pass
 
     @abstractmethod
     def export(self, file_type: str, file_name: str) -> None:  # json
         pass
 
-    @abstractmethod
     def __getitem__(self, index):
-        pass
+        return self.data[index]
 
     def __str__(self):
-        return f'{self.__class__.__name__}{{filename={self.filename}}}'
+        return f'{self.__class__.__name__}'
 
     def __iter__(self):
         return iter(self.data.items())

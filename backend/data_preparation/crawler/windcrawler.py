@@ -1,13 +1,14 @@
-import requests
-from datetime import datetime, timedelta
 import math
 import os
 import sys
+from datetime import datetime, timedelta
+
+import requests
 import rootpath
 
 rootpath.append()
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.extractor.WindExtractor import WindExtractor
+from backend.data_preparation.extractor.windextractor import WindExtractor
 from configurations import GRIB2_DATA_DIR
 
 

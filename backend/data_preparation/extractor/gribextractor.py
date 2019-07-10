@@ -1,8 +1,11 @@
+import json
 import os
 from typing import Dict
-import pygrib
-import json
 
+import pygrib
+import rootpath
+
+rootpath.append()
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from configurations import TEST_DATA_PATH
 

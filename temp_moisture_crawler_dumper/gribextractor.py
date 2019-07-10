@@ -1,21 +1,27 @@
 import json
 import pygrib
-
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from typing import Dict
 
+from backend.data_preparation.extractor.extractorbase import ExtractorBase
+
+
 class GRIBExtractor(ExtractorBase):
+    TEMPERATURE_MODE = 0
+    MOISTURE_MODE = 1
+
     def __init__(self, filename: str):
         super().__init__(filename)
         self.file_handler = pygrib.open(filename)
         self.data: Dict = dict()
 
-    def extract(self, prop_name: str, prop_typeOfLevel=None, prop_first=None, prop_second=None) -> dict:
-        if prop_typeOfLevel != None:
-            prop_msg = self.file_handler.select(name=prop_name, typeOfLevel=prop_typeOfLevel)[0]
-        if prop_first != None and prop_second != None:
-            prop_msg = self.file_handler.select(name=prop_name, scaledValueOfFirstFixedSurface=prop_first,
-                                                scaledValueOfSecondFixedSurface=prop_second)[0]
+    def extract(self, data_type) -> dict:
+        if data_type == GRIBExtractor.TEMPERATURE_MODE:
+            # select grib files' attributes
+            prop_msg = self.file_handler.select(name='Temperature', typeOfLevel='surface')[0]
+        if data_type == GRIBExtractor.MOISTURE_MODE:
+            prop_msg = self.file_handler.select(name='Liquid volumetric soil moisture (non-frozen)',
+                                                scaledValueOfFirstFixedSurface=0,
+                                                scaledValueOfSecondFixedSurface=10)[0]
         prop_dict = dict()  # creates a new dictionary to store data
         prop_vals = prop_msg.values  # values under the started property
         lats, lons = prop_msg.latlons()
@@ -35,9 +41,14 @@ class GRIBExtractor(ExtractorBase):
 
 
 if __name__ == '__main__':
-    grib_extractor = GRIBExtractor('../data/recent_temp_mois/cdas1.t00z.sfluxgrbf00.grib2_20190707.txt')
-    temperature = grib_extractor.extract(prop_name='Temperature', prop_typeOfLevel='surface')
-    moisture = grib_extractor.extract(prop_name='Liquid volumetric soil moisture (non-frozen)', prop_first=0,
-                                      prop_second=10)
+    # use case of GRIBExtractor, put in the path to the grib file
+    grib_extractor = GRIBExtractor('cdas1.t00z.sfluxgrbf00.grib2_20190706.txt')
+
+    # if you want to get temperature data in a dictionary type
+    temperature = grib_extractor.extract(data_type=GRIBExtractor.TEMPERATURE_MODE)
+    # each item is like: (lat,long):value
     print(temperature)
+
+    # if you want to get moisture data in a dictionary type
+    moisture = grib_extractor.extract(data_type=GRIBExtractor.MOISTURE_MODE)
     print(moisture)

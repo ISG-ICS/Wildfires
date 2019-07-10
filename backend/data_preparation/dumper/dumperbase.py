@@ -1,4 +1,9 @@
 from abc import ABC, abstractmethod
+from typing import Union, List, Dict
+
+
+class DumperException(Exception):
+    pass
 
 
 class DumperBase(ABC):
@@ -7,17 +12,9 @@ class DumperBase(ABC):
         self.inserted_count = 0
         # dumper holds no data in memory
 
-    @staticmethod
     @abstractmethod
-    def insert_one(*args, **kwargs):
-        # insert one record into database
-        # recording insert count number to self.inserted_count
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def insert_batch(*args, **kwargs):
-        # insert a batch of records into database
+    def insert(self, data: Union[List, Dict], *args, **kwargs):
+        # insert record into database
         # recording insert count number to self.inserted_count
         pass
 

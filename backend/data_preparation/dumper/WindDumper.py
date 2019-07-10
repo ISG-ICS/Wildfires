@@ -14,8 +14,7 @@ class WindDumper(DumperBase):
     def __init__(self):
         super().__init__()
 
-    @staticmethod
-    def insert_one(stamp: str, saved_path: str):
+    def insert_one(self, stamp: str):
         # insert one record into database
         # recording insert count number to self.inserted_count
         with open(os.path.join(WIND_DATA_DIR, stamp + '.json'), 'r') as f:
@@ -44,12 +43,12 @@ class WindDumper(DumperBase):
                 except psycopg2.errors.UniqueViolation:
                     print('\n\tDuplicated Key')
                 else:
+                    self.inserted_count = cur.rowcount
                     print('Affected rows: ' + str(cur.rowcount))
 
             conn.commit()
             cur.close()
 
-    @staticmethod
     def insert_batch(*args, **kwargs):
         # insert a batch of records into database
         # recording insert count number to self.inserted_count

@@ -40,6 +40,10 @@ class WindExtractor(ExtractorBase):
                 print(e)
                 print("\n\tpygrib is not supported on Windows, please use '-j' to use grib2json\n")
 
+        # clear cached grib2 data after finish
+        if os.path.isfile(os.path.join(GRIB2_DATA_DIR, stamp + '.f000')):
+            os.remove(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'))
+
     def export(self, file_type: str, file_name: str) -> None:
         with open(os.path.join(WIND_DATA_DIR, file_name), 'w') as f:
             json.dump(self.data, f)

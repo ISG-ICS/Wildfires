@@ -6,11 +6,11 @@ from osgeo import gdal
 
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
-
 class TIFExtractor(ExtractorBase):
     def __init__(self, filename: str):
         super().__init__(filename)
         self.tif = gdal.Open(filename)
+        self.data: Dict = dict()
 
     def extract(self):
         gt = self.tif.GetGeoTransform()
@@ -35,17 +35,17 @@ class TIFExtractor(ExtractorBase):
             lat = line.split()[1]
             value = line.split()[2]
             if str(value) != '-999000000':
-                if 'z.full' in self.filename:  # for temperature data
-                    time = self.filename[20:28]
+                if 't.full' in self.filename:  # for historical temperature data
+                    time = self.filename[self.filename.find('month_')+6:self.filename.find('.tif')]
                     dictionary[(lat, long, time)] = value
-                if 'w.full' in self.filename:  # for moisture data
-                    time = self.filename[7:15]
+                if 'w.full' in self.filename:  # for historical moisture data
+                    time = self.filename[self.filename.find('full.')+5:self.filename.find('.tif')]
                     dictionary[(lat, long, time)] = value
             line = xyzFile.readline()
 
         self.data: Dict = dictionary
         os.remove('output.xyz')
-        return dictionary
+        return self.data
 
     def export(self, file_type: str, file_name) -> None:  # json
         if file_type == 'json':

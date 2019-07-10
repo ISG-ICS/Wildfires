@@ -161,7 +161,7 @@ def send_myTemp_data():
     for row in fetch:
         object = {}
         object["lat"] = row[0]
-        object["long"] = row[1]
+        object["long"] = row[1] - 360
         object["temp"]  = row[2]
         d.append(object)
 

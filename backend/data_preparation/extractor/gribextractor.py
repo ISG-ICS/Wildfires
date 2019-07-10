@@ -17,7 +17,7 @@ class GRIBExtractor(ExtractorBase):
         self.data: Dict = self.extract(prop_name, prop_typeOfLevel)
 
     def extract(self, prop_name: str, prop_typeOfLevel: str) -> dict:
-        prop_msg, = self.file_handler.select(name=prop_name, typeOfLevel=prop_typeOfLevel)
+        prop_msg, = self.file_handler.select(name=prop_name)  # !! here ! we don't need the prop_typeOfLevel
         prop_dict = dict()  # creates a new dictionary to store data
         prop_values = prop_msg.values  # values under the started property
         lats, longs = prop_msg.latlons()

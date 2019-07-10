@@ -1,9 +1,8 @@
+import requests
+from datetime import datetime, timedelta
 import math
 import os
 import sys
-from datetime import datetime, timedelta
-
-import requests
 import rootpath
 
 rootpath.append()
@@ -11,7 +10,7 @@ rootpath.append()
 from configurations import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.extractor.windextractor import WindExtractor
+from backend.data_preparation.extractor.gribextractor import GRIBExtractor
 from backend.data_preparation.dumper.winddumper_geom import WindDumperGeom
 
 
@@ -21,7 +20,7 @@ class WindCrawler(CrawlerBase):
         self.baseDir = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl'
         self.useJavaConverter = False  # use grib2json?
         self.interval = 6
-        self.select_exists = 'select reftime from wind'
+        self.select_exists = 'select reftime from wind_reftime'
 
     def start(self, end_clause=None):
         # get how far we went last time
@@ -34,14 +33,14 @@ class WindCrawler(CrawlerBase):
         # get wind data from noaa.gov
         currentTime = datetime.today()
         beginTime = currentTime + timedelta(hours=self.interval)
-        endTime = currentTime - timedelta(weeks=48)
+        endTime = currentTime - timedelta(hours=6)
 
         # round datetime to 6 hours
         time_t = beginTime - timedelta(hours=beginTime.hour - int(self.roundHour(beginTime.hour, self.interval)),
                                        minutes=beginTime.minute,
                                        seconds=beginTime.second,
                                        microseconds=beginTime.microsecond)
-        while time_t > endTime:
+        while time_t >= endTime:
             if (time_t,) not in exists_list:
                 self.runQuery(time_t)
             time_t -= timedelta(hours=self.interval)
@@ -74,16 +73,28 @@ class WindCrawler(CrawlerBase):
                 # try -6h
                 print(stamp + ' not found')
             else:
-
+                # create dirs
+                if not os.path.isdir(GRIB2_DATA_DIR):
+                    os.makedirs(GRIB2_DATA_DIR)
+                # write file
+                with open(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'wb') as f:
+                    f.write(response.content)
+                    print('saved')
                 # convert format
-                self.inject_extractor(WindExtractor())
-                self.extractor.extract(stamp, self.useJavaConverter, response.content)
+                ext_ugnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'U component of wind', None)
+                ext_vgnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'V component of wind', None)
+                print('converted')
+
                 # dump into DB
                 self.inject_dumper(WindDumperGeom())
-                self.dumper.insert_one(stamp)
+                self.dumper.insert_one(ext_ugnd.data, ext_vgnd.data, stamp)
         except IOError as e:
             # try -6h
             print(e)
+        finally:
+            # clear cached grib2 data after finish
+            if os.path.isfile(os.path.join(GRIB2_DATA_DIR, stamp + '.f000')):
+                os.remove(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'))
 
     @staticmethod
     def roundHour(hour, interval) -> str:

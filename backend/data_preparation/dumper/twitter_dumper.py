@@ -15,8 +15,8 @@ class TweetDumper(DumperBase):
         self.inserted_locations_count = 0
         # dumper holds no data in memory
 
-    def insert(self, data_list: List[Dict]):
-
+    def insert(self, data_list: List[Dict]) -> None:
+        """inserts the given list into the database"""
         ids_in_db = set(id for id, in Connection().sql_execute("select id from new_records;"))
         # gets all existing keys in database, make sure no duplicated key id will be enter into the database
         location_string = ""

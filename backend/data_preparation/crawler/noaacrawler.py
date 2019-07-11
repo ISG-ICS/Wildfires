@@ -1,8 +1,10 @@
-import requests
-from datetime import datetime, timedelta
-import math
 import os
 import sys
+import time
+from datetime import datetime, timedelta
+
+import math
+import requests
 import rootpath
 
 rootpath.append()
@@ -33,7 +35,7 @@ class NOAACrawler(CrawlerBase):
         # get data from noaa.gov
         currentTime = datetime.today()
         beginTime = currentTime + timedelta(hours=self.interval)
-        endTime = currentTime - timedelta(hours=6)  # specify the oldest data we can get.
+        endTime = currentTime - timedelta(hours=12)  # specify the oldest data we can get.
 
         # round datetime to 6 hours
         time_t = beginTime - timedelta(hours=beginTime.hour - int(self.roundHour(beginTime.hour, self.interval)),
@@ -45,8 +47,8 @@ class NOAACrawler(CrawlerBase):
                 self.runQuery(time_t)
             time_t -= timedelta(hours=self.interval)
 
-    def __getitem__(self, index):
-        pass
+    def crawl(self, *args, **kwargs) -> list:
+        return list()
 
     def runQuery(self, t):
         time = t.timetuple()
@@ -88,8 +90,8 @@ class NOAACrawler(CrawlerBase):
                 print('converted')
 
                 # dump into DB
-                self.inject_dumper(NOAADumper())
-                self.dumper.insert_one(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, t, stamp)
+                self.set_dumper(NOAADumper())
+                self.dumper.insert(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, t, stamp)
         except IOError as e:
             # try -6h
             print(e)
@@ -108,9 +110,12 @@ class NOAACrawler(CrawlerBase):
 
 
 if __name__ == '__main__':
-    crawler = NOAACrawler()
-    for arg in sys.argv:
-        if arg == '-j':
-            crawler.useJavaConverter = True  # use java version of grib2json, if '-j' appeared
+    while True:
+        crawler = NOAACrawler()
+        for arg in sys.argv:
+            if arg == '-j':
+                crawler.useJavaConverter = True  # use java version of grib2json, if '-j' appeared
+        crawler.start()
 
-    crawler.start()
+        print('\tWaiting for 6 hours')
+        time.sleep(3600 * 6)

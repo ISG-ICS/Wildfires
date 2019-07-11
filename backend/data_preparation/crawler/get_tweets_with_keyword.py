@@ -16,15 +16,6 @@ api = twitter.Api(consumer_key="",
                   access_token_secret="")
 
 
-class TweetCrawler(CrawlerBase):
-
-    # TODO: please fill in the crawler definition follow the comments in base class CrawlerBase
-    def start(self, end_clause=None, *args, **kwargs):
-        pass
-
-    def __getitem__(self, index):
-        pass
-
 
 def crawl_content_according_to_keywords(keywords: list):
     # Simulate request from a mac browser

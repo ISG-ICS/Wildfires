@@ -11,16 +11,16 @@ from configurations import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.extractor.gribextractor import GRIBExtractor
-from backend.data_preparation.dumper.winddumper_geom import WindDumperGeom
+from backend.data_preparation.dumper.noaadumper import NOAADumper
 
 
-class WindCrawler(CrawlerBase):
+class NOAACrawler(CrawlerBase):
     def __init__(self):
         super().__init__()
         self.baseDir = 'http://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl'
         self.useJavaConverter = False  # use grib2json?
         self.interval = 6
-        self.select_exists = 'select reftime from wind_reftime'
+        self.select_exists = 'select reftime from noaa0p25_reftime'
 
     def start(self, end_clause=None):
         # get how far we went last time
@@ -30,10 +30,10 @@ class WindCrawler(CrawlerBase):
             exists_list = cur.fetchall()
             cur.close()
 
-        # get wind data from noaa.gov
+        # get data from noaa.gov
         currentTime = datetime.today()
         beginTime = currentTime + timedelta(hours=self.interval)
-        endTime = currentTime - timedelta(hours=6)
+        endTime = currentTime - timedelta(hours=6)  # specify the oldest data we can get.
 
         # round datetime to 6 hours
         time_t = beginTime - timedelta(hours=beginTime.hour - int(self.roundHour(beginTime.hour, self.interval)),
@@ -58,9 +58,10 @@ class WindCrawler(CrawlerBase):
         # parameters of GET
         qs = {
             'file': 'gfs.t' + hour + 'z.pgrb2.0p25.anl',
-            'lev_20_m_above_ground': 'on',
+            'lev_100_m_above_ground': 'on',  # all vars are present on this level
             'var_UGRD': 'on',
             'var_VGRD': 'on',
+            'var_TMP': 'on',
             'leftlon': 0,
             'rightlon': 360,
             'toplat': 90,
@@ -83,11 +84,12 @@ class WindCrawler(CrawlerBase):
                 # convert format
                 ext_ugnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'U component of wind', None)
                 ext_vgnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'V component of wind', None)
+                ext_tmp = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'Temperature', None)
                 print('converted')
 
                 # dump into DB
-                self.inject_dumper(WindDumperGeom())
-                self.dumper.insert_one(ext_ugnd.data, ext_vgnd.data, stamp)
+                self.inject_dumper(NOAADumper())
+                self.dumper.insert_one(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, t, stamp)
         except IOError as e:
             # try -6h
             print(e)
@@ -106,7 +108,7 @@ class WindCrawler(CrawlerBase):
 
 
 if __name__ == '__main__':
-    crawler = WindCrawler()
+    crawler = NOAACrawler()
     for arg in sys.argv:
         if arg == '-j':
             crawler.useJavaConverter = True  # use java version of grib2json, if '-j' appeared

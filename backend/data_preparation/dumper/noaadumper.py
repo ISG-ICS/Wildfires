@@ -12,7 +12,7 @@ class NOAADumper(DumperBase):
     def __init__(self):
         super().__init__()
 
-    def insert_one(self, ugnd: dict, vgnd: dict, tmp: dict, reftime: datetime, stamp: str):
+    def insert(self, ugnd: dict, vgnd: dict, tmp: dict, reftime: datetime, stamp: str):
         # insert one record into database
         # recording insert count number to self.inserted_count
 
@@ -40,8 +40,3 @@ class NOAADumper(DumperBase):
 
             conn.commit()
             cur.close()
-
-    def insert_batch(*args, **kwargs):
-        # insert a batch of records into database
-        # recording insert count number to self.inserted_count
-        pass

@@ -59,11 +59,13 @@ class NOAACrawler(CrawlerBase):
 
         # parameters of GET
         qs = {
-            'file': 'gfs.t' + hour + 'z.pgrb2.0p25.anl',
-            'lev_100_m_above_ground': 'on',  # all vars are present on this level
+            'file': 'gfs.t' + hour + 'z.pgrb2.0p25.f000',
+            'lev_100_m_above_ground': 'on',
+            'lev_0-0.1_m_below_ground': 'on',
             'var_UGRD': 'on',
             'var_VGRD': 'on',
             'var_TMP': 'on',
+            'var_SOILW': 'on',
             'leftlon': 0,
             'rightlon': 360,
             'toplat': 90,
@@ -87,11 +89,13 @@ class NOAACrawler(CrawlerBase):
                 ext_ugnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'U component of wind', None)
                 ext_vgnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'V component of wind', None)
                 ext_tmp = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'Temperature', None)
+                ext_soilw = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'),
+                                          'Volumetric soil moisture content', None)
                 print('converted')
 
                 # dump into DB
                 self.set_dumper(NOAADumper())
-                self.dumper.insert(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, t, stamp)
+                self.dumper.insert(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, ext_soilw.data, t, stamp)
         except IOError as e:
             # try -6h
             print(e)

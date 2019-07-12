@@ -10,8 +10,10 @@ import json
 import requests
 import re
 import string
-import pygrib
+import matplotlib.path as mplPath
 import numpy as np
+
+import pygrib
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
@@ -161,13 +163,30 @@ def send_myTemp_data():
     for row in fetch:
         object = {}
         object["lat"] = row[0]
-        object["long"] = row[1] - 360
-        object["temp"]  = row[2]
+        object["long"] = row[1] % (-360)
+        object["temp"] = row[2] - 273.15
         d.append(object)
+
+    d = points_in_us(d)
 
     resp = make_response(jsonify(d))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
+
+
+def points_in_us(pnts: '[{lng: .., lat: .., else: ..}, ...]', accuracy=0.001):
+    if type(pnts) != type([]):
+        print("Input should be list as : [dict, dict, ...]")
+
+    with open("USbound.json") as json_file:
+        data = json.load(json_file)
+        main_land_poly = mplPath.Path(np.array(data["mainland"][::5]))
+        result = []
+        for pnt in pnts:
+            if main_land_poly.contains_point( [pnt['long'] % -360, pnt['lat']], radius=accuracy) \
+            or main_land_poly.contains_point( [pnt['long'] % -360, pnt['lat']], radius=-accuracy):
+                result.append(pnt)
+        return result
 
 
 if __name__ == "__main__":

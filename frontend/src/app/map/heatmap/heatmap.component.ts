@@ -25,6 +25,8 @@ export class HeatmapComponent implements OnInit {
     private liveTweetIdSet = new Set();
     private map;
     private switchStatus = 0;
+    private tempLayers = [];
+    private breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 35];
 
     constructor(private mapService: MapService) {
     }
@@ -71,8 +73,7 @@ export class HeatmapComponent implements OnInit {
         this.mapService.contourDataLoaded.subscribe(this.contourDataHandler);
         this.mapService.contourDataLoaded.subscribe(this.polygonDataHandler);
         this.mapService.contourDataLoaded.subscribe(this.heatmapDataHandler);
-        //this.mapService.contourDataLoaded.subscribe(this.canvasDataHandler);
-        //this.contourDataHandler()
+        this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
 
         // Get tweets data from service
         this.mapService.getTweetsData();
@@ -188,6 +189,7 @@ export class HeatmapComponent implements OnInit {
         this.tweetLayer.setData(tempData);
     }
 
+
     fireEventHandler = (data) => {
 
         const fireEventList = [];
@@ -207,28 +209,43 @@ export class HeatmapComponent implements OnInit {
         this.mainControl.addOverlay(fireEvents, 'Fire event');
     }
 
+
     heatmapDataHandler = (data) => {
         const heatmapConfig = {
             radius: 1,
             maxOpacity: 0.63,
+            minOpacity: 0.2,
             scaleRadius: true,
             useLocalExtrema: false,
+            blur: 1,
             latField: 'lat',
             lngField: 'long',
-            valueField: 'temp'
+            valueField: 'temp',
+            gradient: {
+                '.1': '#393fb8',
+                '.2':'#45afd6',
+                '.3':'#49ebd8',
+                '.4':'#49eb8f',
+                '.5':'#a6e34b',
+                '.55':'#f2de5a',
+                '.6':'#edbf18',
+                '.65':'#e89c20',
+                '.7':'#f27f02',
+                '.75':'#f25a02',
+                '.8':'#f23a02',
+                '.85':'#f0077f',
+                '.9':'#f205c3',
+                '.99':'#9306ba',
+              }
         };
-
-        data.contourData.forEach(x => {
-            x.temp = x.temp - 273.15
-        })
-
-        console.log(data.contourData);
-        // Create heatmap overaly for temperature data with heatmap configuration
+        // Create heatmap overaly for temperature data with heatmap configuration;
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-        heatmapLayer.setData({max: 400, data: data.contourData});
+        //heatmapLayer.setDataMax(20);
+        //heatmapLayer.setDataMin(10);
+        heatmapLayer.setData({max: 680, data: data.contourData});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-
     }
+
 
     contourDataHandler = (data) => {
         let tempPointsList = [];
@@ -237,12 +254,9 @@ export class HeatmapComponent implements OnInit {
             tempPointsList.push(tempPoint);
         }
         console.log(tempPointsList);
-        //const pointGrid = turf.featureCollection(tempPointsList)
         const tempFeatures = turf.featureCollection(tempPointsList);
         const pointGrid = turf.explode(tempFeatures);
-        //const breaks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
-        //const breaks = [265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335];
-        const breaks = [267, 270, 273, 276, 279, 282, 285, 288, 291, 294, 297, 300, 303, 306, 309];
+        const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 35];
         let lines = turf.isolines(pointGrid, breaks, {zProperty: 'temperature'});
         //console.log(lines)
 
@@ -277,7 +291,7 @@ export class HeatmapComponent implements OnInit {
         }
         const region = L.layerGroup(tempEvents);
         this.mainControl.addOverlay(region, 'temp-contour');
-        this.map.fitBounds(region.getBounds());
+        //this.map.fitBounds(region.getBounds());
 
     }
 
@@ -296,8 +310,7 @@ export class HeatmapComponent implements OnInit {
     polygonDataHandler = (data) => {
         let my = data.contourData;
         let all_latlng = []
-        //const breaks = [265, 270, 275, 280, 285, 290, 295, 300, 305, 310, 315, 320, 325, 330, 335];
-        const breaks = [267, 270, 273, 276, 279, 282, 285, 288, 291, 294, 297, 300, 303, 306, 309];
+        const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 35];
         for (let t = 0; t < breaks.length - 1; t++) {
             //console.log(my[i].lat);
             let latlng_list = [];
@@ -324,6 +337,24 @@ export class HeatmapComponent implements OnInit {
             });
             this.tempLayer1.setData(all_latlng[i]);
             this.mainControl.addOverlay(this.tempLayer1, boxlist[i]);
+            this.tempLayers.push(this.tempLayer1);
+        }
+        console.log(this.tempLayers);
+    }
+
+
+    rangeSelectHandler = (event) => {
+        console.log(event.newTemperature);
+        let breaks = this.breaks;
+        for (let i = 0; i < breaks.length; i ++) {
+            if (event.newTemperature >= this.breaks[i] && event.newTemperature <= this.breaks[i + 1]) {
+                for(let j = 0; j < this.tempLayers.length; j++){
+                   this.map.removeLayer(this.tempLayers[j])
+                 }
+                for (let k = 0; k <= i; k++) {
+                    const region = this.tempLayers[k].addTo(this.map);
+                }
+            }
         }
     }
 

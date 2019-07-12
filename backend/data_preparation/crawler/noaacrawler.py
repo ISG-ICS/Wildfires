@@ -1,7 +1,7 @@
 import os
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import math
 import requests
@@ -11,7 +11,7 @@ rootpath.append()
 
 from configurations import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase
+from backend.data_preparation.crawler.crawlerbase import CrawlerBase, ExtractorException, DumperException
 from backend.data_preparation.extractor.gribextractor import GRIBExtractor
 from backend.data_preparation.dumper.noaadumper import NOAADumper
 
@@ -25,15 +25,14 @@ class NOAACrawler(CrawlerBase):
         self.select_exists = 'select reftime from noaa0p25_reftime'
 
     def start(self, end_clause=None):
-        # get how far we went last time
-        with Connection() as conn:
-            cur = conn.cursor()
-            cur.execute(self.select_exists)
-            exists_list = cur.fetchall()
-            cur.close()
+        # verify if both extractor and dumper are set up, raise ExtractorException or DumperException respectively
+        if not self.dumper:
+            raise DumperException
+
+        exists_list = self.get_exists()
 
         # get data from noaa.gov
-        currentTime = datetime.today()
+        currentTime = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-7))).replace(tzinfo=None)  # PDT
         beginTime = currentTime + timedelta(hours=self.interval)
         endTime = currentTime - timedelta(hours=12)  # specify the oldest data we can get.
 
@@ -44,16 +43,13 @@ class NOAACrawler(CrawlerBase):
                                        microseconds=beginTime.microsecond)
         while time_t >= endTime:
             if (time_t,) not in exists_list:
-                self.runQuery(time_t)
+                self.crawl(time_t)
             time_t -= timedelta(hours=self.interval)
 
-    def crawl(self, *args, **kwargs) -> list:
-        return list()
-
-    def runQuery(self, t):
-        time = t.timetuple()
+    def crawl(self, t):
+        clock = t.timetuple()
         date = t.strftime('%Y%m%d')
-        hour = self.roundHour(time.tm_hour, self.interval)
+        hour = self.roundHour(clock.tm_hour, self.interval)
         stamp = date + hour
         stamp2 = date + '/' + hour
 
@@ -86,16 +82,15 @@ class NOAACrawler(CrawlerBase):
                     f.write(response.content)
                     print('saved')
                 # convert format
-                ext_ugnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'U component of wind', None)
-                ext_vgnd = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'V component of wind', None)
-                ext_tmp = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'Temperature', None)
-                ext_soilw = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'),
-                                          'Volumetric soil moisture content', None)
+                self.set_extractor(GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000')))
+                ugnd = self.extractor.extract('U component of wind')
+                vgnd = self.extractor.extract('V component of wind')
+                tmp = self.extractor.extract('Temperature')
+                soilw = self.extractor.extract('Volumetric soil moisture content')
                 print('converted')
 
                 # dump into DB
-                self.set_dumper(NOAADumper())
-                self.dumper.insert(ext_ugnd.data, ext_vgnd.data, ext_tmp.data, ext_soilw.data, t, stamp)
+                self.dumper.insert(ugnd, vgnd, tmp, soilw, t, stamp)
         except IOError as e:
             # try -6h
             print(e)
@@ -104,10 +99,19 @@ class NOAACrawler(CrawlerBase):
             if os.path.isfile(os.path.join(GRIB2_DATA_DIR, stamp + '.f000')):
                 os.remove(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'))
 
+    def get_exists(self):
+        # get how far we went last time
+        with Connection() as conn:
+            cur = conn.cursor()
+            cur.execute(self.select_exists)
+            exists_list = cur.fetchall()
+            cur.close()
+        return exists_list
+
     @staticmethod
     def roundHour(hour, interval) -> str:
         if interval > 0:
-            result = (math.floor(hour / interval) * interval)
+            result = math.floor(hour / interval) * interval
             return str(result) if result >= 10 else '0' + str(result)
         else:
             raise RuntimeError('interval should NOT set to zero')
@@ -116,6 +120,7 @@ class NOAACrawler(CrawlerBase):
 if __name__ == '__main__':
     while True:
         crawler = NOAACrawler()
+        crawler.set_dumper(NOAADumper())
         for arg in sys.argv:
             if arg == '-j':
                 crawler.useJavaConverter = True  # use java version of grib2json, if '-j' appeared

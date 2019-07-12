@@ -6,13 +6,13 @@ import datetime
 
 
 class NOAADumper(DumperBase):
-    sql_insert = 'INSERT INTO "noaa0p25" (tid, gid, ugnd, vgnd, tmp) VALUES %s'
+    sql_insert = 'INSERT INTO "noaa0p25" (tid, gid, ugnd, vgnd, tmp, soilw) VALUES %s'
     sql_insert_time = 'INSERT INTO "noaa0p25_reftime" (reftime, tid) VALUES (%s, %s)'
 
     def __init__(self):
         super().__init__()
 
-    def insert(self, ugnd: dict, vgnd: dict, tmp: dict, reftime: datetime, stamp: str):
+    def insert(self, ugnd: dict, vgnd: dict, tmp: dict, soilw: dict, reftime: datetime, stamp: str):
         # insert one record into database
         # recording insert count number to self.inserted_count
 
@@ -24,7 +24,8 @@ class NOAADumper(DumperBase):
             data = list()
             gid = 0
             for key in ugnd.keys():
-                data.append((tid, gid, ugnd.get(key) + 0.0, vgnd.get(key) + 0.0, tmp.get(key) + 0.0))  # testing
+                data.append((tid, gid, ugnd.get(key) + 0.0, vgnd.get(key) + 0.0, tmp.get(key) + 0.0,
+                             soilw.get(key) + 0.0))  # testing
                 # data.append(('POINT({} {})'.format(tup[0], tup[1]), gid))  # create geometry mesh
                 gid += 1
 

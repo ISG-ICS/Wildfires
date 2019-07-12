@@ -1,11 +1,10 @@
 from typing import List, Dict
-
+import datetime
 import rootpath
 rootpath.append()
 
 from backend.data_preparation.connection import Connection
 
-# account info can be found on slack
 from backend.data_preparation.dumper.dumperbase import DumperBase
 
 
@@ -23,7 +22,7 @@ class TweetDumper(DumperBase):
         record_string = ""
         for data in data_list:
             if data['id'] not in ids_in_db:
-                if data['top_left'] != None and data['bottom_right'] != None:
+                if data['top_left'] is not None and data['bottom_right'] is not None:
                     location_string += f"({data['id']}, {data['top_left'][0]}, {data['top_left'][1]}, " \
                         f"{data['bottom_right'][0]}, {data['bottom_right'][1]}), "
                     self.inserted_locations_count += 1
@@ -57,12 +56,12 @@ class TweetDumper(DumperBase):
     __repr = __str__
 
 
-# if __name__ == '__main__':
-#     t = TweetDumper()
-#     t.insert([{'top_left': (120.0, 80.0), 'bottom_right': (30.5, 40.2), 'id': 12312321312312,
-#                'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag1, tag2"},
-#               {'top_left': (130.0, 90.0), 'bottom_right': (40.5, 50.2), 'id': 123123132145235,
-#                'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag2, tag4"},
-#               {'top_left': (999.9, 999.9), 'bottom_right': (999.9, 999.9), 'id': 41235644324534,
-#                'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag2, tag3"}
-#               ])
+if __name__ == '__main__':
+    t = TweetDumper()
+    t.insert([{'top_left': (120.0, 80.0), 'bottom_right': (30.5, 40.2), 'id': 12312321312312,
+               'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag1, tag2"},
+              {'top_left': (130.0, 90.0), 'bottom_right': (40.5, 50.2), 'id': 123123132145235,
+               'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag2, tag4"},
+              {'top_left': (999.9, 999.9), 'bottom_right': (999.9, 999.9), 'id': 41235644324534,
+               'date_time': datetime.datetime.now(), 'text': "some testing text", 'hashtags': "tag2, tag3"}
+              ])

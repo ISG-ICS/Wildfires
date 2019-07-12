@@ -39,9 +39,9 @@ class TweetExtractor(ExtractorBase):
                     top_left = bottom_right = None
                     # where the geolocation does not exist
 
-                self.data += [
+                self.data.append(
                     {'id': id, 'date_time': date_time, 'text': text, 'hashtags': hashtags, 'top_left': top_left,
-                     'bottom_right': bottom_right}]
+                     'bottom_right': bottom_right})
         return self.data
         # stores self.data and returns a reference of it
 

@@ -1,5 +1,7 @@
 import {Component, EventEmitter, Input, OnInit} from '@angular/core';
 import {MapService} from '../../../services/map-service/map.service';
+import noUiSlider from 'nouislider';
+import 'nouislider/distribute/nouislider.css';
 
 
 @Component({
@@ -18,6 +20,14 @@ export class TemperatureRangeSliderComponent implements OnInit {
           unit: 'Celcius' };
 
     ngOnInit() {
+        const slider = document.getElementById('slider');
+        noUiSlider.create(slider, {
+            start: [4000],
+            range: {
+            min: [1],
+            max: [10000]
+        }
+        });
 
     }
 
@@ -36,8 +46,16 @@ export class TemperatureRangeSliderComponent implements OnInit {
         const newValue = event.target.value;
         const range = document.querySelector('input[type=\'range\']');
         this.setTemperature(newValue);
-        this.mapService.temperatureChangeEvent.emit({newTemperature: newValue});
+        this.mapService.temperatureChangeEvent.emit({newTemperature: Number(newValue)});
     }
+
+    temperatureRangeChange2 = (event) => {
+        const newValue = event.target.value;
+        const range = document.querySelector('input[type=\'range\']');
+        this.setTemperature(newValue);
+        this.mapService.temperatureChangeEvent.emit({newTemperature2: Number(newValue)});
+    }
+
 
 }
 

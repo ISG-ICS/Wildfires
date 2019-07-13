@@ -100,7 +100,7 @@ class NOAACrawler(CrawlerBase):
                 os.remove(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'))
 
     def get_exists(self):
-        # get how far we went last time
+        """get how far we went last time"""
         with Connection() as conn:
             cur = conn.cursor()
             cur.execute(self.select_exists)

@@ -12,6 +12,8 @@ import re
 import string
 import matplotlib.path as mplPath
 import numpy as np
+from typing import *
+import rootpath
 
 import pygrib
 
@@ -131,7 +133,8 @@ def send_tweets_data():
 
         resp = make_response(
             jsonify(
-                [{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in cur.fetchall()]))
+                [{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in
+                     cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp
@@ -152,39 +155,49 @@ def send_wildfire():
     return resp
 
 
-
 @app.route("/fuyuan")
-def send_myTemp_data():
-    #fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from historical_temperature t where t.temperature is not NULL ")
-    fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t where t.endtime = (select max(t.endtime) from recent_temperature t where t.endtime <(select max(t.endtime) from recent_temperature t)) ")
+def send_temperature_data():
+    # This sql gives the second lastest data for temperature within ractangle around US,
+    # since the most lastest data is always updating (not completed)
+    temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t " \
+                                                 "where t.endtime = (select max(t.endtime) from recent_temperature t" \
+                                                 " where t.endtime <(select max(t.endtime) from recent_temperature t)) ")
 
-    d = []
+    temperature_data_celsius = []  # format temp data into a dictionary structure
 
-    for row in fetch:
-        object = {}
-        object["lat"] = row[0]
-        object["long"] = row[1] % (-360)
-        object["temp"] = row[2] - 273.15
-        d.append(object)
+    for row in temperature_fetch:
+        temperature_object = {}
+        temperature_object["lat"] = row[0]
+        temperature_object["long"] = row[1] % (-360)  # convert longtitude range
+        temperature_object["temp"] = row[2] - 273.15  # change temp into celsius
+        temperature_data_celsius.append(temperature_object)
 
-    d = points_in_us(d)
+    temperature_data_us = points_in_us(temperature_data_celsius)  # restrict data within US boundary.
 
-    resp = make_response(jsonify(d))
+    resp = make_response(jsonify(temperature_data_us))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
-def points_in_us(pnts: '[{lng: .., lat: .., else: ..}, ...]', accuracy=0.001):
-    if type(pnts) != type([]):
-        print("Input should be list as : [dict, dict, ...]")
+def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
+    """
+        returns a list of filtered points dictionary within the US boundary.
+
+        :param pnts: list of raw points that going to be filtered, in the format [{lng: .., lat: .., else: ..}, ...]
+        :param accuracy: accuracy theta for ???? <I don't know what the accuracy is used for?>
+
+        :returns: a list of filtered points, in the same format of input pnts
+    """
+    if not isinstance(pnts, list):
+        raise Exception("Input should be list as : [dict, dict, ...]")
 
     with open("USbound.json") as json_file:
         data = json.load(json_file)
         main_land_poly = mplPath.Path(np.array(data["mainland"][::5]))
         result = []
         for pnt in pnts:
-            if main_land_poly.contains_point( [pnt['long'] % -360, pnt['lat']], radius=accuracy) \
-            or main_land_poly.contains_point( [pnt['long'] % -360, pnt['lat']], radius=-accuracy):
+            if main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=accuracy) \
+                    or main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=-accuracy):
                 result.append(pnt)
         return result
 

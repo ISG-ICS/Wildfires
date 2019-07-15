@@ -1,34 +1,34 @@
-  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
-  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
 <div id="wrapper">
 
-	<!-- Uncomment this part to show the thermometer-->
-      <div id="termometer">
-      <div id="temperature" style="height:0" data-value="0°C"></div>
-      <div id="graduations"></div>
-      </div>
+    <!-- Uncomment this part to show the thermometer-->
+    <div id="termometer">
+        <div id="temperature" style="height:0" data-value="0°C"></div>
+        <div id="graduations"></div>
+    </div>
 
-	<h5></h5>
-	<div id="playground">
-		<div id="range">
-			<input id="minTemp" type="text" value="Max:-6">
-			<input (click)="temperatureRangeChange($event)" type="range" min="-6" max="35" value="20">
-			<input id="maxTemp" type="text" value="35">
-		</div>
-		<p id="unit">Celcius C°</p>
-	</div>
+    <h5></h5>
+    <div id="playground">
+        <div id="range">
+            <input id="minTemp" type="text" value="Max:-6">
+            <input (click)="temperatureRangeChange($event)" type="range" min="-6" max="35" value="20">
+            <input id="maxTemp" type="text" value="35">
+        </div>
+        <p id="unit">Celcius C°</p>
+    </div>
 
-	<div id="playground">
-		<div id="range">
-			<input id="minTemp" type="text" value="Min:-6">
-			<input (click)="temperatureRangeChange2($event)" type="range" min="-6" max="35" value="20">
-			<input id="maxTemp" type="text" value="35">
-		</div>
-		<p id="unit">Celcius C°</p>
-	</div>
+    <div id="playground">
+        <div id="range">
+            <input id="minTemp" type="text" value="Min:-6">
+            <input (click)="temperatureRangeChange2($event)" type="range" min="-6" max="35" value="20">
+            <input id="maxTemp" type="text" value="35">
+        </div>
+        <p id="unit">Celcius C°</p>
+    </div>
 
-	<div class='range-box'>
-		<div id="slider"> </div>
-	</div>
+    <div class='range-box'>
+        <div id="slider"></div>
+    </div>
 </div>

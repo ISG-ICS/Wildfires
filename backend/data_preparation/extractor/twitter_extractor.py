@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from typing import List, Optional, Dict
 import rootpath
+
 rootpath.append()
 
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
@@ -18,7 +19,7 @@ class TweetExtractor(ExtractorBase):
     def extract(self, data_from_crawler: List[Dict]) -> List:
         """extracts useful information after being provided with original tweet data (similar to a filter)"""
         collected_ids = set()
-        extracted_data_list = []
+        self.data.clear()
         for tweet_json_string in data_from_crawler:
             # tweet_json_string is a list of dictionary
             tweet: dict = json.loads(str(tweet_json_string))
@@ -31,10 +32,11 @@ class TweetExtractor(ExtractorBase):
 
                 # extracts (filters) the useful information
                 date_time: datetime = datetime.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y')
-                text: str= tweet["text"].replace("'", "''")
+                text: str = tweet["text"].replace("'", "''")
                 hashtags: List[str] = [tag['text'] for tag in tweet["hashtags"]]
                 if tweet.get('place') is not None:
                     top_left, _, bottom_right, _ = tweet["place"]['bounding_box']['coordinates'][0]
+
                 else:
                     top_left = bottom_right = None
                     # where the geolocation does not exist

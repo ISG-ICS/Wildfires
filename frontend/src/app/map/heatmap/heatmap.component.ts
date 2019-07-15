@@ -231,6 +231,7 @@ export class HeatmapComponent implements OnInit {
 
 
     heatmapDataHandler = (data) => {
+        //
         const heatmapConfig = {
             radius: 1,
             maxOpacity: 0.63,
@@ -258,10 +259,7 @@ export class HeatmapComponent implements OnInit {
                 '.99': '#9306ba',
             }
         };
-        // Create heatmap overaly for temperature data with heatmap configuration;
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-        //heatmapLayer.setDataMax(20);
-        //heatmapLayer.setDataMin(10);
         heatmapLayer.setData({max: 680, data: data.contourData});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
     }
@@ -278,7 +276,6 @@ export class HeatmapComponent implements OnInit {
         const pointGrid = turf.explode(tempFeatures);
         const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
         let lines = turf.isolines(pointGrid, breaks, {zProperty: 'temperature'});
-        //console.log(lines)
 
         var _lFeatures = lines.features;
         for (var i = 0; i < _lFeatures.length; i++) {
@@ -292,12 +289,6 @@ export class HeatmapComponent implements OnInit {
             }
             _lFeatures[i].geometry.coordinates = _lCoords;
         }
-
-
-        //const region = L.geoJSON(lines, {style: {color: '#ffe9db', weight: 1.8, opacity: 0.6}})//.addTo(this.map);
-        //this.mainControl.addOverlay(L.layerGroup(lines), 'temp-contour');
-        //this.map.fitBounds(region.getBounds());
-
         const tempEvents = [];
         for (let index = 0; index < lines.features.length; index++) {
             const colorCode = Math.floor(200 * (index + 1) / breaks.length + 55);
@@ -311,28 +302,14 @@ export class HeatmapComponent implements OnInit {
         }
         const region = L.layerGroup(tempEvents);
         this.mainControl.addOverlay(region, 'temp-contour');
-        //this.map.fitBounds(region.getBounds());
 
     }
-
-
-    tempRangeChangeHandler = (event, data) => {
-        const tempData = [];
-        this.tweetData.forEach(entry => {
-            if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
-                tempData.push([entry[0], entry[1]]);
-            }
-        });
-        this.tweetLayer.setData(tempData);
-    }
-
 
     polygonDataHandler = (data) => {
         let my = data.contourData;
         let all_latlng = []
         const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
         for (let t = 0; t < breaks.length - 1; t++) {
-            //console.log(my[i].lat);
             let latlng_list = [];
             for (let i = 0; i < my.length; i++) {
                 if (my[i].temp >= breaks[t] && my[i].temp <= breaks[t + 1]) {
@@ -383,7 +360,6 @@ export class HeatmapComponent implements OnInit {
                     this.regionsMax = [];
                     for (let k = 0; k <= i; k++) {
                         const region = this.tempLayers[k];
-                        //region.addTo(this.map);
                         this.regionsMax.push(region);
                     }
                 }
@@ -404,38 +380,6 @@ export class HeatmapComponent implements OnInit {
         }
     }
 
-    /*
-    rangeSelectHandler2 = (event) => {
-        if(event.newTemperature !== undefined){this.Max = []; this.Max.push(event.newTemperature);}
-        if(event.newTemperature2 !== undefined){this.Min = []; this.Min.push(event.newTemperature2);}
-        console.log(this.Max, this.Max[this.Max.length-1]);
-        console.log(this.Min, this.Min[this.Min.length-1]);
-        let breaks = this.breaks;
-        for (let i = 0; i < breaks.length; i ++) {
-            if (event.newTemperature >= this.breaks[i] && event.newTemperature <= this.breaks[i + 1]) {
-                for(let j = 0; j < this.tempLayers.length; j++){
-                   this.map.removeLayer(this.tempLayers[j]);
-                 }
-                this.regionsMax = [];
-                for (let k = 0; k <= i; k++) {
-                    const region = this.tempLayers[k];
-                    region.addTo(this.map);
-                    this.regionsMax.push(region);
-                }
-                 console.log(this.regionsMax);
-            };
-
-            if (event.newTemperature2 >= this.breaks[i] && event.newTemperature2 <= this.breaks[i + 1]) {
-                for (let k = 0; k <= i; k++) {
-                    const region = this.tempLayers[k];
-                    if(this.regionsMax.includes(this.tempLayers[k])) {this.map.removeLayer(this.tempLayers[k]);}
-                }
-            }
-
-
-        }
-    }
-     */
 
 
   windDataHandler = (wind) => {

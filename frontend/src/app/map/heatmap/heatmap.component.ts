@@ -29,7 +29,7 @@ export class HeatmapComponent implements OnInit {
     private regionsMax = [];
     private Max = [0];
     private Min = [0];
-    private breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+    private temp_breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
 
     constructor(private mapService: MapService) {
     }
@@ -274,8 +274,7 @@ export class HeatmapComponent implements OnInit {
         console.log(tempPointsList);
         const tempFeatures = turf.featureCollection(tempPointsList);
         const pointGrid = turf.explode(tempFeatures);
-        const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
-        let lines = turf.isolines(pointGrid, breaks, {zProperty: 'temperature'});
+        let lines = turf.isolines(pointGrid, this.temp_breaks, {zProperty: 'temperature'});
 
         var _lFeatures = lines.features;
         for (var i = 0; i < _lFeatures.length; i++) {
@@ -291,7 +290,7 @@ export class HeatmapComponent implements OnInit {
         }
         const tempEvents = [];
         for (let index = 0; index < lines.features.length; index++) {
-            const colorCode = Math.floor(200 * (index + 1) / breaks.length + 55);
+            const colorCode = Math.floor(200 * (index + 1) / this.temp_breaks.length + 55);
             tempEvents.push(L.geoJSON(lines.features[index], {
                 style: {
                     color: 'rgb(0, ' + colorCode + ', ' + colorCode + ')',
@@ -308,11 +307,10 @@ export class HeatmapComponent implements OnInit {
     polygonDataHandler = (data) => {
         let my = data.contourData;
         let all_latlng = []
-        const breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
-        for (let t = 0; t < breaks.length - 1; t++) {
+        for (let t = 0; t < this.temp_breaks.length - 1; t++) {
             let latlng_list = [];
             for (let i = 0; i < my.length; i++) {
-                if (my[i].temp >= breaks[t] && my[i].temp <= breaks[t + 1]) {
+                if (my[i].temp >= this.temp_breaks[t] && my[i].temp <= this.temp_breaks[t + 1]) {
                     latlng_list.push([Number(my[i].lat), Number(my[i].long)]);
                 }
             }
@@ -351,12 +349,11 @@ export class HeatmapComponent implements OnInit {
 
         console.log(this.Max, this.Max[0]);
         console.log(this.Min, this.Min[0]);
-        let breaks = this.breaks;
 
         if (this.Min[0] <= this.Max[0]) {
-            for (let i = 0; i < breaks.length; i++) {
+            for (let i = 0; i < this.temp_breaks.length; i++) {
 
-                if (this.Max[0] >= this.breaks[i] && this.Max[0] < this.breaks[i + 1]) {
+                if (this.Max[0] >= this.temp_breaks[i] && this.Max[0] < this.temp_breaks[i + 1]) {
                     this.regionsMax = [];
                     for (let k = 0; k <= i; k++) {
                         const region = this.tempLayers[k];
@@ -364,8 +361,8 @@ export class HeatmapComponent implements OnInit {
                     }
                 }
             }
-            for (let i = 0; i < breaks.length; i++) {
-                if (this.Min[0] >= this.breaks[i] && this.Min[0] < this.breaks[i + 1]) {
+            for (let i = 0; i < this.temp_breaks.length; i++) {
+                if (this.Min[0] >= this.temp_breaks[i] && this.Min[0] < this.temp_breaks[i + 1]) {
                     this.regionsMax.splice(0, i);
                 }
             }

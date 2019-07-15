@@ -1,6 +1,9 @@
 from typing import List, Dict
 import datetime
+
+import psycopg2
 import rootpath
+
 rootpath.append()
 
 from backend.data_preparation.connection import Connection
@@ -12,22 +15,21 @@ class TweetDumper(DumperBase):
     def __init__(self):
         super().__init__()
         self.inserted_locations_count = 0
-        # dumper holds no data in memory
 
     def insert(self, data_list: List[Dict]) -> None:
         """inserts the given list into the database"""
-        ids_in_db = set(id for id, in Connection().sql_execute("select id from new_records;"))
-        # gets all existing keys in database, make sure no duplicated key id will be enter into the database
+
         location_string = ""
         record_string = ""
         for data in data_list:
-            if data['id'] not in ids_in_db:
-                if data['top_left'] is not None and data['bottom_right'] is not None:
-                    location_string += f"({data['id']}, {data['top_left'][0]}, {data['top_left'][1]}, " \
-                        f"{data['bottom_right'][0]}, {data['bottom_right'][1]}), "
-                    self.inserted_locations_count += 1
-                record_string += f"({data['id']}, '{data['date_time']}', '{data['text']}', '{', '.join(data['hashtags']) if data['hashtags'] else 'NULL'}'), "
-                self.inserted_count += 1
+
+            if data['top_left'] is not None and data['bottom_right'] is not None:
+                location_string += f"({data['id']}, {data['top_left'][1]}, {data['top_left'][0]}, " \
+                    f"{data['bottom_right'][1]}, {data['bottom_right'][0]}), "
+                self.inserted_locations_count += 1
+            record_string += f"({data['id']}, '{data['date_time']}', '{data['text']}', " \
+                f"'{', '.join(data['hashtags']) if data['hashtags'] else None}'), "
+            self.inserted_count += 1
         record_string = record_string[:-2]
         location_string = location_string[:-2]
 
@@ -35,17 +37,19 @@ class TweetDumper(DumperBase):
             # makes sure that the line after 'values' is not empty, and no error exists
             if record_string:
                 Connection().sql_execute_commit(
-                    f"insert into new_records (id, create_at, text, hash_tag) values {record_string};")
-        except Exception as e:
-            print('Error:', e)
+                    f"insert into records (id, create_at, text, hash_tag) values {record_string} "
+                    f"on conflict (id) do nothing;")
+        except Exception:
+            pass
 
         try:
             # makes sure that the line after 'values' is not empty, and no error exists
             if location_string:
                 Connection().sql_execute_commit(
-                    f"insert into new_locations (id, top_left_lat,top_left_long,bottom_right_lat,bottom_right_long) values {location_string};")
-        except Exception as e:
-            print('Error:', e)
+                    f"insert into locations (id, top_left_lat,top_left_long,bottom_right_lat,bottom_right_long) "
+                    f"values {location_string} on conflict (id) do nothing;")
+        except Exception:
+            pass
 
     def report_status(self):
         return self.inserted_count, self.inserted_locations_count

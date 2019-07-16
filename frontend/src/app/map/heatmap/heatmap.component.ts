@@ -24,12 +24,16 @@ export class HeatmapComponent implements OnInit {
     private liveTweetIdSet = new Set();
     private map;
     private switchStatus = 0;
+
+    // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
     private tempLayer1;
-    private regionsMax = [];
-    private Max = [0];
-    private Min = [0];
-    private temp_breaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+    private tempBreaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+
+    // For temp range selector store current max/min selected by user
+    private tempRegionsMax = [];
+    private tempMax = [0];
+    private tempMin = [0];
 
     constructor(private mapService: MapService) {
     }
@@ -67,15 +71,13 @@ export class HeatmapComponent implements OnInit {
             $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
         });
 
-        // Get heatmap data from service
-        //this.mapService.getHeatmapData();
-        //this.mapService.heatmapDataLoaded.subscribe(this.heatmapDataHandler);
-
-        // Get my heatmap data from service
-        this.mapService.getmyTempData();
+        // Get temperature data from service
+        this.mapService.getTemperatureData();
         this.mapService.contourDataLoaded.subscribe(this.contourDataHandler);
         this.mapService.contourDataLoaded.subscribe(this.polygonDataHandler);
         this.mapService.contourDataLoaded.subscribe(this.heatmapDataHandler);
+
+        // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
 
         // Get tweets data from service
@@ -279,7 +281,7 @@ export class HeatmapComponent implements OnInit {
         // Establish features and break points for contour lines
         const tempFeatures = turf.featureCollection(tempPointsList);
         const pointGrid = turf.explode(tempFeatures);
-        const lines = turf.isolines(pointGrid, this.temp_breaks, {zProperty: 'temperature'});
+        const lines = turf.isolines(pointGrid, this.tempBreaks, {zProperty: 'temperature'});
         // Make contour lines smooth
         const _lFeatures = lines.features;
         for (let i = 0; i < _lFeatures.length; i++) {
@@ -296,7 +298,7 @@ export class HeatmapComponent implements OnInit {
         // Give colors from light to dark for different temperature
         const tempEvents = [];
         for (let index = 0; index < lines.features.length; index++) {
-            const colorCode = Math.floor(200 * (index + 1) / this.temp_breaks.length + 55);
+            const colorCode = Math.floor(200 * (index + 1) / this.tempBreaks.length + 55);
             tempEvents.push(L.geoJSON(lines.features[index], {
                 style: {
                     color: 'rgb(0, ' + colorCode + ', ' + colorCode + ')',
@@ -315,10 +317,10 @@ export class HeatmapComponent implements OnInit {
         let my = data.contourData;
         let all_latlng = []
         // Classify points for different temp into different list
-        for (let t = 0; t < this.temp_breaks.length - 1; t++) {
+        for (let t = 0; t < this.tempBreaks.length - 1; t++) {
             let latlng_list = [];
             for (let i = 0; i < my.length; i++) {
-                if (my[i].temp >= this.temp_breaks[t] && my[i].temp <= this.temp_breaks[t + 1]) {
+                if (my[i].temp >= this.tempBreaks[t] && my[i].temp <= this.tempBreaks[t + 1]) {
                     latlng_list.push([Number(my[i].lat), Number(my[i].long)]);
                 }
             }
@@ -350,36 +352,36 @@ export class HeatmapComponent implements OnInit {
 
         // var int: always keep the lastest input Max/Min temperature
         if (event.newTemperature !== undefined) {
-            this.Max = [];
-            this.Max.push(event.newTemperature);
+            this.tempMax = [];
+            this.tempMax.push(event.newTemperature);
         }
         if (event.newTemperature2 !== undefined) {
-            this.Min = [];
-            this.Min.push(event.newTemperature2);
+            this.tempMin = [];
+            this.tempMin.push(event.newTemperature2);
         }
 
         // for each valid input range, given list of layers of temp plotting satisfy the range and add to map
-        if (this.Min[0] <= this.Max[0]) {
-            for (let i = 0; i < this.temp_breaks.length; i++) {
+        if (this.tempMin[0] <= this.tempMax[0]) {
+            for (let i = 0; i < this.tempBreaks.length; i++) {
 
-                if (this.Max[0] >= this.temp_breaks[i] && this.Max[0] < this.temp_breaks[i + 1]) {
-                    this.regionsMax = [];
+                if (this.tempMax[0] >= this.tempBreaks[i] && this.tempMax[0] < this.tempBreaks[i + 1]) {
+                    this.tempRegionsMax = [];
                     for (let k = 0; k <= i; k++) {
                         const region = this.tempLayers[k];
-                        this.regionsMax.push(region);
+                        this.tempRegionsMax.push(region);
                     }
                 }
             }
-            for (let i = 0; i < this.temp_breaks.length; i++) {
-                if (this.Min[0] >= this.temp_breaks[i] && this.Min[0] < this.temp_breaks[i + 1]) {
-                    this.regionsMax.splice(0, i);
+            for (let i = 0; i < this.tempBreaks.length; i++) {
+                if (this.tempMin[0] >= this.tempBreaks[i] && this.tempMin[0] < this.tempBreaks[i + 1]) {
+                    this.tempRegionsMax.splice(0, i);
                 }
             }
 
             for (const layer of this.tempLayers) {
                 this.map.removeLayer(layer);
             }
-            for (const region of this.regionsMax) {
+            for (const region of this.tempRegionsMax) {
                 region.addTo(this.map);
             }
         }

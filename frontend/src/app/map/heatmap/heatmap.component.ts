@@ -231,7 +231,9 @@ export class HeatmapComponent implements OnInit {
 
 
     heatmapDataHandler = (data) => {
-        //
+        // use heatmapOverlay from leaflet-heatmap
+        // Documentation for details in change of custom parameter
+        // https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
         const heatmapConfig = {
             radius: 1,
             maxOpacity: 0.63,
@@ -242,6 +244,7 @@ export class HeatmapComponent implements OnInit {
             latField: 'lat',
             lngField: 'long',
             valueField: 'temp',
+            // gradient is customized to match the color scales of temp plotting layers exactly the same
             gradient: {
                 '.1': '#393fb8',
                 '.2': '#45afd6',
@@ -266,28 +269,31 @@ export class HeatmapComponent implements OnInit {
 
 
     contourDataHandler = (data) => {
+        // used turf built in features to add contour lines,
+        // but contour lines can only built on ractangled data size boundary
         let tempPointsList = [];
         for (let points of data.contourData) {
             const tempPoint = turf.point([points.long, points.lat], {'temperature': points.temp});
             tempPointsList.push(tempPoint);
         }
-        console.log(tempPointsList);
+        // Establish features and break points for contour lines
         const tempFeatures = turf.featureCollection(tempPointsList);
         const pointGrid = turf.explode(tempFeatures);
-        let lines = turf.isolines(pointGrid, this.temp_breaks, {zProperty: 'temperature'});
-
-        var _lFeatures = lines.features;
-        for (var i = 0; i < _lFeatures.length; i++) {
-            var _coords = _lFeatures[i].geometry.coordinates;
-            var _lCoords = [];
-            for (var j = 0; j < _coords.length; j++) {
-                var _coord = _coords[j];
-                var line = turf.lineString(_coord);
-                var curved = turf.bezierSpline(line);
+        const lines = turf.isolines(pointGrid, this.temp_breaks, {zProperty: 'temperature'});
+        // Make contour lines smooth
+        const _lFeatures = lines.features;
+        for (let i = 0; i < _lFeatures.length; i++) {
+            const _coords = _lFeatures[i].geometry.coordinates;
+            const _lCoords = [];
+            for (let j = 0; j < _coords.length; j++) {
+                const _coord = _coords[j];
+                const line = turf.lineString(_coord);
+                const curved = turf.bezierSpline(line);
                 _lCoords.push(curved.geometry.coordinates);
             }
             _lFeatures[i].geometry.coordinates = _lCoords;
         }
+        // Give colors from light to dark for different temperature
         const tempEvents = [];
         for (let index = 0; index < lines.features.length; index++) {
             const colorCode = Math.floor(200 * (index + 1) / this.temp_breaks.length + 55);
@@ -299,6 +305,7 @@ export class HeatmapComponent implements OnInit {
                 }
             }));
         }
+        // Add the contour layer to the map
         const region = L.layerGroup(tempEvents);
         this.mainControl.addOverlay(region, 'temp-contour');
 
@@ -307,6 +314,7 @@ export class HeatmapComponent implements OnInit {
     polygonDataHandler = (data) => {
         let my = data.contourData;
         let all_latlng = []
+        // Classify points for different temp into different list
         for (let t = 0; t < this.temp_breaks.length - 1; t++) {
             let latlng_list = [];
             for (let i = 0; i < my.length; i++) {
@@ -318,7 +326,7 @@ export class HeatmapComponent implements OnInit {
 
         }
         console.log(all_latlng);
-
+        // Assign a different color and a layer for each small temperature interval
         const colorlist = ['#393fb8', '#45afd6', '#49ebd8', '#49eb8f', '#a6e34b', '#f2de5a', '#edbf18', '#e89c20', '#f27f02', '#f25a02', '#f23a02', '#f0077f', '#f205c3', '#9306ba'];
         const boxlist = ['blue- -6C', 'lightblue- -3C', 'greenblue- 0C', 'green- 3C', 'lightgreen- 6C', 'yellow- 9C', 'darkyellow- 12C', 'lightorange- 15C', 'orange-18C', 'richorange- 21C', 'red- 24C', 'purplered- 27C', 'lightpurple- 30C', 'purple- 33C']
         for (let i = 0; i < colorlist.length; i++) {
@@ -338,6 +346,9 @@ export class HeatmapComponent implements OnInit {
     }
 
     rangeSelectHandler = (event) => {
+        // Respond to the input range of temperature from the range selector in side bar
+
+        // var int: always keep the lastest input Max/Min temperature
         if (event.newTemperature !== undefined) {
             this.Max = [];
             this.Max.push(event.newTemperature);
@@ -347,9 +358,7 @@ export class HeatmapComponent implements OnInit {
             this.Min.push(event.newTemperature2);
         }
 
-        console.log(this.Max, this.Max[0]);
-        console.log(this.Min, this.Min[0]);
-
+        // for each valid input range, given list of layers of temp plotting satisfy the range and add to map
         if (this.Min[0] <= this.Max[0]) {
             for (let i = 0; i < this.temp_breaks.length; i++) {
 

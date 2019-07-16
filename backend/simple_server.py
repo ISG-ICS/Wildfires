@@ -20,7 +20,7 @@ import pygrib
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
-from paths import NLTK_MODEL_PATH
+from paths import NLTK_MODEL_PATH, BOUNDARY_PATH
 
 app = Flask(__name__, static_url_path='')
 
@@ -183,18 +183,17 @@ def send_temperature_data():
 
 def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
     """
-
-        returns a list of filtered points dictionary within the US boundary.
-
-        :param pnts: list of raw points that going to be filtered, in the format [{lng: .., lat: .., else: ..}, ...]
-        :param accuracy: accuracy theta for ???? <I don't know what the accuracy is used for?>
+        To filter a list of points dict to a list of them within us boundary
+        :param pnts: list of raw points that to be filtered. The format is [{lng: .., lat: .., else: ..}, ...]
+        :param accuracy:
 
         :returns: a list of filtered points, in the same format of input pnt
+
     """
     if not isinstance(pnts, list):
         raise TypeError("Input should be list as : [dict, dict, ...]")
 
-    with open("USbound.json") as json_file:
+    with open(os.path.join(BOUNDARY_PATH, "USbound.json")) as json_file:
         data = json.load(json_file)
         main_land_poly = mplPath.Path(np.array(data["mainland"][::5]))
         result = []

@@ -23,4 +23,6 @@ WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')
 
 GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
 
+BOUNDARY_PATH = os.path.join(ROOT_DIR, 'data/boundaries')
+
 

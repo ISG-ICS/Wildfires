@@ -48,6 +48,7 @@ class Connection:
 
     def sql_execute(self, sql) -> Iterator:
         """to execute an SQL query and iterate the output"""
+        print(f"SQL: {sql}")
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             print("You are running SELECT or UPDATE without committing, retry with argument commit=True")
         with self() as connection:
@@ -66,6 +67,7 @@ class Connection:
 
     def sql_execute_commit(self, sql) -> None:
         """to execute and commit an SQL query"""
+        print(f"SQL: {sql}")
         with self() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)

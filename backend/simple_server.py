@@ -1,8 +1,8 @@
 import pickle
 
 import rootpath
-
 rootpath.append()
+
 from backend.data_preparation.connection import Connection
 from backend.classifiers.nltktest import NLTKTest
 import twitter
@@ -12,8 +12,9 @@ import re
 import string
 import matplotlib.path as mplPath
 import numpy as np
-from typing import *
-import rootpath
+from typing import List,Dict
+
+
 
 import pygrib
 
@@ -155,7 +156,7 @@ def send_wildfire():
     return resp
 
 
-@app.route("/fuyuan")
+@app.route("/recenttemp")
 def send_temperature_data():
     # This sql gives the second lastest data for temperature within ractangle around US,
     # since the most lastest data is always updating (not completed)
@@ -176,11 +177,13 @@ def send_temperature_data():
 
     resp = make_response(jsonify(temperature_data_us))
     resp.headers['Access-Control-Allow-Origin'] = '*'
+    # sends temperature data with coordinate within us boundary
     return resp
 
 
 def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
     """
+
         returns a list of filtered points dictionary within the US boundary.
 
         :param pnts: list of raw points that going to be filtered, in the format [{lng: .., lat: .., else: ..}, ...]
@@ -189,7 +192,7 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
         :returns: a list of filtered points, in the same format of input pnt
     """
     if not isinstance(pnts, list):
-        raise Exception("Input should be list as : [dict, dict, ...]")
+        raise TypeError("Input should be list as : [dict, dict, ...]")
 
     with open("USbound.json") as json_file:
         data = json.load(json_file)

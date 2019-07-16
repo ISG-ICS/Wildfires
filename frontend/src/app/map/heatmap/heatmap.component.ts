@@ -329,8 +329,14 @@ export class HeatmapComponent implements OnInit {
         }
         console.log(all_latlng);
         // Assign a different color and a layer for each small temperature interval
-        const colorlist = ['#393fb8', '#45afd6', '#49ebd8', '#49eb8f', '#a6e34b', '#f2de5a', '#edbf18', '#e89c20', '#f27f02', '#f25a02', '#f23a02', '#f0077f', '#f205c3', '#9306ba'];
-        const boxlist = ['blue- -6C', 'lightblue- -3C', 'greenblue- 0C', 'green- 3C', 'lightgreen- 6C', 'yellow- 9C', 'darkyellow- 12C', 'lightorange- 15C', 'orange-18C', 'richorange- 21C', 'red- 24C', 'purplered- 27C', 'lightpurple- 30C', 'purple- 33C']
+        const colorlist = ['#393fb8', '#45afd6', '#49ebd8', '#49eb8f', '#a6e34b', '#f2de5a',
+                '#edbf18', '#e89c20', '#f27f02', '#f25a02', '#f23a02', '#f0077f', '#f205c3', '#9306ba'
+            ]
+        ;
+        const boxlist = ['blue- -6C', 'lightblue- -3C', 'greenblue- 0C', 'green- 3C', 'lightgreen- 6C',
+            'yellow- 9C', 'darkyellow- 12C', 'lightorange- 15C', 'orange-18C', 'richorange- 21C', 'red- 24C',
+            'purplered- 27C', 'lightpurple- 30C', 'purple- 33C'
+        ]
         for (let i = 0; i < colorlist.length; i++) {
             this.tempLayer1 = L.TileLayer.maskCanvas({
                 radius: 25,

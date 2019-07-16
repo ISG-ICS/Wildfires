@@ -185,9 +185,9 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
     """
         To filter a list of points dict to a list of them within us boundary
         :param pnts: list of raw points that to be filtered. The format is [{lng: .., lat: .., else: ..}, ...]
-        :param accuracy:
+        :param accuracy: Allow the path to be made slightly larger or smaller by change the default set of this value.
 
-        :returns: a list of filtered points, in the same format of input pnt
+        :returns: a list of filtered points, in the same format of input pnt dicts
 
     """
     if not isinstance(pnts, list):

@@ -186,7 +186,7 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
         :param pnts: list of raw points that going to be filtered, in the format [{lng: .., lat: .., else: ..}, ...]
         :param accuracy: accuracy theta for ???? <I don't know what the accuracy is used for?>
 
-        :returns: a list of filtered points, in the same format of input pnts
+        :returns: a list of filtered points, in the same format of input pnt
     """
     if not isinstance(pnts, list):
         raise Exception("Input should be list as : [dict, dict, ...]")

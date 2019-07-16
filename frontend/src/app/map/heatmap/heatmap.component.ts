@@ -376,7 +376,6 @@ export class HeatmapComponent implements OnInit {
                 }
             }
 
-            console.log(this.regionsMax);
             for (const layer of this.tempLayers) {
                 this.map.removeLayer(layer);
             }

@@ -1,12 +1,12 @@
-from configparser import ConfigParser
-from typing import Iterator, Dict
+from typing import Iterator
 
 import psycopg2
 import rootpath
 
 rootpath.append()
 
-from configurations import DATABASE_CONFIG_PATH
+from paths import DATABASE_CONFIG_PATH
+from utilities.ini_parser import parse
 
 
 class Connection:
@@ -37,14 +37,8 @@ class Connection:
         self.conn.close()
 
     @staticmethod
-    def config(filename=DATABASE_CONFIG_PATH, section='postgresql') -> Dict:
-        """read config , default from configs/database.ini"""
-        parser = ConfigParser()
-        parser.read(filename)
-        if parser.has_section(section):
-            return dict(parser.items(section))
-        else:
-            raise Exception(f'Section {section} not found in the {filename} file')
+    def config():
+        return parse(DATABASE_CONFIG_PATH, 'postgresql')
 
     def sql_execute(self, sql) -> Iterator:
         """to execute an SQL query and iterate the output"""

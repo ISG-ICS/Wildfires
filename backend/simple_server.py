@@ -1,4 +1,5 @@
 import pickle
+
 import rootpath
 
 rootpath.append()
@@ -14,7 +15,7 @@ import numpy as np
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
-from configurations import NLTK_MODEL_PATH
+from paths import NLTK_MODEL_PATH
 
 app = Flask(__name__, static_url_path='')
 

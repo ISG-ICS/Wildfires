@@ -1,9 +1,12 @@
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
-import psycopg2.errors
-import psycopg2.extras
 import datetime
 from ast import literal_eval as make_tuple
+from typing import Tuple, Generator
+
+import psycopg2.errors
+import psycopg2.extras
+
+from backend.data_preparation.connection import Connection
+from backend.data_preparation.dumper.dumperbase import DumperBase
 
 
 class NOAADumper(DumperBase):
@@ -17,7 +20,7 @@ class NOAADumper(DumperBase):
     def __init__(self):
         super().__init__()
 
-    def insert(self, ugnd: dict, vgnd: dict, tmp: dict, soilw: dict, reftime: datetime, stamp: str):
+    def insert(self, ugnd: dict, vgnd: dict, tmp: dict, soilw: dict, reftime: datetime, stamp: str) -> None:
 
         with Connection() as conn:
             self.check_geom(conn, ugnd)  # create mesh if not exist
@@ -30,6 +33,9 @@ class NOAADumper(DumperBase):
                 cur = conn.cursor()
                 cur.execute(NOAADumper.sql_insert_time, (reftime, tid))
                 psycopg2.extras.execute_values(cur, NOAADumper.sql_insert, data, template=None, page_size=10000)
+
+            # FIXME: when will this error happen? does it terminate at the error point? also not able to find error
+            #  reference to `psycopg2.errors.UniqueViolation`
             except psycopg2.errors.UniqueViolation:
                 print('\n\tDuplicated Key')
             else:
@@ -52,31 +58,26 @@ class NOAADumper(DumperBase):
         # if table is empty
         cur.execute(self.sql_check_geom2)
         geoms = cur.fetchall()
-        if len(geoms) == 0:
+        if not len(geoms):
             mesh = NOAADumper.geom_gen(ugnd)
             psycopg2.extras.execute_values(cur, NOAADumper.sql_insert_geom, mesh, template=None, page_size=10000)
             conn.commit()
         cur.close()
-        return cur
 
     @staticmethod
-    def data_gen(tid: int, soilw: dict, tmp: dict, ugnd: dict, vgnd: dict) -> tuple:
+    def data_gen(tid: int, soilw: dict, tmp: dict, ugnd: dict, vgnd: dict) -> Generator[Tuple[int, int, float, float,
+                                                                                              float, float]]:
         """generator: data"""
         gid = 0
         for key in ugnd.keys():
-            data = (tid, gid, ugnd.get(key) + 0.0, vgnd.get(key) + 0.0, tmp.get(key) + 0.0,
-                    soilw.get(key) + 0.0)
-
-            yield data
+            yield tid, gid, ugnd.get(key) + 0.0, vgnd.get(key) + 0.0, tmp.get(key) + 0.0, soilw.get(key) + 0.0
             gid += 1
 
     @staticmethod
-    def geom_gen(ugnd: dict) -> tuple:
+    def geom_gen(ugnd: dict) -> Generator[Tuple[str, int]]:
         """generator: geometry"""
         gid = 0
         for key in ugnd.keys():
-            tup = make_tuple(key)
-            geom = ('POINT({} {})'.format(tup[0], tup[1]), gid)
-
-            yield geom
+            x, y = make_tuple(key)
+            yield f'POINT({x} {y})', gid
             gid += 1

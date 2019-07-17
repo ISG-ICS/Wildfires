@@ -6,8 +6,9 @@ import webbrowser
 import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
+
+from backend.classifiers.url_classifier import URLClassifier
 from backend.data_preparation.connection import Connection
-from backend.data_preparation.extractor.url_classifier import URLClassifier
 
 
 def truncate_table(table_name):

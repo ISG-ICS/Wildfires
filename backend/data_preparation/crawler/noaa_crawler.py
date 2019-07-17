@@ -12,8 +12,8 @@ rootpath.append()
 from paths import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
-from backend.data_preparation.extractor.gribextractor import GRIBExtractor
-from backend.data_preparation.dumper.noaadumper import NOAADumper
+from backend.data_preparation.extractor.grib_extractor import GRIBExtractor
+from backend.data_preparation.dumper.noaa_dumper import NOAADumper
 
 
 class NOAACrawler(CrawlerBase):
@@ -32,16 +32,16 @@ class NOAACrawler(CrawlerBase):
         exists_list = self.get_exists()
 
         # get data from noaa.gov
-        currentTime = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-7))).replace(tzinfo=None)  # PDT
-        beginTime = currentTime + timedelta(hours=self.interval)
-        endTime = currentTime - timedelta(hours=12)  # specify the oldest data we can get.
+        current_time = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-7))).replace(tzinfo=None)  # PDT
+        begin_time = current_time + timedelta(hours=self.interval)
+        end_time = current_time - timedelta(hours=12)  # specify the oldest data we can get.
 
         # round datetime to 6 hours
-        time_t = beginTime - timedelta(hours=beginTime.hour - int(self.roundHour(beginTime.hour, self.interval)),
-                                       minutes=beginTime.minute,
-                                       seconds=beginTime.second,
-                                       microseconds=beginTime.microsecond)
-        while time_t >= endTime:
+        time_t = begin_time - timedelta(hours=begin_time.hour - int(self.round_to_hour(begin_time.hour, self.interval)),
+                                        minutes=begin_time.minute,
+                                        seconds=begin_time.second,
+                                        microseconds=begin_time.microsecond)
+        while time_t >= end_time:
             if (time_t,) not in exists_list:
                 self.crawl(time_t)
             time_t -= timedelta(hours=self.interval)
@@ -49,7 +49,7 @@ class NOAACrawler(CrawlerBase):
     def crawl(self, t):
         clock = t.timetuple()
         date = t.strftime('%Y%m%d')
-        hour = self.roundHour(clock.tm_hour, self.interval)
+        hour = self.round_to_hour(clock.tm_hour, self.interval)
         stamp = date + hour
         stamp2 = date + '/' + hour
 
@@ -109,7 +109,7 @@ class NOAACrawler(CrawlerBase):
         return exists_list
 
     @staticmethod
-    def roundHour(hour, interval) -> str:
+    def round_to_hour(hour, interval) -> str:
         if interval > 0:
             result = math.floor(hour / interval) * interval
             return str(result) if result >= 10 else '0' + str(result)

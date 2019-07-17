@@ -7,7 +7,7 @@ import rootpath
 
 rootpath.append()
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
-from configurations import TEST_DATA_PATH
+from paths import TEST_DATA_PATH
 
 
 class GRIBExtractor(ExtractorBase):
@@ -36,6 +36,7 @@ class GRIBExtractor(ExtractorBase):
 
 
 if __name__ == '__main__':
+    # FIXME: argument mismatching
     grib_extractor = GRIBExtractor(os.path.join(TEST_DATA_PATH, 'cdas1.t00z.sfluxgrbf00.grib2.txt'), 'Temperature',
                                    'surface')
     temperature = grib_extractor[89.84351351786847, 1.8409067652075042]

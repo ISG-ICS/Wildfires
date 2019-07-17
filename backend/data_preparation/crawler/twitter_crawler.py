@@ -1,26 +1,23 @@
 import re
 import string
+import time
 from typing import List, Set, Union, Dict
+
+import requests
 import rootpath
+import twitter
 
 rootpath.append()
 
-import requests
-import twitter
-import time
-
+from paths import TWITTER_API_CONFIG_PATH
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.dumper.twitter_dumper import TweetDumper
 from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
 from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
 from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
+from utilities.ini_parser import parse
 
-# TODO import twitter API account information
-
-api = twitter.Api(consumer_key="",
-                  consumer_secret="",
-                  access_token_key="",
-                  access_token_secret="")
+api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
 
 
 class TweetCrawler(CrawlerBase):
@@ -55,13 +52,17 @@ class TweetCrawler(CrawlerBase):
 
     def crawl(self, keywords: List, batch_number) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
+        print("TOTAL CRAWLED COUNT", self.total_crawled_count)
         self.crawled_id_set = self._crawl_tweet_ids()
+        print("crawled", len(self.crawled_id_set))
 
         while len(self.crawled_id_set) < batch_number:
             # loops until the number of id collected is greater than the batch number
+            current_count = len(self.crawled_id_set)
+            time.sleep(10)
             self.crawled_id_set.update(self._crawl_tweet_ids())
-            time.sleep(5)
-            print("crawled", len(self.crawled_id_set))
+            if len(self.crawled_id_set) > current_count:
+                print("crawled", len(self.crawled_id_set))
 
         # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
         ids = list(self.crawled_id_set)
@@ -69,13 +70,14 @@ class TweetCrawler(CrawlerBase):
             self.data = api.GetStatuses(ids)
             # reset the set to empty so that the id will not accumulate
             # in the case that the twitter API works
-        except Exception:
-            pass
+        except Exception as err:
+            print(err)
             # in this case the collected twitter id will be recorded and tried again next time
         else:
             self.crawled_id_set.clear()
         # save crawled to self.data (in-memory), or, if needed, to disk file
         # also return a reference of self.data
+
         return self.data
 
     def _crawl_tweet_ids(self) -> Set[int]:
@@ -103,16 +105,11 @@ class TweetCrawler(CrawlerBase):
 
 
 if __name__ == '__main__':
-    t0 = time.time()
-
     crawler = TweetCrawler(TweetExtractor(), TweetDumper())
 
+    # to set dumper and extractor explicitly
     # crawler = TweetCrawler()
     # crawler.set_dumper(TweetDumper())
     # crawler.set_extractor(TweetExtractor())
 
-    crawler.start(['wildfire'], 50, end_clause=None)
-    t = time.time()
-    timeCounted = t - t0
-
-    print('time:', timeCounted)
+    crawler.start(['wildfire'], 100, end_clause=None)

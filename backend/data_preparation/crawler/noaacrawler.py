@@ -1,17 +1,17 @@
+import math
 import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
 
-import math
 import requests
 import rootpath
 
 rootpath.append()
 
-from configurations import GRIB2_DATA_DIR
+from paths import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase, ExtractorException, DumperException
+from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
 from backend.data_preparation.extractor.gribextractor import GRIBExtractor
 from backend.data_preparation.dumper.noaadumper import NOAADumper
 

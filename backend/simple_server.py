@@ -51,6 +51,7 @@ def send_wind_data():
     result['header'] = {}
     result['data'] = np.array([])
     for g in grbs:
+        # OPTIMIZE: duplication with grib_converter.py
         for row in g['values']:
             result['data'] = np.concatenate((result['data'], row), axis=0)
 

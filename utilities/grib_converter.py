@@ -1,14 +1,15 @@
-import pygrib
 import numpy as np
+import pygrib
 
 
 class GribConverter:
     @staticmethod
     def convert(filepath):
-        grbs = pygrib.open(filepath)
+        grib = pygrib.open(filepath)
         result_list = list()
         result = {'header': dict(), 'data': np.array(list())}
-        for g in grbs:
+        for g in grib:
+            # OPTIMIZE: duplication with simple_server.py
             for row in g['values']:
                 result['data'] = np.concatenate((result['data'], row), axis=0)
             result['header'] = {

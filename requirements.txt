@@ -1,3 +1,5 @@
+wget
+allennlp
 pyproj==2.2.1
 rootpath
 flask

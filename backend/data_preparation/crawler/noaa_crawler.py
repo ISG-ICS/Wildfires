@@ -12,7 +12,7 @@ rootpath.append()
 from paths import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
-from backend.data_preparation.extractor.grib_extractor import GRIBExtractor
+from backend.data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum
 from backend.data_preparation.dumper.noaa_dumper import NOAADumper
 
 
@@ -83,10 +83,10 @@ class NOAACrawler(CrawlerBase):
                     print('saved')
                 # convert format
                 self.set_extractor(GRIBExtractor(os.path.join(GRIB2_DATA_DIR, stamp + '.f000')))
-                ugnd = self.extractor.extract('U component of wind')
-                vgnd = self.extractor.extract('V component of wind')
-                tmp = self.extractor.extract('Temperature')
-                soilw = self.extractor.extract('Volumetric soil moisture content')
+                ugnd = self.extractor.extract(GRIBEnum.NOAA_WIND_U)
+                vgnd = self.extractor.extract(GRIBEnum.NOAA_WIND_V)
+                tmp = self.extractor.extract(GRIBEnum.NOAA_TMP)
+                soilw = self.extractor.extract(GRIBEnum.NOAA_SOILW)
                 print('converted')
 
                 # dump into DB

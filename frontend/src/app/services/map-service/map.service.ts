@@ -134,7 +134,8 @@ export class MapService {
             const TempData = JSON.parse(data);
             this.contourDataLoaded.emit({contourData: TempData});
         });
-
     }
+
+
 
 }

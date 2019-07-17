@@ -8,6 +8,8 @@ import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import * as turf from '@turf/turf'
+import {statesData} from '../../../../../data/boundaries/us-states.js';
+import {citiesData} from '../../../../../data/boundaries/us-cities.js';
 
 
 @Component({
@@ -94,6 +96,9 @@ export class HeatmapComponent implements OnInit {
         // Get wind data from service
         this.mapService.getWindData();
         this.mapService.windDataLoaded.subscribe(this.windDataHandler);
+
+        //this.ChoroplethDataHandler();
+        //this.CityDataHandler();
 
         // Add event Listener to live tweet switch
         $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
@@ -395,6 +400,80 @@ export class HeatmapComponent implements OnInit {
                 region.addTo(this.map);
             }
         }
+    }
+
+    ChoroplethDataHandler = () => {
+        const colorlist = ['#bbd5f0','#87b9ed','#2f8ded','#1371d1',
+            '#175799','#063b73','#032242','#031629'];
+        function getColor(d) {
+            return d > 800 ? colorlist[7] :
+                d > 500 ? colorlist[6] :
+                    d > 200 ? colorlist[5] :
+                        d > 100 ? colorlist[4] :
+                            d > 50 ? colorlist[3] :
+                                d > 20 ? colorlist[2] :
+                                    d > 10 ? colorlist[1] :
+                                        colorlist[0];
+        }
+
+        function style(feature) {
+            return {
+                fillColor: getColor(feature.properties.density),
+                weight: 0.5,
+                opacity: 0.5,
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
+
+        const ChoroplethLayer = L.geoJson(statesData, {style: style}) //.addTo(this.map);
+        this.mainControl.addOverlay(ChoroplethLayer, 'Choropleth Map');
+
+        function highlightFeature(e) {
+            var layer = e.target;
+
+            layer.setStyle({
+                weight: 5,
+                color: '#666',
+                dashArray: '',
+                fillOpacity: 0.7
+            });
+
+            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                layer.bringToFront();
+            }
+        }
+
+        function resetHighlight(e) {
+            geojson.resetStyle(e.target);
+        }
+
+        var geojson;
+        geojson = L.geoJson();
+
+
+
+
+    }
+
+    CityDataHandler = () => {
+
+        function style() {
+            return {
+                weight: 0.5,
+                opacity: 0.5,
+                color: 'white',
+                dashArray: '3',
+                fillOpacity: 0.7
+            };
+        }
+
+        const CityLayer = L.geoJson(citiesData, {style: style}) //.addTo(this.map);
+        this.mainControl.addOverlay(CityLayer, 'City Map');
+
+
+
     }
 
 

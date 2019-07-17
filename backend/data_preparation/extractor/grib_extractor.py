@@ -4,20 +4,40 @@ from typing import Dict
 
 import pygrib
 import rootpath
+from enum import Enum, auto
 
 rootpath.append()
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from paths import TEST_DATA_PATH
 
 
+class GRIBEnum(Enum):
+    NOAA_WIND_U = auto()
+    NOAA_WIND_V = auto()
+    NOAA_TMP = auto()
+    NOAA_SOILW = auto()
+    TEMPERATURE_MODE = auto()
+    MOISTURE_MODE = auto()
+
+
 class GRIBExtractor(ExtractorBase):
+    NAMES = {
+        GRIBEnum.NOAA_WIND_U: {'name': 'U component of wind'},
+        GRIBEnum.NOAA_WIND_V: {'name': 'V component of wind'},
+        GRIBEnum.NOAA_TMP: {'name': 'Temperature'},
+        GRIBEnum.NOAA_SOILW: {'name': 'Volumetric soil moisture content'},
+        GRIBEnum.TEMPERATURE_MODE: {'name': 'Temperature', 'typeOfLevel': 'surface'},
+        GRIBEnum.MOISTURE_MODE: {'name': 'Volumetric soil moisture content', 'scaledValueOfFirstFixedSurface': 0,
+                                 'scaledValueOfSecondFixedSurface': 10},
+    }
+
     def __init__(self, filename: str):
         super().__init__()
         self.file_handler = pygrib.open(filename)
         self.data: Dict
 
-    def extract(self, prop_name: str, prop_typeOfLevel: str = None) -> dict:
-        prop_msg, = self.file_handler.select(name=prop_name)  # !! here ! we don't need the prop_typeOfLevel
+    def extract(self, mode: GRIBEnum) -> dict:
+        prop_msg, = self.file_handler.select(**GRIBExtractor.NAMES[mode])
         self.data = dict()  # creates a new dictionary to store data
         prop_values = prop_msg.values  # values under the started property
         lats, longs = prop_msg.latlons()

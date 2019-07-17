@@ -65,8 +65,8 @@ class NOAADumper(DumperBase):
         cur.close()
 
     @staticmethod
-    def data_gen(tid: int, soilw: dict, tmp: dict, ugnd: dict, vgnd: dict) -> Generator[Tuple[int, int, float, float,
-                                                                                              float, float]]:
+    def data_gen(tid: int, soilw: dict, tmp: dict, ugnd: dict, vgnd: dict) -> Generator[
+        Tuple[int, int, float, float, float, float], None, None]:
         """generator: data"""
         gid = 0
         for key in ugnd.keys():
@@ -74,7 +74,7 @@ class NOAADumper(DumperBase):
             gid += 1
 
     @staticmethod
-    def geom_gen(ugnd: dict) -> Generator[Tuple[str, int]]:
+    def geom_gen(ugnd: dict) -> Generator[Tuple[str, int], None, None]:
         """generator: geometry"""
         gid = 0
         for key in ugnd.keys():

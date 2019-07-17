@@ -59,6 +59,7 @@ export class HeatmapComponent implements OnInit {
       const lat = ev.latlng.lat;
       const lng = ev.latlng.lng;
       $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
+      $('#mousePosition2').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
     });
 
     // Get heatmap data from service

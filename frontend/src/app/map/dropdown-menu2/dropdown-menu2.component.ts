@@ -11,5 +11,9 @@ export class DropdownMenu2Component implements OnInit {
 
   ngOnInit() {
   }
-
+  displayHeatLayer = () => {
+    console.log('Haha');
+    /*displayHeatLayer = () => {
+    this.mapService.heatLayerClickEvent.emit();*/
+  }
 }

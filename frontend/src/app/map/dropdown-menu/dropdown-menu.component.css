@@ -12,12 +12,11 @@
   border-radius: 0 0 5px 5px;
   cursor: pointer;
   z-index: 1000;
-  font: 14px/16px Arial, Helvetica, sans-serif;
+  font: 16px/18px Arial, Helvetica, sans-serif;
 }
 
 #topSideBar p {
-  width: 20%;
-  left: 40%;
+  width: 100%;
   position: absolute;
   margin: 0px;
   bottom: 0px;

@@ -1,11 +1,12 @@
 from typing import Union, Dict, List, Tuple, Optional
-from allennlp.predictors.predictor import Predictor
 
 import rootpath
+import wget
+from allennlp.predictors.predictor import Predictor
 
 rootpath.append()
 from backend.classifiers.classifierbase import ClassifierBase
-import configurations
+import paths
 
 
 class Event2MindClassifier(ClassifierBase):
@@ -26,7 +27,14 @@ class Event2MindClassifier(ClassifierBase):
         if model:
             self.model = Predictor.from_path(model)
         else:
-            self.model = Predictor.from_path(configurations.EVENT2MIND_MODEL_PATH)
+            try:
+
+                self.model = Predictor.from_path(paths.EVENT2MIND_MODEL_PATH)
+            except FileNotFoundError:
+                print(f"Downloading event2mind model {self.URL_EVENT2MIND} to {paths.EVENT2MIND_MODEL_PATH}")
+                wget.download(self.URL_EVENT2MIND, paths.EVENT2MIND_MODEL_PATH)
+                print("Done!")
+                self.model = Predictor.from_path(paths.EVENT2MIND_MODEL_PATH)
 
     def predict(self, text: str, target: Optional[int] = None) -> Union[Dict, List, Tuple]:
         predictions = self.model.predict(source=text)

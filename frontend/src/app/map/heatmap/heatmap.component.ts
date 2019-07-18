@@ -11,6 +11,8 @@ import * as turf from '@turf/turf'
 import {statesData} from '../../../../../data/boundaries/us-states.js';
 import {citiesData} from '../../../../../data/boundaries/us-cities.js';
 
+
+
 @Component({
     selector: 'app-heatmap',
     templateUrl: './heatmap.component.html',
@@ -36,6 +38,7 @@ export class HeatmapComponent implements OnInit {
     private tempRegionsMax = [];
     private tempMax = [0];
     private tempMin = [0];
+    private geojson;
 
     constructor(private mapService: MapService) {
     }
@@ -97,6 +100,12 @@ export class HeatmapComponent implements OnInit {
 
         //this.ChoroplethDataHandler();
         //this.CityDataHandler();
+        this.geojson = L.geoJson(citiesData, {
+               style: this.style,
+               onEachFeature: this.onEachFeature
+           }).addTo(this.map);
+
+
 
         // Add event Listener to live tweet switch
         $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
@@ -451,8 +460,6 @@ export class HeatmapComponent implements OnInit {
         geojson = L.geoJson();
 
 
-
-
     }
 
     CityDataHandler = () => {
@@ -469,10 +476,63 @@ export class HeatmapComponent implements OnInit {
 
         const CityLayer = L.geoJson(citiesData, {style: style}) //.addTo(this.map);
         this.mainControl.addOverlay(CityLayer, 'City Map');
-
-
-
     }
+
+
+
+    getColor = (d) => {
+       return d > 1000 ? '#800026' :
+           d > 500 ? '#BD0026' :
+               d > 200 ? '#E31A1C' :
+                   d > 100 ? '#FC4E2A' :
+                       d > 50 ? '#FD8D3C' :
+                           d > 20 ? '#FEB24C' :
+                               d > 10 ? '#FED976' :
+                                   '#FFEDA0';
+   }
+   style = (feature) => {
+       return {
+           //fillColor: this.getColor(feature.properties.density),
+           weight: 2,
+           opacity: 1,
+           color: 'white',
+           dashArray: '3',
+           fillOpacity: 0.7
+       };
+   }
+
+   highlightFeature = (e) => {
+       // highlights the region when the mouse moves over the region
+       let layer = e.target;
+       layer.setStyle({
+           weight: 5,
+           color: '#666',
+           dashArray: '',
+           fillOpacity: 0.7
+       });
+       if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+           layer.bringToFront();
+       }
+   }
+   resetHighlight = (e) => {
+       // gets rid of the highlight when the mouse moves out of the region
+       this.geojson.resetStyle(e.target);
+   }
+   zoomToFeature = (e) => {
+       // zooms to a region when the region is clicked
+       console.log('target', e.target);
+       this.map.fitBounds(e.target.getBounds());
+       console.log('map portion', this.map.getBounds());
+       console.log('map zoom', this.map.getZoom());
+   }
+   onEachFeature = (feature, layer) => {
+       // controls the interaction between the mouse and the map
+       layer.on({
+           mouseover: this.highlightFeature,
+           mouseout: this.resetHighlight,
+           click: this.zoomToFeature
+       });
+   }
 
 
 

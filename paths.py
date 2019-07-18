@@ -13,6 +13,8 @@ TWITTER_API_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'twitter.ini')
 
 NLTK_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/nltk_model.pickle')
 
+EVENT2MIND_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/event2mind-2018.10.26.tar.gz')
+
 TEST_DATA_PATH = os.path.join(ROOT_DIR, 'data/test')
 
 GRIB2_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grib-data')

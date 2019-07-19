@@ -7,7 +7,9 @@ import rootpath
 
 rootpath.append()
 from backend.classifiers.classifierbase import ClassifierBase
+from backend.data_preparation.dumper.img_classification_dumper import ImgClassificationDumper
 from backend.models.cnn_model import CNN
+from backend.data_preparation.connection import Connection
 import paths
 
 
@@ -15,6 +17,29 @@ class ImageClassifier(ClassifierBase):
     N_CHANNELS = 3  # number of input channels
     N_CLASSES = 2  # number of classes of the classification problem
     DROPSIZE = 512  # drop size of the image transformation
+
+    def start(self):
+        """get image_id and image_url from database and dump prediction results into database"""
+
+        # set up database connection
+        conn = Connection()()
+        cur = conn.cursor()
+        cur.execute("SELECT id, image_url  from images")
+
+        # set up event2mindDumper
+        img_classification_dumper = ImgClassificationDumper()
+
+        # loop every image in database
+        while True:
+            id, image_url = cur.fetchone()
+            if (id, image_url) is None:
+                break
+            # get prediction result of image
+            prediction_list = self.predict(image_url)
+            # dump prediction result into database
+            img_classification_dumper.insert(prediction_list, id, conn)
+            # print("done! "+str(id))
+            # break
 
     def set_model(self, model: str = None):
         '''load trained model'''
@@ -62,5 +87,6 @@ class ImageClassifier(ClassifierBase):
 if __name__ == '__main__':
     image_classifier = ImageClassifier()
     image_classifier.set_model()
-    res = image_classifier.predict('https://pbs.twimg.com/media/Cw-4_5kUkAgMnmY.jpg')
-    print(res)
+    image_classifier.start()
+    # res = image_classifier.predict('https://pbs.twimg.com/media/Cw-4_5kUkAgMnmY.jpg')
+    # print(res)

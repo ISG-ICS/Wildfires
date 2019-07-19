@@ -4,6 +4,7 @@
     "baseUrl": "./",
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
+    "allowJs": true,
     "declaration": false,
     "downlevelIteration": true,
     "module": "esnext",

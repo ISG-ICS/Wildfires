@@ -8,9 +8,6 @@ import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import * as turf from '@turf/turf'
-import {statesData} from '../../../../../data/boundaries/us-states.js';
-import {citiesData} from '../../../../../data/boundaries/us-cities.js';
-
 
 
 @Component({
@@ -97,15 +94,6 @@ export class HeatmapComponent implements OnInit {
         // Get wind data from service
         this.mapService.getWindData();
         this.mapService.windDataLoaded.subscribe(this.windDataHandler);
-
-        //this.ChoroplethDataHandler();
-        //this.CityDataHandler();
-        this.geojson = L.geoJson(citiesData, {
-               style: this.style,
-               onEachFeature: this.onEachFeature
-           }).addTo(this.map);
-
-
 
         // Add event Listener to live tweet switch
         $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
@@ -409,152 +397,6 @@ export class HeatmapComponent implements OnInit {
         }
     }
 
-    ChoroplethDataHandler = () => {
-        const colorlist = ['#bbd5f0','#87b9ed','#2f8ded','#1371d1',
-            '#175799','#063b73','#032242','#031629'];
-        function getColor(d) {
-            return d > 800 ? colorlist[7] :
-                d > 500 ? colorlist[6] :
-                    d > 200 ? colorlist[5] :
-                        d > 100 ? colorlist[4] :
-                            d > 50 ? colorlist[3] :
-                                d > 20 ? colorlist[2] :
-                                    d > 10 ? colorlist[1] :
-                                        colorlist[0];
-        }
 
-        function style(feature) {
-            return {
-                fillColor: getColor(feature.properties.density),
-                weight: 0.5,
-                opacity: 0.5,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            };
-        }
-
-        const ChoroplethLayer = L.geoJson(statesData, {style: style}) //.addTo(this.map);
-        this.mainControl.addOverlay(ChoroplethLayer, 'Choropleth Map');
-
-        function highlightFeature(e) {
-            var layer = e.target;
-
-            layer.setStyle({
-                weight: 5,
-                color: '#666',
-                dashArray: '',
-                fillOpacity: 0.7
-            });
-
-            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                layer.bringToFront();
-            }
-        }
-
-        function resetHighlight(e) {
-            geojson.resetStyle(e.target);
-        }
-
-        var geojson;
-        geojson = L.geoJson();
-
-
-    }
-
-    CityDataHandler = () => {
-
-        function style() {
-            return {
-                weight: 0.5,
-                opacity: 0.5,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            };
-        }
-
-        const CityLayer = L.geoJson(citiesData, {style: style}) //.addTo(this.map);
-        this.mainControl.addOverlay(CityLayer, 'City Map');
-    }
-
-
-
-    getColor = (d) => {
-       return d > 1000 ? '#800026' :
-           d > 500 ? '#BD0026' :
-               d > 200 ? '#E31A1C' :
-                   d > 100 ? '#FC4E2A' :
-                       d > 50 ? '#FD8D3C' :
-                           d > 20 ? '#FEB24C' :
-                               d > 10 ? '#FED976' :
-                                   '#FFEDA0';
-   }
-   style = (feature) => {
-       return {
-           //fillColor: this.getColor(feature.properties.density),
-           weight: 2,
-           opacity: 1,
-           color: 'white',
-           dashArray: '3',
-           fillOpacity: 0.7
-       };
-   }
-
-   highlightFeature = (e) => {
-       // highlights the region when the mouse moves over the region
-       let layer = e.target;
-       layer.setStyle({
-           weight: 5,
-           color: '#666',
-           dashArray: '',
-           fillOpacity: 0.7
-       });
-       if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-           layer.bringToFront();
-       }
-   }
-   resetHighlight = (e) => {
-       // gets rid of the highlight when the mouse moves out of the region
-       this.geojson.resetStyle(e.target);
-   }
-   zoomToFeature = (e) => {
-       // zooms to a region when the region is clicked
-       console.log('target', e.target);
-       this.map.fitBounds(e.target.getBounds());
-       console.log('map portion', this.map.getBounds());
-       console.log('map zoom', this.map.getZoom());
-   }
-   onEachFeature = (feature, layer) => {
-       // controls the interaction between the mouse and the map
-       layer.on({
-           mouseover: this.highlightFeature,
-           mouseout: this.resetHighlight,
-           click: this.zoomToFeature
-       });
-   }
-
-
-
-  windDataHandler = (wind) => {
-    // there's not much document about leaflet-velocity.
-    // all we got is an example usage from
-    // github.com/0nza1101/leaflet-velocity-ts
-    const velocityLayer = L.velocityLayer({
-      displayValues: true,
-      displayOptions: {
-        position: 'bottomleft', // REQUIRED !
-        emptyString: 'No velocity data', // REQUIRED !
-        angleConvention: 'bearingCW', // REQUIRED !
-        velocityType: 'Global Wind',
-        displayPosition: 'bottomleft',
-        displayEmptyString: 'No wind data',
-        speedUnit: 'm/s'
-      },
-      data: wind.data,
-      maxVelocity: 12 // affect color and animation speed of wind
-    });
-    this.mainControl.addOverlay(velocityLayer, 'Global wind');
-  }
 
 }

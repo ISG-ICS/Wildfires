@@ -37,25 +37,6 @@ tweet_query = "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_rig
               "from records r,locations l where r.id=l.id"
 
 
-@app.route("/temp")
-def send_temp_data():
-    # query = "select * from recent_temperature "
-    query = "SELECT * from Polygon_Aggregator_noaa0p25(%s, %s)"
-    northwest = make_tuple(flask_request.args.get('northwest'))
-    southeast = make_tuple(flask_request.args.get('southeast'))
-    tid = flask_request.args.get('tid')
-    poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(northwest[0], northwest[1], southeast[1],
-                                                                           southeast[0])
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query, (poly, tid))
-        resp = make_response(
-            jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value in cur.fetchall()]))
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        cur.close()
-    return resp
-
-
 @app.route("/search")
 def send_search_data():
     keyword = flask_request.args.get('keyword')
@@ -66,6 +47,27 @@ def send_search_data():
         search_result = us_states[us_states_abbr[keyword]]
     resp = make_response(jsonify(search_result['geometry'])) if search_result else make_response(jsonify(None))
     resp.headers['Access-Control-Allow-Origin'] = '*'
+    return resp
+
+
+@app.route("/temp", methods=['POST', 'GET'])
+def send_temp_data():
+    request_json = flask_request.get_json(force=True)
+    north = request_json['northEast']['lat']
+    east = request_json['northEast']['lon'] % 360
+    south = request_json['southWest']['lat']
+    west = request_json['southWest']['lon'] % 360
+    tid = request_json['tid']
+    interval = request_json['interval']
+    query = "SELECT * from Polygon_Aggregator_noaa0p25(%s, %s, %s)"
+    poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(north, west, east, south)
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query, (poly, tid, interval))
+        resp = make_response(
+            jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
     return resp
 
 

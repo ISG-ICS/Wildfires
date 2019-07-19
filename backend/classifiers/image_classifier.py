@@ -38,8 +38,8 @@ class ImageClassifier(ClassifierBase):
             prediction_list = self.predict(image_url)
             # dump prediction result into database
             img_classification_dumper.insert(prediction_list, id, conn)
-            # print("done! "+str(id))
-            # break
+
+            print("id " + str(id) + " is done!")
 
     def set_model(self, model: str = None):
         '''load trained model'''
@@ -51,10 +51,13 @@ class ImageClassifier(ClassifierBase):
 
     def predict(self, url: str):
         '''predict classification result of the image from url'''
+        print("url: " + url)
         # download image from url
         image_path = self.download_image(url)
         # transform image
         image = self.transform_image(image_path)
+        if image is None:
+            return [1, -1]
         # predict classification result
         outputs = self.model(image)
         os.remove(image_path)
@@ -65,7 +68,7 @@ class ImageClassifier(ClassifierBase):
         '''download image from url'''
         if not os.path.exists(paths.TWEET_IMAGES_DIR):
             os.makedirs(paths.TWEET_IMAGES_DIR)
-        download_path = paths.TWEET_IMAGES_DIR + "current.jpg"
+        download_path = paths.TWEET_IMAGES_DIR + "/current.jpg"
         os.system(f"curl {url} --output {download_path}")
         return download_path
 
@@ -78,9 +81,13 @@ class ImageClassifier(ClassifierBase):
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
             ])
-        img = Image.open(image_path)
-        transformed_img = trans(img)
-        transformed_img = transformed_img.view(1, 3, ImageClassifier.DROPSIZE, ImageClassifier.DROPSIZE)
+        try:
+            img = Image.open(image_path)
+            transformed_img = trans(img)
+            transformed_img = transformed_img.view(1, 3, ImageClassifier.DROPSIZE, ImageClassifier.DROPSIZE)
+        except Exception as err:
+            print("error", err)
+            return None
         return transformed_img
 
 
@@ -88,5 +95,3 @@ if __name__ == '__main__':
     image_classifier = ImageClassifier()
     image_classifier.set_model()
     image_classifier.start()
-    # res = image_classifier.predict('https://pbs.twimg.com/media/Cw-4_5kUkAgMnmY.jpg')
-    # print(res)

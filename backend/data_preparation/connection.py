@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Generator, Tuple, Any
+from typing import Generator, Tuple, Any, List
 
 import psycopg2
 import rootpath
@@ -15,7 +15,7 @@ class Connection:
     def __init__(self):
         self.conn = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self):
         connection = psycopg2.connect(**self.config())
         cursor = connection.cursor()
         cursor.execute("SELECT sum(numbackends) FROM pg_stat_database;")
@@ -47,6 +47,7 @@ class Connection:
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             print("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
                   "sql_execute_commit")
+            return
         with self() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
@@ -61,7 +62,7 @@ class Connection:
             finally:
                 cursor.close()
 
-    def sql_execute_commit(self, sql) -> None:
+    def sql_execute_commit(self, sql: str) -> None:
         """to execute and commit an SQL query"""
         print(f"SQL: {sql}")
         with self() as connection:
@@ -71,7 +72,7 @@ class Connection:
             print(f"     Affected rows:{cursor.rowcount}")
             cursor.close()
 
-    def sql_execute_values(self, sql, value_tuples, ignore_duplicate=True):
+    def sql_execute_values(self, sql: str, value_tuples: List[Tuple[Any]], ignore_duplicate: bool = True):
         value_tuples_sql = ", ".join(
             [f"({', '.join([repr(str(entry)) if isinstance(entry, datetime) else repr(entry) for entry in entries])})"
              for entries in value_tuples])
@@ -79,7 +80,7 @@ class Connection:
             sql += " " + value_tuples_sql + f" ON CONFLICT DO NOTHING" if ignore_duplicate else ""
             self.sql_execute_commit(sql)
         else:
-            print("[Database] Nothing to commit")
+            print("[DATABASE] Nothing to commit")
 
 
 if __name__ == '__main__':

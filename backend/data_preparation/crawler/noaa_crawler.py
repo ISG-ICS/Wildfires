@@ -34,7 +34,7 @@ class NOAACrawler(CrawlerBase):
         # get data from noaa.gov
         current_time = datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=-7))).replace(tzinfo=None)  # PDT
         begin_time = current_time + timedelta(hours=self.interval)
-        end_time = current_time - timedelta(hours=12)  # specify the oldest data we can get.
+        end_time = current_time - timedelta(hours=240)  # specify the oldest data we can get.
 
         # round datetime to 6 hours
         time_t = begin_time - timedelta(hours=begin_time.hour - int(self.round_to_hour(begin_time.hour, self.interval)),

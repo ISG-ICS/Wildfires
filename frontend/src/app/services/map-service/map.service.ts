@@ -1,5 +1,4 @@
-import {EventEmitter, Injectable, Output} from '@angular/core';
-import {Observable} from 'rxjs';
+import {EventEmitter, Injectable} from '@angular/core';
 import * as $ from 'jquery';
 
 @Injectable({
@@ -105,17 +104,6 @@ export class MapService {
             });
         }, 20000);
 
-    }
-
-    getWindData(): void {
-        const that = this;
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/wind'
-        }).done((data) => {
-            this.windDataLoaded.emit({data});
-
-        });
     }
 
     stopliveTweet(): void {

@@ -1,6 +1,7 @@
 import pickle
 
 import rootpath
+
 rootpath.append()
 
 from backend.data_preparation.connection import Connection
@@ -15,15 +16,13 @@ import numpy as np
 from typing import List,Dict
 import os
 
-
-import pygrib
+# import pygrib
 
 from flask import Flask, send_from_directory, make_response, jsonify
 
 from paths import NLTK_MODEL_PATH, BOUNDARY_PATH
 
 app = Flask(__name__, static_url_path='')
-
 
 nl: NLTKTest = pickle.load(open(NLTK_MODEL_PATH, 'rb'))
 api = twitter.Api(consumer_key="",

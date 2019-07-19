@@ -1,7 +1,5 @@
 import {Component, OnInit} from '@angular/core';
 import 'leaflet/dist/leaflet.css';
-
-declare let L;
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
@@ -9,7 +7,10 @@ import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import * as turf from '@turf/turf'
 import {statesData} from '../../../../../data/boundaries/us-states.js';
-import {citiesData} from '../../../../../data/boundaries/us-cities.js';
+
+declare let L;
+
+//import {citiesData} from '../../../../../data/boundaries/us-cities.js';
 
 
 @Component({
@@ -93,10 +94,6 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getWildfirePredictionData();
         this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
 
-        // Get wind data from service
-        this.mapService.getWindData();
-        this.mapService.windDataLoaded.subscribe(this.windDataHandler);
-
         //this.ChoroplethDataHandler();
         //this.CityDataHandler();
 
@@ -105,8 +102,6 @@ export class HeatmapComponent implements OnInit {
 
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
-  // Add event Listener when user specify a temperature range on temp series
-        $(window).on('tempRangeChange', this.tempRangeChangeHandler);
     }
 
     tweetDataHandler = (data) => {
@@ -452,25 +447,6 @@ export class HeatmapComponent implements OnInit {
         var geojson;
         geojson = L.geoJson();
 
-
-
-
-    }
-
-    CityDataHandler = () => {
-
-        function style() {
-            return {
-                weight: 0.5,
-                opacity: 0.5,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            };
-        }
-
-        const CityLayer = L.geoJson(citiesData, {style: style}) //.addTo(this.map);
-        this.mainControl.addOverlay(CityLayer, 'City Map');
 
 
 

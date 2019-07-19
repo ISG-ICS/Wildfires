@@ -1,3 +1,5 @@
+beautifulsoup4
+selenium
 wget
 allennlp
 pyproj==2.2.1

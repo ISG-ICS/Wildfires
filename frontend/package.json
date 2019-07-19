@@ -22,6 +22,7 @@
     "@asymmetrik/ngx-leaflet": "^5.0.2",
     "@types/highcharts": "^5.0.41",
     "angular-highcharts": "latest",
+    "cities": "^2.0.0",
     "highcharts": "^7.1.2",
     "install": "^0.12.2",
     "jquery": "^3.4.1",
@@ -29,6 +30,7 @@
     "leaflet-heatmap": "^1.0.0",
     "leaflet-maskcanvas": "^1.0.0",
     "leaflet-rain": "^0.2.0",
+    "leaflet-routing-machine": "^3.2.12",
     "leaflet-velocity-ts": "^1.1.7",
     "npm": "latest",
     "rxjs": "~6.4.0",
@@ -56,6 +58,6 @@
     "protractor": "~5.4.0",
     "ts-node": "~7.0.0",
     "tslint": "~5.15.0",
-    "typescript": "~3.4.3"
+    "typescript": "^3.4.5"
   }
 }

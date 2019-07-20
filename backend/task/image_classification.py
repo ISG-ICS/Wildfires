@@ -24,7 +24,7 @@ class ImageClassification(Runnable):
             # get prediction result of image
             prediction_list = image_classifier.predict(image_url)
             # dump prediction result into database
-            img_classification_dumper.insert(prediction_list, id)
+            img_classification_dumper.insert(image_url, prediction_list)
             print("id " + str(id) + " is done!")
 
 if __name__ == '__main__':

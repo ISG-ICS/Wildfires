@@ -1,3 +1,5 @@
+from typing import List
+
 import rootpath
 
 rootpath.append()
@@ -7,17 +9,22 @@ from backend.data_preparation.connection import Connection
 
 class ImgClassificationDumper(DumperBase):
 
-    def insert(self, data, id):
-        '''
+    def insert(self, image_url: str, data: List[float]):
+        """
         data: image prediction result -- probability of being wildfire and not wildfire
         insert image prediction result into images table
-        '''
+        """
 
         try:
-            sql = """ UPDATE images
-                            SET not_wildfire_prob = %s, wildfire_prob = %s
-                            WHERE id = %s"""
-            Connection().sql_execute_values(sql, [data[0], data[1], id])
+            prob_not_wildfire, prob_wildfire = data
+            Connection().sql_execute_commit(
+                f"UPDATE images SET not_wildfire_prob = {prob_not_wildfire}, wildfire_prob = {prob_wildfire} "
+                f"WHERE image_url = {repr(image_url)}")
 
         except Exception as err:
             print("error", err)
+
+
+if __name__ == '__main__':
+    # test case
+    ImgClassificationDumper().insert('https://pbs.twimg.com/media/Dd2c4mlUwAAolWC.jpg', [0.0, 1.0])

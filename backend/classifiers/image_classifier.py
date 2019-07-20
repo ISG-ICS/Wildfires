@@ -64,3 +64,10 @@ class ImageClassifier(ClassifierBase):
             print("error", err)
             return None
         return transformed_img
+
+if __name__ == '__main__':
+    image_classifier = ImageClassifier()
+    image_classifier.set_model()
+    # test case
+    prediction_result = image_classifier.predict('https://pbs.twimg.com/media/CxT4tldUkAAN68b.jpg')
+    print(prediction_result)

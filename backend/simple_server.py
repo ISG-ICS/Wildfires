@@ -10,7 +10,6 @@ import json
 import requests
 import re
 import string
-from ast import literal_eval as make_tuple
 
 from flask import Flask, send_from_directory, make_response, jsonify, request as flask_request
 
@@ -19,10 +18,12 @@ from paths import NLTK_MODEL_PATH
 app = Flask(__name__, static_url_path='')
 app.config.from_pyfile('server_config.py', silent=True)
 
+# load states
 with open('us_states_dict.json', 'r') as f:
     json_str = f.read()
     us_states = json.loads(json_str)  # type: dict
 
+# load abbreviation of states
 with open('us_states_abbr.json', 'r') as f:
     json_str = f.read()
     us_states_abbr = json.loads(json_str)  # type: dict
@@ -40,6 +41,8 @@ tweet_query = "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_rig
 @app.route("/search")
 def send_search_data():
     keyword = flask_request.args.get('keyword')
+
+    # currently we can search states from in-memory-dict
     search_result = None
     if keyword in us_states:
         search_result = us_states[keyword]
@@ -54,18 +57,19 @@ def send_search_data():
 def send_temp_data():
     request_json = flask_request.get_json(force=True)
     north = request_json['northEast']['lat']
-    east = request_json['northEast']['lon'] % 360
+    east = request_json['northEast']['lon']
     south = request_json['southWest']['lat']
-    west = request_json['southWest']['lon'] % 360
+    west = request_json['southWest']['lon']
     tid = request_json['tid']
     interval = request_json['interval']
+
     query = "SELECT * from Polygon_Aggregator_noaa0p25(%s, %s, %s)"
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(north, west, east, south)
     with Connection() as conn:
         cur = conn.cursor()
         cur.execute(query, (poly, tid, interval))
         resp = make_response(
-            jsonify([{"lng": long, "lat": lat, "temperature": value} for lat, long, value in cur.fetchall()]))
+            jsonify([{"lng": lon, "lat": lat, "temperature": value} for lat, lon, value in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp
@@ -92,40 +96,10 @@ def send_boundaries_data():
         elif cities:
             cur.execute(select_cities, (poly,))
         resp = make_response(
-            jsonify([{"geometry": geom2dict(geom)} for _, geom in cur.fetchall()]))
+            jsonify([{"geometry": json.loads(geom)} for _, geom in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp
-
-
-def geom2dict(geom: str) -> dict:
-    geometry = dict()
-
-    if geom[0] == 'P':
-
-        geometry['type'] = 'Polygon'
-        coordinates = list()
-        pairs = geom[geom.find('((') + 2:-2]
-        pairs = pairs.split(',')
-        for pair in pairs:
-            lat, lon = pair.split(' ')
-            coordinates.append([float(lat), float(lon)])
-        geometry['coordinates'] = [coordinates, ]
-    else:
-        geometry['type'] = 'MultiPolygon'
-        coordinates = list()
-        polygons = geom[geom.find('((') + 3:-3]
-        polygons = polygons.split('),(')
-        for polygon in polygons:
-            coordinates_this = list()
-            pairs = polygon.split(',')
-            for pair in pairs:
-                lat, lon = pair.split(' ')
-                coordinates_this.append([float(lat), float(lon)])
-            coordinates.append(coordinates_this)
-        geometry['coordinates'] = [coordinates, ]
-
-    return geometry
 
 
 @app.route("/wind")
@@ -183,7 +157,7 @@ def send_tweets_data():
         cur.execute(tweet_query)
 
         resp = make_response(
-            jsonify([{"create_at": time.isoformat(), "long": long, "lat": lat} for time, long, lat, _, _ in
+            jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat} for time, lon, lat, _, _ in
                      cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
@@ -199,7 +173,7 @@ def send_wildfire():
         cur.execute(query)
 
         resp = make_response(
-            jsonify([{"long": long, "lat": lat, "nlp": nl.predict(text)} for long, lat, text in cur.fetchall()]))
+            jsonify([{"long": lon, "lat": lat, "nlp": nl.predict(text)} for lon, lat, text in cur.fetchall()]))
         resp.headers['Access-Control-Allow-Origin'] = '*'
         cur.close()
     return resp

@@ -4,6 +4,7 @@ import time
 import rootpath
 
 rootpath.append()
+from backend.task.image_from_tweet import ImageFromTweet
 
 
 class TaskManager:
@@ -22,21 +23,20 @@ class TaskManager:
     NOTE: Locks,Events,Semaphores etc. have not been taken into consideration
     and may cause unexpected behaviour if used!
      """
-    running_threads = []
-    task_options = {}
+    running_threads = list()
+    task_options = dict()
     task_option_id = 1
 
     @classmethod
-    def add_task_option(cls, task_name, task_func, task_number):
+    def add_task_option(cls, runnable: type, task_params=None):
         """
-        :param task_name: name of this task option
-        :param task_func: the runnable of this task
-        :param task_number: id of this next task eg. let's say we had a wind_crawler-1 is running, to make our second
-                            wind crawler's name unique
-        we increment this number, so next wind crawler task will be called wind_crawler-2
+
+        :param runnable: The Runnable class
+        :param task_params: the runnable of this task
+
         :return: None
         """
-        cls.task_options.__setitem__(cls.task_option_id, [task_name, task_func, task_number])
+        cls.task_options[cls.task_option_id] = (runnable, task_params)
         cls.task_option_id += 1
 
     @classmethod
@@ -50,17 +50,13 @@ class TaskManager:
     @classmethod
     def task_option_to_string(cls):
         """
-        :return: formated tasks in the current task option dictionary
+        :return: formatted tasks in the current task option dictionary
         """
-        to_return = ""
-        task_template = "[%d].%s%d "
-        for option in cls.task_options:
-            to_return += task_template % (option, cls.task_options[option][0], cls.task_options[option][2])
-
-        return to_return
+        return "\n".join(
+            f"{option_id} - {runnable.__name__}" for option_id, (runnable, args) in cls.task_options.items())
 
     @classmethod
-    def run(cls, task_option_id, loop, interval, args=None):
+    def run(cls, task_option_id, loop, interval):
         """
         :param task_option_id: task id for task in the task option list
         :param loop:  determine is this is a looped task
@@ -68,12 +64,13 @@ class TaskManager:
         :param args: argument for the task
         :return: None
         """
-
-        if args is None:
-            args = []
-        target_func = cls.task_options[task_option_id][1]
-        th_name = cls.task_options[task_option_id][0] + str(cls.task_options[task_option_id][2])
-        th = threading.Thread(target=cls._thread_runner_, args=(target_func, th_name, interval, args))
+        print(cls.task_options)
+        runnable, args = cls.task_options[task_option_id]
+        print(runnable, args)
+        if not args:
+            args = (runnable(),)
+        th_name = f"{runnable.__name__} + "
+        th = threading.Thread(target=cls._thread_runner_, args=(runnable.run, args, th_name, interval))
         th.setDaemon(True)
         cls.running_threads.append([th, th_name, loop])
         th.start()
@@ -110,7 +107,7 @@ class TaskManager:
 
     # This method is only intended for threads started with ThM !
     @classmethod
-    def _thread_runner_(cls, target_func, th_name, interval, args):
+    def _thread_runner_(cls, target_func, args, th_name, interval):
         """Internal function handling the running and looping of the threads
         Note: threading.Event() has not been taken into consideration and neither the
         other thread managing objects (semaphores, locks, etc.)"""
@@ -119,41 +116,47 @@ class TaskManager:
             if th_name == thread_[1]:
                 break
             index_ += 1
-        target_func(*args)
+
+        target_func(*args if args else tuple())
         while cls.running_threads[index_][2]:
             if interval != 0:
                 time.sleep(interval)
             target_func(*args)
 
-    def main_loop(self):
-        task_loop = False
-
+    @classmethod
+    def main_loop(cls):
+        cls.task_loop = False
+        cls.load_task_options()
         while True:
-            print("#" * 80)
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "Welcome to wildfire Task Manager".center(78, " ") + "#")
-            print("#" + "Update: Bind task options to task_manager class".center(78, " ") + "#")
-            print("#" + "Version 0.2".center(78, " ") + "#")
-            print("#" + "Credit to Unicorn".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" * 80)
+
+            print(
+
+                "################################################################################\n"
+                "#                                                                              #\n"
+                "#                                                                              #\n"
+                "#                       Welcome to wildfire Task Manager                       #\n"
+                "#               Update: Bind task options to task_manager class                #\n"
+                "#                                 Version 0.2                                  #\n"
+                "#                              Credit to Unicorn                               #\n"
+                "#                                                                              #\n"
+                "#                                                                              #\n"
+                "################################################################################\n"
+            )
 
             # Clear finished thread
-            self.free_dead()
+            cls.free_dead()
             print("You have following task running in loop")
-            for i, thread in enumerate(self.running_threads):
+            for i, thread in enumerate(cls.running_threads):
                 if thread[2]:
                     print("[%d]: %s" % (i, thread[1]))
             print("Enter the task Number to stop the task")
             try:
                 stop_task_prompt = input("if you don't want to break the loop press any key to continue\n")
                 stop_task_prompt = int(stop_task_prompt)
-                self.stop_loop(self.running_threads[stop_task_prompt][1])
+                cls.stop_loop(cls.running_threads[stop_task_prompt][1])
             except:
                 print(" Skipped, no task been terminated ")
-            task_prompt = input("Which task would you like to run " + self.task_option_to_string() + " [q] quit\n")
+            task_prompt = input("Which task would you like to run " + cls.task_option_to_string() + " [q] quit\n")
             task_prompt = task_prompt.strip()
             task_prompt = task_prompt.lower()
             if task_prompt == 'q':
@@ -167,18 +170,22 @@ class TaskManager:
             if loop_prompt == 'q':
                 break
             elif loop_prompt == 'y':
-                task_loop = True
+                cls.task_loop = True
 
             interval_prompt = input("Interval between each run enter a NUMBER of seconds\n")
             try:
                 interval_prompt = int(interval_prompt)
-                self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt)
+                cls.run(task_option_id=task_prompt, loop=cls.task_loop, interval=interval_prompt)
                 # Increment number of user specified task
-                self.task_options[task_prompt][2] += 1
+                cls.task_options[task_prompt][2] += 1
                 print("Your task is running!")
             except Exception as e:
                 print(e)
                 print("[Error] Your input is not all correct, the task has not started")
+
+    @classmethod
+    def load_task_options(cls):
+        cls.task_options = {1: (ImageFromTweet, None)}
 
 
 if __name__ == "__main__":

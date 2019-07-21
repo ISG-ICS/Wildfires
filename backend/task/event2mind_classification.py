@@ -19,13 +19,50 @@ class Event2MindClassification(Runnable):
 
         # set up event2mind dumper
         event2mind_dumper = Event2MindDumper()
-        # set up database connection
 
         for id, text in Connection().sql_execute("SELECT id, text  from records"):
+
+            # check if record has been classified
+            records_classified = self.classification_check(id, target)
+            if records_classified:
+                print("Record has already been classified.")
+                continue
+
             # get prediction result of text
             prediction_dict = event2mind_classifier.predict(text, target)
             # dump prediction result into database
             event2mind_dumper.insert(prediction_dict, id)
+
+    def classification_check(self, record_id, target):
+        """check if record has been classified"""
+        conn = Connection()()
+        cur = conn.cursor()
+
+        cur.execute("SELECT record_id from intent_in_records")
+        all_rcrds_for_intent = cur.fetchall()
+
+        cur.execute("SELECT record_id from reaction_x_in_records")
+        all_rcrds_for_x = cur.fetchall()
+
+        cur.execute("SELECT record_id from reaction_y_in_records")
+        all_rcrds_for_y = cur.fetchall()
+
+        cur.close()
+
+        if target == Event2MindClassifier.X_INTENT:
+            if (record_id,) in all_rcrds_for_intent:
+                return 1
+        elif target == Event2MindClassifier.X_REACTION:
+            if (record_id,) in all_rcrds_for_x:
+                return 1
+        elif target == Event2MindClassifier.Y_REACTION:
+            if (record_id,) in all_rcrds_for_y:
+                return 1
+        else:
+            if (record_id,) in all_rcrds_for_intent \
+                    and (record_id,) in all_rcrds_for_x \
+                    and (record_id,) in all_rcrds_for_y:
+                return 1
 
 
 if __name__ == '__main__':

@@ -23,42 +23,31 @@ class Event2MindDumper(DumperBase):
         self.conn = Connection()()
 
     def insert(self, data, record_id):
+        """insert data and corresponding record_id into database, data is a dictionary"""
         if Event2MindDumper.INTENT_TOKENS in data.keys():
-            intents = data[Event2MindDumper.INTENT_TOKENS]
-            probabilities_intent = data[Event2MindDumper.INTENT_PROB]
-            for i in range(len(intents)):
-                intent = ''
-                for word in intents[i]:
-                    intent = intent + word + ' '
-                eid = self.insert_into_intents(intent)
-                self.insert_into_pairs(record_id, eid, probabilities_intent[i], Event2MindDumper.TABLE_INTENT_IN_RCD)
+            self.traverse_tokens(Event2MindDumper.INTENT_TOKENS,
+                                 Event2MindDumper.INTENT_PROB,
+                                 Event2MindDumper.TABLE_INTENT_IN_RCD,
+                                 data, record_id)
 
         if Event2MindDumper.REACTION_X_TOKENS in data.keys():
-            reactions_x = data[Event2MindDumper.REACTION_X_TOKENS]
-            probabilities_x = data[Event2MindDumper.REACTION_X_PROB]
-            for i in range(len(reactions_x)):
-                reation = ''
-                for word in reactions_x[i]:
-                    reation = reation + word + ' '
-                eid = self.insert_into_reactions(reation)
-                self.insert_into_pairs(record_id, eid, probabilities_x[i], Event2MindDumper.TABLE_X_IN_RCD)
+            self.traverse_tokens(Event2MindDumper.REACTION_X_TOKENS,
+                                 Event2MindDumper.REACTION_X_PROB,
+                                 Event2MindDumper.TABLE_X_IN_RCD,
+                                 data, record_id)
 
         if Event2MindDumper.REACTION_Y_TOKENS in data.keys():
-            reactions_y = data[Event2MindDumper.REACTION_Y_TOKENS]
-            probabilities_y = data[Event2MindDumper.REACTION_Y_PROB]
-            for i in range(len(reactions_y)):
-                reation = ''
-                for word in reactions_y[i]:
-                    reation = reation + word + ' '
-                eid = self.insert_into_reactions(reation)
-                self.insert_into_pairs(record_id, eid, probabilities_y[i], Event2MindDumper.TABLE_Y_IN_RCD)
+            self.traverse_tokens(Event2MindDumper.REACTION_Y_TOKENS,
+                                 Event2MindDumper.REACTION_Y_PROB,
+                                 Event2MindDumper.TABLE_Y_IN_RCD,
+                                 data, record_id)
 
-    def insert_into_reactions(self, e):
-
+    def insert_into_reactions(self, token):
+        """insert token into table: reactions"""
         cur = self.conn.cursor()
 
         try:
-            cur.execute("SELECT id from reactions where reaction = (%s)", (e,))
+            cur.execute("SELECT id from reactions where reaction = (%s)", (token,))
             a = cur.fetchone()
             if a:
                 return a[0]
@@ -72,7 +61,7 @@ class Event2MindDumper(DumperBase):
                 else:
                     eid = 1
                 cur.execute("INSERT INTO reactions(id, reaction) values (%s, %s) returning id",
-                            (eid, e,))
+                            (eid, token,))
         except Exception as err:
             print("error", err)
 
@@ -80,10 +69,11 @@ class Event2MindDumper(DumperBase):
         cur.close()
         return eid
 
-    def insert_into_intents(self, i):
+    def insert_into_intents(self, token):
+        """insert token into table: intents"""
         cur = self.conn.cursor()
         try:
-            cur.execute("SELECT id from intents where intent = (%s)", (i,))
+            cur.execute("SELECT id from intents where intent = (%s)", (token,))
             a = cur.fetchone()
             if a:
                 return a[0]
@@ -96,7 +86,7 @@ class Event2MindDumper(DumperBase):
 
                 else:
                     eid = 1
-                cur.execute("INSERT INTO intents(id, intent) values (%s, %s) returning id", (eid, i,))
+                cur.execute("INSERT INTO intents(id, intent) values (%s, %s) returning id", (eid, token,))
         except Exception as err:
             print("error", err)
         self.conn.commit()
@@ -104,6 +94,7 @@ class Event2MindDumper(DumperBase):
         return eid
 
     def insert_into_pairs(self, rid, eid, probability, tablename):
+        """insert record id(rid), token id(eid) and probability into database"""
         cur = self.conn.cursor()
         try:
             if tablename == Event2MindDumper.TABLE_X_IN_RCD:
@@ -121,3 +112,19 @@ class Event2MindDumper(DumperBase):
             print("error", err)
         self.conn.commit()
         cur.close()
+
+    def traverse_tokens(self, token_type, probability_type, table_name, data, record_id):
+        """traverse each token in data dictionary, and insert them into database"""
+        all_tokens = data[token_type]
+        probabilities = data[probability_type]
+        for i in range(len(all_tokens)):
+            token = ' '.join(all_tokens[i])
+            if token_type == Event2MindDumper.INTENT_TOKENS:
+                eid = self.insert_into_intents(token)
+            else:
+                eid = self.insert_into_reactions(token)
+            self.insert_into_pairs(record_id, eid, probabilities[i], table_name)
+
+    # TO DO:
+    def batch_insert(self):
+        pass

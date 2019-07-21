@@ -2,6 +2,7 @@ import math
 import os
 import sys
 import time
+import subprocess
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -9,7 +10,7 @@ import rootpath
 
 rootpath.append()
 
-from paths import GRIB2_DATA_DIR
+from paths import GRIB2_DATA_DIR, GRIB2JSON_PATH, WIND_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
 from backend.data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum
@@ -87,6 +88,14 @@ class NOAACrawler(CrawlerBase):
                 vgnd = self.extractor.extract(GRIBEnum.NOAA_WIND_V)
                 tmp = self.extractor.extract(GRIBEnum.NOAA_TMP)
                 soilw = self.extractor.extract(GRIBEnum.NOAA_SOILW)
+
+                # output json using java-converter
+                cmd = [GRIB2JSON_PATH, '--data', '--output',
+                       os.path.join(WIND_DATA_DIR, 'latest-wind' + '.json'), '--names', '--compact',
+                       os.path.join(GRIB2_DATA_DIR, stamp + '.f000')]
+                process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+                process.wait()
+
                 print('converted')
 
                 # dump into DB

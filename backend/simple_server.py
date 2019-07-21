@@ -1,41 +1,35 @@
+import json
 import pickle
+import re
+import string
+from typing import Dict
 
+import requests
 import rootpath
+import twitter
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
 from backend.classifiers.nltktest import NLTKTest
-import twitter
-import json
-import requests
-import re
-import string
+from utilities.ini_parser import parse
 
 from flask import Flask, send_from_directory, make_response, jsonify, request as flask_request
 
-from paths import NLTK_MODEL_PATH
+from paths import NLTK_MODEL_PATH, TWITTER_API_CONFIG_PATH
 
 app = Flask(__name__, static_url_path='')
 app.config.from_pyfile('server_config.py', silent=True)
 
 # load states
 with open('us_states_dict.json', 'r') as f:
-    json_str = f.read()
-    us_states = json.loads(json_str)  # type: dict
+    us_states: Dict = json.load(f)
 
 # load abbreviation of states
 with open('us_states_abbr.json', 'r') as f:
-    json_str = f.read()
-    us_states_abbr = json.loads(json_str)  # type: dict
+    us_states_abbr: Dict = json.load(f)
 
 nl: NLTKTest = pickle.load(open(NLTK_MODEL_PATH, 'rb'))
-api = twitter.Api(consumer_key="",
-                  consumer_secret="",
-                  access_token_key="",
-                  access_token_secret="")
-
-tweet_query = "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat " \
-              "from records r,locations l where r.id=l.id"
+api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
 
 
 @app.route("/search")
@@ -48,7 +42,7 @@ def send_search_data():
         search_result = us_states[keyword]
     elif keyword in us_states_abbr:
         search_result = us_states[us_states_abbr[keyword]]
-    resp = make_response(jsonify(search_result['geometry'])) if search_result else make_response(jsonify(None))
+    resp = make_response(jsonify(search_result.get('geometry') if search_result else None))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
@@ -104,6 +98,7 @@ def send_boundaries_data():
 
 @app.route("/wind")
 def send_wind_data():
+    # TODO: replace source of wind data to db
     resp = make_response(send_from_directory('data', 'latest-wind.json'))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
@@ -111,6 +106,7 @@ def send_wind_data():
 
 @app.route("/rain_fall")
 def send_realtime_data():
+    # TODO: replace source of rain fall data to db
     resp = make_response(send_from_directory('data', 'rain_fall_sample.csv'))
     resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
@@ -118,6 +114,7 @@ def send_realtime_data():
 
 @app.route("/live_tweet")
 def send_live_tweet():
+    # TODO: replace source of live tweets to db
     # Simulate request from a mac browser
     headers = {
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -152,30 +149,24 @@ def send_live_tweet():
 
 @app.route("/tweets")
 def send_tweets_data():
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(tweet_query)
-
-        resp = make_response(
-            jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat} for time, lon, lat, _, _ in
-                     cur.fetchall()]))
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        cur.close()
+    resp = make_response(
+        jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat} for time, lon, lat, _, _ in
+                 Connection().sql_execute(
+                     "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat "
+                     "from records r,locations l where r.id=l.id")]))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
 @app.route("/wildfire_prediction")
 def send_wildfire():
-    query = "select l.top_left_long, l.top_left_lat, r.text from locations l, images i, records r " \
-            "where l.id = i.id and r.id = l.id and i.wildfire > 40;"
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query)
+    # TODO: update the where clause
+    resp = make_response(
+        jsonify([{"long": lon, "lat": lat, "nlp": nl.predict(text)} for lon, lat, text in Connection().sql_execute(
+            "select l.top_left_long, l.top_left_lat, r.text from locations l, images i, records r where l.id = i.id "
+            "and r.id = l.id and i.wildfire > 40")]))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
 
-        resp = make_response(
-            jsonify([{"long": lon, "lat": lat, "nlp": nl.predict(text)} for lon, lat, text in cur.fetchall()]))
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        cur.close()
     return resp
 
 

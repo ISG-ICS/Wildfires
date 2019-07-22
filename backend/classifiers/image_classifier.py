@@ -5,6 +5,10 @@ from torch.autograd import Variable
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torch.utils.data
+import torchvision.models as models
+import torch.nn as nn
+import torch.optim as optim
+
 from PIL import Image
 
 import rootpath
@@ -69,8 +73,11 @@ class ImageClassifier(ClassifierBase):
             return None
         return transformed_img
 
-    def train(self, model, loss_fn, optimizer, train_path, num_epochs=5):
+    def train(self, train_path, val_path, num_epochs=5):
         train_loader = self.load_train(train_path)
+        model = models.resnet50(pretrained=True, progress=True)
+        loss_fn = nn.CrossEntropyLoss()
+        optimizer = optim.RMSprop(model.parameters(), lr=1e-4)
 
         for epoch in range(num_epochs):
             print('Starting epoch %d / %d' % (epoch + 1, num_epochs))
@@ -88,6 +95,9 @@ class ImageClassifier(ClassifierBase):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+        self.check_accuracy(model, val_path)
+
+        torch.save(model.state_dict(), 'ResNet50.ckpt')
 
     def load_train(self, traindir):
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -103,6 +113,37 @@ class ImageClassifier(ClassifierBase):
             batch_size=32, shuffle=True,
             num_workers=4, pin_memory=True)
         return train_loader
+
+    def load_val(self, val_path):
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+
+        val_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(val_path, transforms.Compose([
+                transforms.Resize(256),
+                transforms.CenterCrop(224),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=32, shuffle=False,
+            num_workers=4, pin_memory=True)
+        return val_loader
+
+    def check_accuracy(self, model, val_path):
+        loader = self.load_val(val_path)
+        num_correct = 0
+        num_samples = 0
+        model.eval()  # Put the model in test mode (the opposite of model.train(), essentially)
+        for x, y in loader:
+            x_var = Variable(x, volatile=True)
+
+            scores = model(x_var)
+            _, preds = scores.data.cpu().max(1)
+            num_correct += (preds == y).sum()
+            num_samples += preds.size(0)
+        acc = float(num_correct) / num_samples
+        print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
+        return acc
 
 
 if __name__ == '__main__':

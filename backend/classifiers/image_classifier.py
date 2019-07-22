@@ -24,6 +24,7 @@ class ImageClassifier(ClassifierBase):
     N_CLASSES = 2  # number of classes of the classification problem
     DROPSIZE = 512  # drop size of the image transformation
 
+
     def set_model(self, model: str = None):
         '''load trained model'''
         self.model = CNN(ImageClassifier.N_CHANNELS, ImageClassifier.N_CLASSES)
@@ -73,7 +74,11 @@ class ImageClassifier(ClassifierBase):
             return None
         return transformed_img
 
-    def train(self, train_path, val_path, num_epochs=5):
+
+    def train(self, train_path, val_path, num_epochs=1):
+        """ 1. train model
+            2. check accuracy
+            3. save the model locally """
         train_loader = self.load_train(train_path)
         model = models.resnet50(pretrained=True, progress=True)
         loss_fn = nn.CrossEntropyLoss()
@@ -100,6 +105,7 @@ class ImageClassifier(ClassifierBase):
         torch.save(model.state_dict(), 'ResNet50.ckpt')
 
     def load_train(self, traindir):
+        """ pre-process training data as dataloader """
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
 
@@ -115,6 +121,7 @@ class ImageClassifier(ClassifierBase):
         return train_loader
 
     def load_val(self, val_path):
+        """ pre-process testing data as dataloader """
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                          std=[0.229, 0.224, 0.225])
 
@@ -130,6 +137,7 @@ class ImageClassifier(ClassifierBase):
         return val_loader
 
     def check_accuracy(self, model, val_path):
+        """ use test data to print out accuracy """
         loader = self.load_val(val_path)
         num_correct = 0
         num_samples = 0
@@ -144,6 +152,23 @@ class ImageClassifier(ClassifierBase):
         acc = float(num_correct) / num_samples
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
         return acc
+
+    def image_loader(self, image_path):
+        """load image, returns cuda tensor"""
+        imsize = 256
+        loader = transforms.Compose([transforms.Resize(imsize), transforms.ToTensor()])
+        image = Image.open(image_path)
+        image = loader(image).float()
+        image = Variable(image, requires_grad=True)
+        image = image.unsqueeze(0)  # this is for VGG, may not be needed for ResNet
+        return image.cpu()
+
+    def prettify(self, tensor_topk):
+        """transfer tensor object into dict with confidence level"""
+        result = {}
+        for i in range(tensor_topk.n_fields):
+            result[tensor_topk.indices.data.cpu()[0][i].item()] = tensor_topk.values.data.cpu()[0][i].item()
+        return result
 
 
 if __name__ == '__main__':

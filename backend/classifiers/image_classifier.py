@@ -1,6 +1,10 @@
 import os
 import torch
 from torchvision import transforms
+from torch.autograd import Variable
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
+import torch.utils.data
 from PIL import Image
 
 import rootpath
@@ -64,6 +68,42 @@ class ImageClassifier(ClassifierBase):
             print("error", err)
             return None
         return transformed_img
+
+    def train(self, model, loss_fn, optimizer, train_path, num_epochs=5):
+        train_loader = self.load_train(train_path)
+
+        for epoch in range(num_epochs):
+            print('Starting epoch %d / %d' % (epoch + 1, num_epochs))
+            model.train()
+            for t, (x, y) in enumerate(train_loader):
+                x_var = Variable(x)
+                y_var = Variable(y.long())
+
+                scores = model(x_var)
+
+                loss = loss_fn(scores, y_var)
+                if (t + 1) % 100 == 0:
+                    print('t = %d, loss = %.4f' % (t + 1, loss.item()))
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+    def load_train(self, traindir):
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+
+        train_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(traindir, transforms.Compose([
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                normalize,
+            ])),
+            batch_size=32, shuffle=True,
+            num_workers=4, pin_memory=True)
+        return train_loader
+
 
 if __name__ == '__main__':
     image_classifier = ImageClassifier()

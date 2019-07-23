@@ -4,30 +4,31 @@
 <div id="wrapper">
 
     <!-- Uncomment this part to show the thermometer-->
-    <div id="termometer">
+    <div id="thermometer">
         <div id="temperature" style="height:0" data-value="0°C"></div>
         <div id="graduations"></div>
     </div>
 
     <h5></h5>
-    <div id="playground">
-        <div id="range">
-            <input id="minTemp" type="text" value="Max:-6">
-            <input (click)="temperatureRangeChange($event)" class="tempselect" max="35" min="-6" type="range"
+    <div id="temperatureSelectForm">
+        <span>
+        <div class="range">
+            <input class="tempLabel" name="minTemp" style="width:48px" type="text" value="Max:-6">
+            <input (click)="highTemperatureSelectorUpdate($event)" class="tempselect" max="35" min="-6" type="range"
                    value="20">
-            <input id="maxTemp" type="text" value="35">
+            <input class="tempLabel" name="maxTemp" style="width:16px" type="text" value="35">
         </div>
-        <p id="unit">Celcius C°</p>
-    </div>
-
-    <div id="playground">
-        <div id="range">
-            <input id="minTemp" type="text" value="Min:-6">
-            <input (click)="temperatureRangeChange2($event)" class="tempselect" max="35" min="-6" type="range"
+        <p class="unit">Celsius C°</p>
+        </span>
+        <span>
+        <div class="range">
+            <input class="tempLabel" name="minTemp" style="width:46px" type="text" value="Min:-6">
+            <input (click)="lowTemperatureSelectorUpdate($event)" class="tempselect" max="35" min="-6" type="range"
                    value="20">
-            <input id="maxTemp" type="text" value="35">
+            <input class="tempLabel" name="maxTemp" style="width:16px" type="text" value="35">
         </div>
-        <p id="unit">Celcius C°</p>
+        <p class="unit">Celsius C°</p>
+        </span>
     </div>
 
     <div class='range-box'>

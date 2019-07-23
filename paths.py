@@ -13,7 +13,9 @@ TWITTER_API_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'twitter.ini')
 
 NLTK_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/nltk_model.pickle')
 
-IMAGE_CLASSIFIER_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/img_classifier_model.ckpt')
+IMAGE_CLASSIFIER_VGG_PATH = os.path.join(ROOT_DIR, 'backend/models/img_classifier_model.ckpt')
+
+IMAGE_CLASSIFIER_RESNET_PATH = os.path.join(ROOT_DIR, 'backend/models/ResNet1.ckpt')
 
 EVENT2MIND_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/event2mind-2018.10.26.tar.gz')
 
@@ -26,3 +28,5 @@ WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')
 GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
 
 TWEET_IMAGES_DIR = os.path.join(ROOT_DIR, 'data/tweet_images')
+
+MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend/models/')

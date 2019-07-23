@@ -5,13 +5,8 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
-import * as turf from '@turf/turf'
-import {statesData} from '../../../../../data/boundaries/us-states.js';
 
 declare let L;
-
-//import {citiesData} from '../../../../../data/boundaries/us-cities.js';
-
 
 @Component({
     selector: 'app-heatmap',
@@ -31,21 +26,25 @@ export class HeatmapComponent implements OnInit {
 
     // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
-    private tempLayer1;
+    private tempLayer;
     private tempBreaks = [-6, -3, 0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36];
+
+    private colorList = ['#393fb8', '#45afd6', '#49ebd8', '#49eb8f',
+        '#a6e34b', '#f2de5a', '#edbf18', '#e89c20',
+        '#f27f02', '#f25a02', '#f23a02', '#f0077f',
+        '#f205c3', '#9306ba'
+    ];
 
     // For temp range selector store current max/min selected by user
     private tempRegionsMax = [];
     private tempMax = [0];
     private tempMin = [0];
-    private geojson;
 
     constructor(private mapService: MapService) {
     }
 
     ngOnInit() {
         // A hacky way to declare that
-        const that = this;
         // Initialize map and 3 base layers
         const mapBoxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiY' +
             'SI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
@@ -69,7 +68,7 @@ export class HeatmapComponent implements OnInit {
         this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
         this.mapService.mapLoaded.emit(this.map);
-        // Generate coordinate in siderbar
+        // Generate coordinate in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;
             const lng = ev.latlng.lng;
@@ -78,10 +77,8 @@ export class HeatmapComponent implements OnInit {
 
         // Get temperature data from service
         this.mapService.getTemperatureData();
-        this.mapService.contourDataLoaded.subscribe(this.contourDataHandler);
-        this.mapService.contourDataLoaded.subscribe(this.polygonDataHandler);
-        this.mapService.contourDataLoaded.subscribe(this.heatmapDataHandler);
-        //this.mapService.contourDataLoaded.subscribe(this.ChoroplethDataHandler);
+        this.mapService.temperatureDataLoaded.subscribe(this.dotMapDataHandler);
+        this.mapService.temperatureDataLoaded.subscribe(this.heatmapDataHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -93,9 +90,6 @@ export class HeatmapComponent implements OnInit {
         // Get fire events data from service
         this.mapService.getWildfirePredictionData();
         this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
-
-        //this.ChoroplethDataHandler();
-        //this.CityDataHandler();
 
         // Add event Listener to live tweet switch
         $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
@@ -122,10 +116,10 @@ export class HeatmapComponent implements OnInit {
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
 
-    }
+    };
 
 
-    liveTweetSwitchHandler = (event) => {
+    liveTweetSwitchHandler = (_) => {
         if (this.switchStatus === 1) {
             this.liveTweetLayer.clearLayers();
             this.mapService.stopliveTweet();
@@ -135,7 +129,7 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getLiveTweetData();
         this.mapService.liveTweetLoaded.subscribe(this.liveTweetDataHandler);
         this.switchStatus = 1;
-    }
+    };
 
     liveTweetDataHandler = (data) => {
         this.liveTweetMarkers = L.TileLayer.maskCanvas({
@@ -182,7 +176,7 @@ export class HeatmapComponent implements OnInit {
                 $(bird).css('animation', 'fly 3s linear');
             }
         }
-    }
+    };
 
     timeRangeChangeHandler = (event, data) => {
         const tempData = [];
@@ -192,13 +186,13 @@ export class HeatmapComponent implements OnInit {
             }
         });
         this.tweetLayer.setData(tempData);
-    }
+    };
 
     fireEventHandler = (data) => {
 
         const fireEventList = [];
 
-        for (const ev of  data.fireEvents) {
+        for (const ev of data.fireEvents) {
             const point = [ev.lat, ev.long];
             const size = 40;
             const fireIcon = L.icon({
@@ -211,7 +205,7 @@ export class HeatmapComponent implements OnInit {
         }
         const fireEvents = L.layerGroup(fireEventList);
         this.mainControl.addOverlay(fireEvents, 'Fire event');
-    }
+    };
 
     windDataHandler = (wind) => {
         // there's not much document about leaflet-velocity.
@@ -232,7 +226,7 @@ export class HeatmapComponent implements OnInit {
             maxVelocity: 12 // affect color and animation speed of wind
         });
         this.mainControl.addOverlay(velocityLayer, 'Global wind');
-    }
+    };
 
 
     heatmapDataHandler = (data) => {
@@ -268,94 +262,38 @@ export class HeatmapComponent implements OnInit {
             }
         };
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-        heatmapLayer.setData({max: 680, data: data.contourData});
+        heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    }
+    };
 
-
-    contourDataHandler = (data) => {
-        // used turf built in features to add contour lines,
-        // but contour lines can only built on ractangled data size boundary
-        let tempPointsList = [];
-        for (let points of data.contourData) {
-            const tempPoint = turf.point([points.long, points.lat], {'temperature': points.temp});
-            tempPointsList.push(tempPoint);
-        }
-        // Establish features and break points for contour lines
-        const tempFeatures = turf.featureCollection(tempPointsList);
-        const pointGrid = turf.explode(tempFeatures);
-        const lines = turf.isolines(pointGrid, this.tempBreaks, {zProperty: 'temperature'});
-        // Make contour lines smooth
-        const _lFeatures = lines.features;
-        for (let i = 0; i < _lFeatures.length; i++) {
-            const _coords = _lFeatures[i].geometry.coordinates;
-            const _lCoords = [];
-            for (let j = 0; j < _coords.length; j++) {
-                const _coord = _coords[j];
-                const line = turf.lineString(_coord);
-                const curved = turf.bezierSpline(line);
-                _lCoords.push(curved.geometry.coordinates);
-            }
-            _lFeatures[i].geometry.coordinates = _lCoords;
-        }
-        // Give colors from light to dark for different temperature
-        const tempEvents = [];
-        for (let index = 0; index < lines.features.length; index++) {
-            const colorCode = Math.floor(200 * (index + 1) / this.tempBreaks.length + 55);
-            tempEvents.push(L.geoJSON(lines.features[index], {
-                style: {
-                    color: 'rgb(0, ' + colorCode + ', ' + colorCode + ')',
-                    weight: 1,
-                    opacity: 0.4
-                }
-            }));
-        }
-        // Add the contour layer to the map
-        const region = L.layerGroup(tempEvents);
-        this.mainControl.addOverlay(region, 'temp-contour');
-
-    }
-
-    polygonDataHandler = (data) => {
-        let my = data.contourData;
-        let all_latlng = []
+    dotMapDataHandler = (data) => {
+        const latLongBins = [];
         // Classify points for different temp into different list
         for (let t = 0; t < this.tempBreaks.length - 1; t++) {
-            let latlng_list = [];
-            for (let i = 0; i < my.length; i++) {
-                if (my[i].temp >= this.tempBreaks[t] && my[i].temp <= this.tempBreaks[t + 1]) {
-                    latlng_list.push([Number(my[i].lat), Number(my[i].long)]);
+            const points = [];
+            for (const point of data) {
+                if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {
+                    points.push([Number(point.lat), Number(point.long)]);
                 }
             }
-            all_latlng.push(latlng_list)
-
+            latLongBins.push(points);
         }
-        console.log(all_latlng);
+        console.log(latLongBins);
         // Assign a different color and a layer for each small temperature interval
-        const colorlist = ['#393fb8', '#45afd6', '#49ebd8', '#49eb8f',
-            '#a6e34b', '#f2de5a', '#edbf18', '#e89c20',
-            '#f27f02', '#f25a02', '#f23a02', '#f0077f',
-            '#f205c3', '#9306ba'
-        ];
-        const boxlist = ['blue- -6C', 'lightblue- -3C', 'greenblue- 0C', 'green- 3C', 'lightgreen- 6C',
-            'yellow- 9C', 'darkyellow- 12C', 'lightorange- 15C', 'orange-18C', 'richorange- 21C', 'red- 24C',
-            'purplered- 27C', 'lightpurple- 30C', 'purple- 33C'
-        ]
-        for (let i = 0; i < colorlist.length; i++) {
-            this.tempLayer1 = L.TileLayer.maskCanvas({
+
+        for (let i = 0; i < this.colorList.length; i++) {
+            this.tempLayer = L.TileLayer.maskCanvas({
                 radius: 5,
                 useAbsoluteRadius: true,
                 color: '#000',
                 opacity: 0.85,
                 noMask: true,
-                lineColor: colorlist[i]
+                lineColor: this.colorList[i]
             });
-            this.tempLayer1.setData(all_latlng[i]);
-            this.mainControl.addOverlay(this.tempLayer1, boxlist[i]);
-            this.tempLayers.push(this.tempLayer1);
+            this.tempLayer.setData(latLongBins[i]);
+            this.tempLayers.push(this.tempLayer);
         }
-        console.log(this.tempLayers);
-    }
+    };
 
     rangeSelectHandler = (event) => {
         // Respond to the input range of temperature from the range selector in side bar
@@ -396,62 +334,4 @@ export class HeatmapComponent implements OnInit {
             }
         }
     }
-
-    ChoroplethDataHandler = () => {
-        const colorlist = ['#bbd5f0','#87b9ed','#2f8ded','#1371d1',
-            '#175799','#063b73','#032242','#031629'];
-        function getColor(d) {
-            return d > 800 ? colorlist[7] :
-                d > 500 ? colorlist[6] :
-                    d > 200 ? colorlist[5] :
-                        d > 100 ? colorlist[4] :
-                            d > 50 ? colorlist[3] :
-                                d > 20 ? colorlist[2] :
-                                    d > 10 ? colorlist[1] :
-                                        colorlist[0];
-        }
-
-        function style(feature) {
-            return {
-                fillColor: getColor(feature.properties.density),
-                weight: 0.5,
-                opacity: 0.5,
-                color: 'white',
-                dashArray: '3',
-                fillOpacity: 0.7
-            };
-        }
-
-        const ChoroplethLayer = L.geoJson(statesData, {style: style}) //.addTo(this.map);
-        this.mainControl.addOverlay(ChoroplethLayer, 'Choropleth Map');
-
-        function highlightFeature(e) {
-            var layer = e.target;
-
-            layer.setStyle({
-                weight: 5,
-                color: '#666',
-                dashArray: '',
-                fillOpacity: 0.7
-            });
-
-            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                layer.bringToFront();
-            }
-        }
-
-        function resetHighlight(e) {
-            geojson.resetStyle(e.target);
-        }
-
-        var geojson;
-        geojson = L.geoJson();
-
-
-
-
-    }
-
-
-
 }

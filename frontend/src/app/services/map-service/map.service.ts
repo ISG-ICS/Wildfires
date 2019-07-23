@@ -14,7 +14,7 @@ export class MapService {
     liveTweetLoaded = new EventEmitter();
     mapLoaded = new EventEmitter();
 
-    contourDataLoaded = new EventEmitter();
+    temperatureDataLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
     liveTweetCycle: any;
 
@@ -117,13 +117,8 @@ export class MapService {
             type: 'GET',
             url: 'http://127.0.0.1:5000/recenttemp',
             dataType: 'text',
-        }).done(data => {
-
-            const TempData = JSON.parse(data);
-            this.contourDataLoaded.emit({contourData: TempData});
-        });
+        }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
     }
-
 
 
 }

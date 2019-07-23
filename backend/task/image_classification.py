@@ -30,5 +30,5 @@ class ImageClassification(Runnable):
 if __name__ == '__main__':
     image_classification = ImageClassification()
     # model type can be specified to VGG or ResNet
-    # image_classification.run(model_type="vgg")
+    image_classification.run(model_type="vgg")
     image_classification.run(model_type="resnet")

@@ -19,7 +19,7 @@ class ImgClassificationDumper(DumperBase):
         if model_type == ImageClassifier.VGG_MODEL:
             try:
                 Connection().sql_execute_commit(
-                    f"UPDATE images SET not_wildfire_prob = {prob_not_wildfire}, vgg_wildfire_prob = {prob_wildfire} "
+                    f"UPDATE images SET not_wildfire_prob = {prob_not_wildfire}, wildfire_prob = {prob_wildfire} "
                     f"WHERE image_url = {repr(image_url)}")
 
             except Exception as err:

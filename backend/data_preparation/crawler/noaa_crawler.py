@@ -2,6 +2,7 @@ import math
 import os
 import sys
 import time
+import subprocess
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -9,7 +10,7 @@ import rootpath
 
 rootpath.append()
 
-from paths import GRIB2_DATA_DIR
+from paths import GRIB2_DATA_DIR, GRIB2JSON_PATH, WIND_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
 from backend.data_preparation.dumper.noaa_dumper import NOAADumper

@@ -1,6 +1,5 @@
-import {Component, EventEmitter, Input, OnInit} from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {MapService} from '../../../services/map-service/map.service';
-import noUiSlider from 'nouislider';
 import 'nouislider/distribute/nouislider.css';
 
 
@@ -23,14 +22,6 @@ export class TemperatureRangeSliderComponent implements OnInit {
 
     ngOnInit() {
         const slider = document.getElementById('slider');
-        noUiSlider.create(slider, {
-            start: [4000],
-            range: {
-                min: [1],
-                max: [10000]
-            }
-        });
-
     }
 
     constructor(private mapService: MapService) {

@@ -37,8 +37,8 @@ export class HeatmapComponent implements OnInit {
 
     // For temp range selector store current max/min selected by user
     private tempRegionsMax = [];
-    private tempMax = [0];
-    private tempMin = [0];
+    private tempMax = 36;
+    private tempMin = 0;
 
     constructor(private mapService: MapService) {
     }
@@ -280,7 +280,6 @@ export class HeatmapComponent implements OnInit {
         }
         console.log(latLongBins);
         // Assign a different color and a layer for each small temperature interval
-
         for (let i = 0; i < this.colorList.length; i++) {
             this.tempLayer = L.TileLayer.maskCanvas({
                 radius: 5,
@@ -295,43 +294,47 @@ export class HeatmapComponent implements OnInit {
         }
     };
 
+
     rangeSelectHandler = (event) => {
+        const inRange = (min: number, max: number, target: number) => {
+            return target < max && target >= min;
+        };
+
         // Respond to the input range of temperature from the range selector in side bar
-
-        // var int: always keep the lastest input Max/Min temperature
-        if (event.newTemperature !== undefined) {
-            this.tempMax = [];
-            this.tempMax.push(event.newTemperature);
+        // var int: always keep the latest input Max/Min temperature
+        if (event.high !== undefined) {
+            this.tempMax = event.high;
         }
-        if (event.newTemperature2 !== undefined) {
-            this.tempMin = [];
-            this.tempMin.push(event.newTemperature2);
+        if (event.low !== undefined) {
+            this.tempMin = event.low;
         }
-
-        // for each valid input range, given list of layers of temp plotting satisfy the range and add to map
-        if (this.tempMin[0] <= this.tempMax[0]) {
+        if (this.tempMin <= this.tempMax) {
+            this.tempRegionsMax = [];
+            let startSelecting = false;
+            // Push layers in selected range into list tempRegionsMax
             for (let i = 0; i < this.tempBreaks.length; i++) {
-
-                if (this.tempMax[0] >= this.tempBreaks[i] && this.tempMax[0] < this.tempBreaks[i + 1]) {
-                    this.tempRegionsMax = [];
-                    for (let k = 0; k <= i; k++) {
-                        const region = this.tempLayers[k];
-                        this.tempRegionsMax.push(region);
-                    }
+                const rangeMin = this.tempBreaks[i];
+                const rangeMax = this.tempBreaks[i + 1];
+                if (inRange(rangeMin, rangeMax, this.tempMin)) {
+                    startSelecting = true;
+                }
+                if (startSelecting) {
+                    this.tempRegionsMax.push(this.tempLayers[i]);
+                }
+                if (inRange(rangeMin, rangeMax, this.tempMax)) {
+                    startSelecting = false;
+                    break;
                 }
             }
-            for (let i = 0; i < this.tempBreaks.length; i++) {
-                if (this.tempMin[0] >= this.tempBreaks[i] && this.tempMin[0] < this.tempBreaks[i + 1]) {
-                    this.tempRegionsMax.splice(0, i);
-                }
-            }
-
+            // Remove previous canvas layers
             for (const layer of this.tempLayers) {
                 this.map.removeLayer(layer);
             }
+            // Add new canvas layers in the updated list tempRegionsMax to Map
             for (const region of this.tempRegionsMax) {
                 region.addTo(this.map);
             }
+            console.log(this.tempRegionsMax);
         }
     }
 }

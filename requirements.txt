@@ -5,6 +5,7 @@ allennlp
 pyproj==2.2.1
 rootpath
 flask
+flask-cors
 pygrib
 requests
 python-twitter

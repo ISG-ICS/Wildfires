@@ -115,7 +115,7 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/recenttemp',
+            url: 'http://127.0.0.1:5000/recent-temp',
             dataType: 'text',
         }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
     }

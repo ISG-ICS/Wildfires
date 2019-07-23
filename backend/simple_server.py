@@ -1,4 +1,5 @@
 import pickle
+import random
 
 import rootpath
 
@@ -19,15 +20,13 @@ import os
 from utilities.ini_parser import parse
 
 from flask import Flask, send_from_directory, make_response, jsonify, request as flask_request
+from flask_cors import CORS
 
 from paths import NLTK_MODEL_PATH, BOUNDARY_PATH, TWITTER_API_CONFIG_PATH
 
 app = Flask(__name__, static_url_path='')
+CORS(app)
 app.config.from_pyfile('server_config.py', silent=True)
-
-# load states
-with open('us_states_dict.json', 'r') as f:
-    us_states: Dict = json.load(f)
 
 # load abbreviation of states
 with open('us_states_abbr.json', 'r') as f:
@@ -41,14 +40,51 @@ api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
 def send_search_data():
     keyword = flask_request.args.get('keyword')
 
-    # currently we can search states from in-memory-dict
-    search_result = None
-    if keyword in us_states:
-        search_result = us_states[keyword]
-    elif keyword in us_states_abbr:
-        search_result = us_states[us_states_abbr[keyword]]
-    resp = make_response(jsonify(search_result.get('geometry') if search_result else None))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
+    # load abbreviation
+    if keyword in us_states_abbr:
+        keyword = us_states_abbr[keyword]
+
+    search_state = "SELECT state_name, st_asgeojson(t.geom) from us_states t where state_name=%s"
+    search_city = "SELECT city_name, st_asgeojson(t.geom) from us_cities t where city_name=%s limit 1"
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(search_state, (keyword,))
+        results = [json.loads(geom) for name, geom in cur.fetchall()]
+        if not results:
+            cur.execute(search_city, (keyword,))
+            results = [json.loads(geom) for name, geom in cur.fetchall()]
+        resp = make_response(jsonify(results))
+        cur.close()
+    return resp
+
+
+@app.route("/boundaries", methods=['POST', 'GET'])
+def send_boundaries_data():
+    request_json = flask_request.get_json(force=True)
+    states = request_json['states']
+    cities = request_json['cities']
+    north = request_json['northEast']['lat']
+    east = request_json['northEast']['lon']
+    south = request_json['southWest']['lat']
+    west = request_json['southWest']['lon']
+
+    select_states = "SELECT * from select_states_intersects(%s)"
+    select_cities = "SELECT * from select_cities_intersects(%s)"
+    poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat
+    with Connection() as conn:
+        cur = conn.cursor()
+
+        if states:
+            cur.execute(select_states, (poly,))
+        elif cities:
+            cur.execute(select_cities, (poly,))
+        resp = make_response(
+            jsonify(
+                [{"type": "Feature", "properties": {"name": "Alabama", "density": random.random() * 1200},
+                  "geometry": json.loads(geom)}
+                 for _, geom in cur.fetchall()]))
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        cur.close()
     return resp
 
 
@@ -68,35 +104,29 @@ def send_temp_data():
         cur = conn.cursor()
         cur.execute(query, (poly, tid, interval))
         resp = make_response(
-            jsonify([{"lng": lon, "lat": lat, "temperature": value} for lat, lon, value in cur.fetchall()]))
-        resp.headers['Access-Control-Allow-Origin'] = '*'
+            jsonify(
+                [{"lng": lon, "lat": lat, "temperature": temperature} for lat, lon, temperature, _ in cur.fetchall()]))
         cur.close()
     return resp
 
 
-@app.route("/boundaries", methods=['POST', 'GET'])
-def send_boundaries_data():
+@app.route("/soilw", methods=['POST', 'GET'])
+def send_soil_data():
     request_json = flask_request.get_json(force=True)
-    states = request_json['states']
-    cities = request_json['cities']
     north = request_json['northEast']['lat']
     east = request_json['northEast']['lon']
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
+    tid = request_json['tid']
+    interval = request_json['interval']
 
-    select_states = "SELECT * from select_states_intersects(%s)"
-    select_cities = "SELECT * from select_cities_intersects(%s)"
+    query = "SELECT * from Polygon_Aggregator_noaa0p25(%s, %s, %s)"
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(north, west, east, south)
     with Connection() as conn:
         cur = conn.cursor()
-
-        if states:
-            cur.execute(select_states, (poly,))
-        elif cities:
-            cur.execute(select_cities, (poly,))
+        cur.execute(query, (poly, tid, interval))
         resp = make_response(
-            jsonify([{"geometry": json.loads(geom)} for _, geom in cur.fetchall()]))
-        resp.headers['Access-Control-Allow-Origin'] = '*'
+            jsonify([{"lng": lon, "lat": lat, "soilw": soilw} for lat, lon, _, soilw in cur.fetchall()]))
         cur.close()
     return resp
 
@@ -105,7 +135,6 @@ def send_boundaries_data():
 def send_wind_data():
     # TODO: replace source of wind data to db
     resp = make_response(send_from_directory('data', 'latest-wind.json'))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
@@ -113,7 +142,6 @@ def send_wind_data():
 def send_realtime_data():
     # TODO: replace source of rain fall data to db
     resp = make_response(send_from_directory('data', 'rain_fall_sample.csv'))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
@@ -148,7 +176,6 @@ def send_live_tweet():
             id_set.add(obj["id"])
             return_dict.append({"lat": center[1], "long": center[0], "id": id})
     resp = make_response(jsonify(return_dict))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
@@ -159,7 +186,6 @@ def send_tweets_data():
                  Connection().sql_execute(
                      "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat "
                      "from records r,locations l where r.id=l.id")]))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
     return resp
 
 
@@ -170,7 +196,6 @@ def send_wildfire():
         jsonify([{"long": lon, "lat": lat, "nlp": nl.predict(text)} for lon, lat, text in Connection().sql_execute(
             "select l.top_left_long, l.top_left_lat, r.text from locations l, images i, records r where l.id = i.id "
             "and r.id = l.id and i.wildfire > 40")]))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
 
     return resp
 
@@ -225,4 +250,4 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(threaded=True)

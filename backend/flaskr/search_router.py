@@ -1,6 +1,9 @@
 import json
-from flaskr.db import get_db
+import random
+
 from flask import Blueprint, make_response, jsonify, request as flask_request
+
+from flaskr.db import get_db
 
 bp = Blueprint('search', __name__, url_prefix='/search')
 
@@ -20,7 +23,7 @@ def search():
     search_state = "SELECT state_name, st_asgeojson(t.geom) from us_states t where state_name=%s"
     search_city = "SELECT city_name, st_asgeojson(t.geom) from us_cities t where city_name=%s limit 1"
 
-    conn = get_db()
+    conn = get_db().getconn()
     cur = conn.cursor()
     cur.execute(search_state, (keyword,))
     results = [json.loads(geom) for name, geom in cur.fetchall()]
@@ -29,7 +32,7 @@ def search():
         results = [json.loads(geom) for name, geom in cur.fetchall()]
     resp = make_response(jsonify(results))
     cur.close()
-
+    get_db().putconn(conn)
     return resp
 
 
@@ -38,26 +41,37 @@ def send_boundaries_data():
     request_json = flask_request.get_json(force=True)
     states = request_json['states']
     cities = request_json['cities']
+    counties = request_json['counties']
     north = request_json['northEast']['lat']
     east = request_json['northEast']['lon']
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
 
     select_states = "SELECT * from select_states_intersects(%s)"
+    select_counties = "SELECT * from select_counties_intersects(%s)"
     select_cities = "SELECT * from select_cities_intersects(%s)"
     poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat
-    conn = get_db()
-    cur = conn.cursor()
 
+    conn = get_db().getconn()
+    cur = conn.cursor()
+    result_list = list()
     if states:
         cur.execute(select_states, (poly,))
-    elif cities:
+        result_list.extend([{"type": "Feature",
+                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
+    if counties:
+        cur.execute(select_counties, (poly,))
+        result_list.extend([{"type": "Feature",
+                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
+    if cities:
         cur.execute(select_cities, (poly,))
-    resp = make_response(
-        jsonify(
-            [{"type": "Feature", "properties": {"name": "Alabama", "density": random.random() * 1200},
-              "geometry": json.loads(geom)}
-             for _, geom in cur.fetchall()]))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
+        result_list.extend([{"type": "Feature",
+                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
+    get_db().putconn(conn)
+
+    resp = make_response(jsonify(result_list))
     cur.close()
     return resp

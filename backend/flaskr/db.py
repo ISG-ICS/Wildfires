@@ -1,22 +1,22 @@
-from flask import g
+import psycopg2.pool
 import rootpath
+from flask import g
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from paths import DATABASE_CONFIG_PATH
+from utilities.ini_parser import parse
 
 
 def get_db():
-    if 'db' not in g:
-        g.db = Connection()()
-
-    return g.db
+    if 'pool' not in g:
+        g.pool = psycopg2.pool.ThreadedConnectionPool(1, 5, **parse(DATABASE_CONFIG_PATH, 'postgresql'))
+    return g.pool
 
 
 def close_db(e=None):
-    db = g.pop('db', None)
-
-    if db is not None:
-        db.close()
+    pool = g.pop('pool', None)
+    if pool is not None:
+        pool.closeall()
 
 
 def init_app(app):

@@ -190,6 +190,9 @@ class ImageClassifier(ClassifierBase):
             image = loader(image).float()
             image = Variable(image, requires_grad=True)
             image = image.unsqueeze(0)
+            # check if channel is 3
+            if image.tolist()[1] != 3:
+                return None
         except Exception as err:
             print("error", err)
             return None

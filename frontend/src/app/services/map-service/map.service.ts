@@ -55,7 +55,43 @@ export class MapService {
     }
 
 
+    stopLiveTweet(): void {
+        window.clearInterval(this.liveTweetCycle);
+    }
+
+
+
+    getRecentTweetData(): void {
+        const chartData = [];
+        const dailyCount = {};
+        const that = this;
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/recent_tweet',
+            dataType: 'text',
+        }).done(data => {
+
+            const tempData = JSON.parse(data);
+            const dataArray = [];
+            tempData.forEach(entry => {
+                const createAt = entry.create_at.split('T')[0];
+
+                if (dailyCount.hasOwnProperty(createAt)) {
+                    dailyCount[createAt]++;
+                } else {
+                    dailyCount[createAt] = 1;
+                }
+
+                const leftTop = [entry.lat, entry.long];
+                dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
+            });
+
+            this.RecentTweetLoaded.emit({livetweetData: dataArray});
+        });
+    }
+
     getTemperatureData(): Observable<HeatMap[]> {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');
     }
+
 }

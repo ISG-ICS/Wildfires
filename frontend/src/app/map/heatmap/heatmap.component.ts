@@ -114,6 +114,10 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
 
+        this.clickOnMap();
+
+        this.mapService.getRecentTweetData();
+        this.mapService.RecentTweetLoaded.subscribe(this.liveTweetLoadHandler);
     }
 
     getBoundary = () => {
@@ -240,6 +244,69 @@ export class HeatmapComponent implements OnInit {
         }
     }
 
+    clickOnMap = () => {
+        const that = this;
+        this.map.on('click', onMapClick);
+        let marker;
+        let circle;
+
+        function onMapClick(e) {
+            const clickIcon = L.icon({
+                iconUrl: 'assets/image/pin6.gif',
+                iconSize: [26, 30],
+            });
+            if (marker) { // check
+                that.map.removeLayer(marker); // remove
+            }
+            marker = L.marker(e.latlng, {draggable: false, icon: clickIcon}).addTo(that.map);
+
+            if (circle) { // check
+                that.map.removeLayer(circle); // remove
+            }
+            circle = L.circle(e.latlng, {
+                color: 'white',
+                fillColor: 'white',
+                fillOpacity: 0.35,
+                radius: 40000
+            }).addTo(that.map);
+
+            marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
+            marker.getPopup().on('remove', function () {
+                that.map.removeLayer(marker);
+                that.map.removeLayer(circle);
+            });
+
+            /*
+            marker.on('dragend', function(event){
+            var marker = event.target;
+            var position = marker.getLatLng();
+            alert(position);
+            marker.setLatLng([position],{draggable:'true'}).bindPopup(position).update();
+           });*/
+        }
+    }
+
+    liveTweetLoadHandler = (data) => {
+        console.log('livetweetData')
+        console.log(data.livetweetData)
+
+        const fireEventList = [];
+
+        for (const ev of  data.livetweetData.slice(0, 200)) {
+            const point = [ev[0], ev[1]];
+            const size = 10;
+            const fireIcon = L.icon({
+                iconUrl: 'assets/image/perfectBird.gif',
+                iconSize: [size, size],
+            });
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am a tweet about fire');
+            fireEventList.push(marker);
+
+        }
+        const fireEvents = L.layerGroup(fireEventList);
+        this.mainControl.addOverlay(fireEvents, 'Recent tweet (within 2 days)');
+
+    }
 
     rangeSelectHandler = (event) => {
         const inRange = (min: number, max: number, target: number) => {

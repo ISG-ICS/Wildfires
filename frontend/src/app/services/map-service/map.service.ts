@@ -15,6 +15,7 @@ export class MapService {
     mapLoaded = new EventEmitter();
     windDataLoaded = new EventEmitter();
     searchDataLoaded = new EventEmitter();
+    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
 
     constructor() {
@@ -135,17 +136,37 @@ export class MapService {
         });
     }
 
-    getBoundaryData(userInput): void {
+    getSearch(userInput): void {
         const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/search',
-            data: {keyword: userInput}
+            data: {keyword: userInput},
         }).done((data) => {
             console.log('data', data);
             this.searchDataLoaded.emit({data});
         });
     }
+
+    getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
+        const that = this;
+        $.ajax({
+            type: 'POST',
+            url: 'http://127.0.0.1:5000/search/boundaries',
+            data: JSON.stringify({
+                states: stateLevel,
+                cities: cityLevel,
+                counties: countyLevel,
+                northEast: northEastBoundaries,
+                southWest: southWestBoundaries,
+            })
+        }).done((data) => {
+
+            let dict = {"type": "FeatureCollection", "features": data};
+            this.boundaryDataLoaded.emit(dict);
+        });
+    }
+
 
     stopliveTweet(): void {
         window.clearInterval(this.liveTweetCycle);

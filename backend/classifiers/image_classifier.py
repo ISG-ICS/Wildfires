@@ -1,6 +1,5 @@
 import os
 import wget
-import urllib
 from urllib.error import HTTPError
 import torch
 import torchvision

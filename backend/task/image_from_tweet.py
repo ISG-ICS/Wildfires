@@ -13,7 +13,7 @@ class ImageFromTweet(Runnable):
         self.extractor = TweetMediaExtractor()
         self.dumper = URLDumper()
 
-    def run(self, batch_num=100):
+    def run(self, batch_num: int = 100):
         self.dumper.insert({id: self.extractor.extract(text) for id, text in
                             Connection().sql_execute(
                                 f"select id, text from records r WHERE NOT EXISTS (select distinct id from images i where i.id = r.id) limit {batch_num}")})

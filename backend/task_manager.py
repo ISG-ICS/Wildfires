@@ -1,6 +1,6 @@
+import inspect
 import threading
 import time
-import inspect
 
 import rootpath
 
@@ -184,7 +184,7 @@ class TaskManager:
 
                 args = []
 
-                #************#
+                # ************#
                 arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
                 arg_types = inspect.getfullargspec(self.task_options[task_prompt][1]).annotations
 
@@ -194,10 +194,14 @@ class TaskManager:
                     for arg in arguments:
                         if arg == 'self':
                             continue
-                        temp = input(arg + ": ")
-                        tem = arg_types[arg](temp)
+                        temp = input(arg + "(" + str(arg_types[arg].__name__) + "): ")
+                        if arg_types[arg].__name__ == 'list':
+                            tem = eval(temp)
+                        else:
+                            tem = arg_types[arg](temp)
+                        print(tem)
                         args_list.append(tem)
-                #************#
+                # ************#
 
                 self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
                 # Increment number of user specified task

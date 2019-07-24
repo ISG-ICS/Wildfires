@@ -3,9 +3,10 @@ import time
 
 import rootpath
 
-# don't delete these imports because they're called implicitly
-
 rootpath.append()
+
+# don't delete these imports because they're called implicitly
+exec("from backend.task import *")
 
 
 class TaskManager:
@@ -24,9 +25,10 @@ class TaskManager:
     NOTE: Locks,Events,Semaphores etc. have not been taken into consideration
     and may cause unexpected behaviour if used!
      """
+    exec("from backend.task.runnable import Runnable")
     running_threads = []
     task_options = {}
-    # use 'Runnable' as father class' name and get all the subclasses' names
+    # use 'Runnable' as parent class' name and get all the subclasses' names
     for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
         task_options[i + 1] = [sub_cls.__name__, sub_cls().run, 1]
     task_option_id = 1

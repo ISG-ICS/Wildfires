@@ -3,6 +3,9 @@ import os
 # root path of the project
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# directory for all runnable tasks
+TASK_DIR = os.path.join(ROOT_DIR, 'backend', 'task')
+
 # dir for all configs
 CONFIGS_DIR = os.path.join(ROOT_DIR, 'configs')
 

@@ -1,6 +1,5 @@
 import {Component, OnInit} from '@angular/core';
 import {MapService} from '../../../services/map-service/map.service';
-import 'nouislider/distribute/nouislider.css';
 
 
 @Component({

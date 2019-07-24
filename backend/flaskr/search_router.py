@@ -3,7 +3,7 @@ import random
 
 from flask import Blueprint, make_response, jsonify, request as flask_request
 
-from flaskr.db import get_db
+from db import get_db
 
 bp = Blueprint('search', __name__, url_prefix='/search')
 
@@ -58,17 +58,17 @@ def send_boundaries_data():
     if states:
         cur.execute(select_states, (poly,))
         result_list.extend([{"type": "Feature",
-                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "properties": {"name": _, "density": random.random() * 1200},
                              "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
     if counties:
         cur.execute(select_counties, (poly,))
         result_list.extend([{"type": "Feature",
-                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "properties": {"name": _, "density": random.random() * 1200},
                              "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
     if cities:
         cur.execute(select_cities, (poly,))
         result_list.extend([{"type": "Feature",
-                             "properties": {"name": "Alabama", "density": random.random() * 1200},
+                             "properties": {"name": _, "density": random.random() * 1200},
                              "geometry": json.loads(geom)} for _, geom in cur.fetchall()])
     get_db().putconn(conn)
 

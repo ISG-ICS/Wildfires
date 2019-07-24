@@ -1,6 +1,5 @@
 #wrapper {
-    margin: auto;
-    margin-top: 20px;
+    margin: 20px auto auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -112,7 +111,7 @@
     color: inherit;
     font: inherit;
     margin: 0 5px;
-    padding: 0px 5px;
+    padding: 0 5px;
     border-bottom: 2px solid transparent;
     transition: all 0.2s ease-in-out;
 }
@@ -143,7 +142,7 @@
 .tempselect {
     -webkit-appearance: none;
     background: transparent;
-    margin: 5.5px 0;
+    margin: 6px 0;
     width: 100%;
 }
 
@@ -174,9 +173,7 @@
 }
 
 .tempselect::-webkit-slider-runnable-track {
-    cursor: default;
     height: 10px;
-    transition: all .2s ease;
     width: 100%;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
@@ -189,7 +186,7 @@
 .tempselect::-webkit-slider-thumb {
     box-shadow: 4px 4px 4px transparent, 0 0 4px rgba(13, 13, 13, 0);
     background: #3dcadf;
-    border: 0px solid #3d3d44;
+    border: 0 solid #3d3d44;
     border-radius: 12px;
     cursor: pointer;
     height: 11px;
@@ -200,9 +197,6 @@
 
 .tempselect::-moz-range-track {
     box-shadow: 1px 1px 1px transparent, 0 0 1px rgba(13, 13, 13, 0);
-    cursor: default;
-    height: 10px;
-    transition: all .2s ease;
     width: 100%;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
@@ -215,7 +209,7 @@
 .tempselect::-moz-range-thumb {
     box-shadow: 4px 4px 4px transparent, 0 0 4px rgba(13, 13, 13, 0);
     background: #3dcadf;
-    border: 0px solid #3d3d44;
+    border: 0 solid #3d3d44;
     border-radius: 12px;
     cursor: pointer;
     height: 7px;
@@ -223,9 +217,7 @@
 }
 
 .tempselect::-ms-track {
-    cursor: default;
     height: 10px;
-    transition: all .2s ease;
     width: 100%;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
@@ -252,12 +244,12 @@
 .tempselect::-ms-thumb {
     box-shadow: 4px 4px 4px transparent, 0 0 4px rgba(13, 13, 13, 0);
     background: #3dcadf;
-    border: 0px solid #3d3d44;
+    border: 0 solid #3d3d44;
     border-radius: 12px;
     cursor: pointer;
     height: 7px;
     width: 14px;
-    margin-top: 2.5px;
+    margin-top: 3px;
 }
 
 .tempselect:disabled::-webkit-slider-thumb {

@@ -3,14 +3,14 @@
     color: white;
 }
 
-#sidebar p{
+#sidebar p {
     color: #e25822;
 }
 
-#sidebar{
+#sidebar {
     width: 200px;
     height: 600px;
-    background: rgba(255,255,255,0.7);
+    background: rgba(255, 255, 255, 0.7);
     top: 10%;
     position: absolute;
     z-index: 1000;

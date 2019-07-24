@@ -9,18 +9,17 @@ import {MapService} from '../../../services/map-service/map.service';
 })
 export class TemperatureRangeSliderComponent implements OnInit {
     units = {
-        Celcius: '°C',
+        Celsius: '°C',
         Fahrenheit: '°F'
     };
 
     config = {
         minTemp: -6,
         maxTemp: 35,
-        unit: 'Celcius'
+        unit: 'Celsius'
     };
 
     ngOnInit() {
-        const slider = document.getElementById('slider');
     }
 
     constructor(private mapService: MapService) {
@@ -28,7 +27,6 @@ export class TemperatureRangeSliderComponent implements OnInit {
     }
 
     setTemperature = (newValue) => {
-        //
         const temperature = document.getElementById('temperature');
         temperature.style.height = (newValue - this.config.minTemp) / (this.config.maxTemp - this.config.minTemp) * 100 + '%';
         temperature.dataset.value = newValue + this.units[this.config.unit];

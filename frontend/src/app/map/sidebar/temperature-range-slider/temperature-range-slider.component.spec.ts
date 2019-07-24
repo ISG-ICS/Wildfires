@@ -9,8 +9,7 @@ describe('TemperatureRangeSliderComponent', () => {
     beforeEach(async(() => {
         TestBed.configureTestingModule({
             declarations: [TemperatureRangeSliderComponent]
-        })
-            .compileComponents();
+        }).compileComponents();
     }));
 
     beforeEach(() => {

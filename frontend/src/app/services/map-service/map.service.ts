@@ -21,7 +21,8 @@ export class MapService {
     constructor() {
     }
 
-    processCSVData(allText, limit, delim = ',') {
+    // TODO: to be removed
+    static processCSVData(allText, limit, delim = ',') {
         const allTextLines = allText.split(/\r\n|\n/);
         const matrix = [];
         for (let i = 1; i < allTextLines.length && i <= limit; i++) {
@@ -39,10 +40,8 @@ export class MapService {
     }
 
     getTweetsData(): void {
-
         const chartData = [];
         const dailyCount = {};
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/tweets',
@@ -67,7 +66,6 @@ export class MapService {
             // timebar
             Object.keys(dailyCount).sort().forEach(key => {
                 chartData.push([new Date(key).getTime(), dailyCount[key]]);
-
             });
 
             this.tweetDataLoaded.emit({tweetData: dataArray});
@@ -76,7 +74,6 @@ export class MapService {
     }
 
     getWildfirePredictionData(): void {
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/wildfire_prediction',
@@ -103,22 +100,17 @@ export class MapService {
                 that.liveTweetLoaded.emit({data});
             });
         }, 20000);
-
     }
 
     stopliveTweet(): void {
         window.clearInterval(this.liveTweetCycle);
     }
 
-
     getTemperatureData(): void {
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/recent-temp',
             dataType: 'text',
         }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
     }
-
-
 }

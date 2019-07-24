@@ -9,8 +9,7 @@ describe('HeatmapComponent', () => {
     beforeEach(async(() => {
         TestBed.configureTestingModule({
             declarations: [HeatmapComponent]
-        })
-            .compileComponents();
+        }).compileComponents();
     }));
 
     beforeEach(() => {

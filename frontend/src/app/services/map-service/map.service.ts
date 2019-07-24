@@ -96,7 +96,7 @@ export class MapService {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');
     }
 
-    ClickPointData(lat, lng, radius): void {
+    getClickData(lat, lng, radius): void {
         $.ajax({
             type: 'POST',
             url: 'http://127.0.0.1:5000/data/aggregation',

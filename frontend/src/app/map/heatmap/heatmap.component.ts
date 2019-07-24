@@ -278,7 +278,7 @@ export class HeatmapComponent implements OnInit {
         that.map.removeLayer(circle);
       });
 
-        that.mapService.ClickPointData(e.latlng.lat, e.latlng.lng, 40000);
+        that.mapService.getClickData(e.latlng.lat, e.latlng.lng, 40000);
 
     }
   }

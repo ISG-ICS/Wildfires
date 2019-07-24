@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "disable_existing_loggers": 0,
+  "handlers": {
+    "actions": {
+      "level": "DEBUG",
+      "class": "logging.FileHandler",
+      "filename": "./example.log",
+      "formatter": "beautiful"
+    },
+    "console": {
+      "level": "WARNING",
+      "class": "logging.StreamHandler",
+      "formatter": "simple"
+    },
+    "null": {
+      "class": "logging.NullHandler"
+    },
+    "errors": {
+      "class": "logging.FileHandler",
+      "filename": "./errors.log",
+      "level": "ERROR",
+      "formatter": "detailed"
+    }
+  },
+  "formatters": {
+    "beautiful": {
+      "format": "%(asctime)s - %(threadName)s - %(name)s - %(levelname)-8s - %(message)s"
+    },
+    "simple": {
+      "format": "%(levelname)s %(message)s"
+    },
+    "detailed": {
+      "format": "%(asctime)s %(name)-15s %(levelname)-8s %(processName)-10s %(message)s"
+    }
+  },
+  "loggers": {
+    "TaskManager": {
+      "handlers": [
+        "actions",
+        "console",
+        "errors"
+      ],
+      "level": "DEBUG",
+      "propagate": 1
+    },
+    "YourFault": {
+      "handlers": [
+        "console"
+      ],
+      "level": "ERROR"
+    }
+  }
+}

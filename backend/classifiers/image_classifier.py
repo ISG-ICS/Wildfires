@@ -1,5 +1,9 @@
 import os
+import wget
+import urllib
+from urllib.error import HTTPError
 import torch
+import torchvision
 from torch.autograd import Variable
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
@@ -20,17 +24,37 @@ import paths
 
 
 class ImageClassifier(ClassifierBase):
-    N_CHANNELS = 3  # number of input channels
-    N_CLASSES = 2  # number of classes of the classification problem
-    DROPSIZE = 512  # drop size of the image transformation
     VGG_MODEL = "vgg"
     RESNET_MODEL = "resnet"
+
+    N_CHANNELS = 3  # number of input channels (for VGG)
+    N_CLASSES = 2  # number of classes of the classification problem (for VGG)
+    DROPSIZE = 512  # drop size of the image transformation (for VGG)
+
+    # parameters use for train process
+    RESNET_MODEL_TYPE = torchvision.models.resnet.ResNet
+    DATALOADER_TYPE = torch.utils.data.dataloader.DataLoader
+    TRAIN_MODE = 0
+    VAL_MODE = 1
+    LEARNING_RATE = 1e-4
+    NORMALIZE_PARAM_MEAN_0 = 0.485
+    NORMALIZE_PARAM_MEAN_1 = 0.456
+    NORMALIZE_PARAM_MEAN_2 = 0.406
+    NORMALIZE_PARAM_STD_0 = 0.229
+    NORMALIZE_PARAM_STD_1 = 0.224
+    NORMALIZE_PARAM_STD_2 = 0.225
+    CROP_VALUE = 224
+    RESIZE_VALUE = 256
+    EPOCHS = 1
+    BATCH_SIZE = 32
+    NUM_WORKERS = 4
+    RGB_CHANNELS = 3
 
     def __init__(self, model_type: str):
         self.model_type = model_type
 
     def set_model(self, model: str = None):
-        '''load trained model'''
+        """load trained model"""
 
         if self.model_type == ImageClassifier.VGG_MODEL:
             self.model = CNN(ImageClassifier.N_CHANNELS, ImageClassifier.N_CLASSES)
@@ -46,8 +70,8 @@ class ImageClassifier(ClassifierBase):
             else:
                 self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_RESNET_PATH, map_location='cpu'))
 
-    def predict(self, url: str):
-        '''predict classification result of the image from url'''
+    def predict(self, url: str) -> tuple:
+        """predict classification result of the image from url"""
 
         print("url: " + url)
         # download image from url
@@ -60,8 +84,10 @@ class ImageClassifier(ClassifierBase):
             image = self.resnet_transform_image(image_path)
         # if fail to open image, then image is None type, defaultly output the image as "not wildfire"
         if image is None:
-            return [1, -1]
-
+            if image_path is not None:
+                # delete the downloaded image
+                os.remove(image_path)
+            return 1, 0
         # predict classification result
         outputs = self.model(image)
 
@@ -71,20 +97,18 @@ class ImageClassifier(ClassifierBase):
         # use softmax layer to get percentage prediction result
         percentages = F.softmax(outputs, dim=1)
 
-        # convert the percentage result from tensor type to list type
+        # convert the percentage result from tensor type to list type, then return tuple
         if self.model_type == ImageClassifier.VGG_MODEL:
-            return percentages.tolist()[0]
+            return tuple(percentages.tolist()[0])
         elif self.model_type == ImageClassifier.RESNET_MODEL:
-            return self.prettify(torch.topk(percentages, 2))
+            return tuple(self.prettify(torch.topk(percentages, 2)))
 
-    def train(self, train_path, val_path, num_epochs=1):
-        """ 1. train model
-            2. check accuracy
-            3. save the model locally """
-        train_loader = self.load_train(train_path)
+    def train(self, train_path: str, val_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
+        """train model"""
+        train_loader = ImageClassifier.load_dataloader(train_path, ImageClassifier.TRAIN_MODE)
         model = models.resnet50(pretrained=True, progress=True)
         loss_fn = nn.CrossEntropyLoss()
-        optimizer = optim.RMSprop(model.parameters(), lr=1e-4)
+        optimizer = optim.RMSprop(model.parameters(), lr=ImageClassifier.LEARNING_RATE)
 
         for epoch in range(num_epochs):
             print('Starting epoch %d / %d' % (epoch + 1, num_epochs))
@@ -94,53 +118,50 @@ class ImageClassifier(ClassifierBase):
                 y_var = Variable(y.long())
 
                 scores = model(x_var)
-
                 loss = loss_fn(scores, y_var)
-                # if (t + 1) % 100 == 0:
                 print('t = %d, loss = %.4f' % (t + 1, loss.item()))
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-        # save model into defalt path
-        torch.save(model.state_dict(), paths.MODELS_SAVE_PATH + "ResNet50.ckpt")
-        self.check_accuracy(model, val_path)
+        return model
 
-    def load_train(self, traindir):
-        """ pre-process training data as dataloader """
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+    @staticmethod
+    def load_dataloader(dataset_path: str, process_mode: int) -> DATALOADER_TYPE:
+        """pre-process dataset as dataloader"""
+        normalize = transforms.Normalize(mean=[ImageClassifier.NORMALIZE_PARAM_MEAN_0,
+                                               ImageClassifier.NORMALIZE_PARAM_MEAN_1,
+                                               ImageClassifier.NORMALIZE_PARAM_MEAN_2],
+                                         std=[ImageClassifier.NORMALIZE_PARAM_STD_0,
+                                              ImageClassifier.NORMALIZE_PARAM_STD_1,
+                                              ImageClassifier.NORMALIZE_PARAM_STD_2])
 
-        train_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(traindir, transforms.Compose([
-                transforms.RandomResizedCrop(224),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=32, shuffle=True,
-            num_workers=4, pin_memory=True)
-        return train_loader
+        if process_mode == ImageClassifier.TRAIN_MODE:
+            dataloader = torch.utils.data.DataLoader(
+                datasets.ImageFolder(dataset_path, transforms.Compose([
+                    transforms.RandomResizedCrop(ImageClassifier.CROP_VALUE),
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    normalize,
+                ])),
+                batch_size=ImageClassifier.BATCH_SIZE, shuffle=True,
+                num_workers=ImageClassifier.NUM_WORKERS, pin_memory=True)
 
-    def load_val(self, val_path):
-        """ pre-process testing data as dataloader """
-        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+        elif process_mode == ImageClassifier.VAL_MODE:
+            dataloader = torch.utils.data.DataLoader(
+                datasets.ImageFolder(dataset_path, transforms.Compose([
+                    transforms.Resize(ImageClassifier.RESIZE_VALUE),
+                    transforms.CenterCrop(ImageClassifier.CROP_VALUE),
+                    transforms.ToTensor(),
+                    normalize,
+                ])),
+                batch_size=ImageClassifier.BATCH_SIZE, shuffle=False,
+                num_workers=ImageClassifier.NUM_WORKERS, pin_memory=True)
 
-        val_loader = torch.utils.data.DataLoader(
-            datasets.ImageFolder(val_path, transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
-                transforms.ToTensor(),
-                normalize,
-            ])),
-            batch_size=32, shuffle=False,
-            num_workers=4, pin_memory=True)
-        return val_loader
+        return dataloader
 
-    def check_accuracy(self, model, val_path):
-        """ use test data to print out accuracy """
-        loader = self.load_val(val_path)
+    def check_accuracy(self, model: RESNET_MODEL_TYPE, val_path: str):
+        """use test data to print out accuracy"""
+        loader = self.load_dataloader(val_path, ImageClassifier.VAL_MODE)
         num_correct = 0
         num_samples = 0
         model.eval()  # Put the model in test mode (the opposite of model.train(), essentially)
@@ -153,37 +174,58 @@ class ImageClassifier(ClassifierBase):
             num_samples += preds.size(0)
         acc = float(num_correct) / num_samples
         print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
-        return acc
 
-    def download_image(self, url):
-        '''download image from url'''
+    def save_model(self, model: RESNET_MODEL_TYPE, modelname: str):
+        """save the model locally"""
+        torch.save(model.state_dict(), paths.MODELS_SAVE_PATH + modelname)
+
+    def download_image(self, url: str) -> str:
+        """download image from url"""
         if not os.path.exists(paths.TWEET_IMAGES_DIR):
             os.makedirs(paths.TWEET_IMAGES_DIR)
         download_path = paths.TWEET_IMAGES_DIR + "/current.jpg"
-        os.system(f"curl {url} --output {download_path}")
+        try:
+            wget.download(url=url, out=download_path)
+        except HTTPError:
+            print("HTTP Error 404: Website url not found.")
+            return None
+        except Exception as err:
+            print(f"unexpected err {err}")
+            return None
         return download_path
 
-    def vgg_transform_image(self, image_path):
-        '''Using VGG model, image transformation to specific size'''
+    def vgg_transform_image(self, image_path: str):
+        """under VGG model, image transformation to specific size"""
+        if image_path is None:
+            return None
         trans = transforms.Compose(
             [
                 transforms.CenterCrop(ImageClassifier.DROPSIZE),
                 transforms.ToTensor(),
-                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+                transforms.Normalize([ImageClassifier.NORMALIZE_PARAM_MEAN_0,
+                                      ImageClassifier.NORMALIZE_PARAM_MEAN_1,
+                                      ImageClassifier.NORMALIZE_PARAM_MEAN_2],
+                                     [ImageClassifier.NORMALIZE_PARAM_STD_0,
+                                      ImageClassifier.NORMALIZE_PARAM_STD_1,
+                                      ImageClassifier.NORMALIZE_PARAM_STD_2])
 
             ])
         try:
             img = Image.open(image_path)
             transformed_img = trans(img)
-            transformed_img = transformed_img.view(1, 3, ImageClassifier.DROPSIZE, ImageClassifier.DROPSIZE)
+            transformed_img = transformed_img.view(1, ImageClassifier.RGB_CHANNELS, ImageClassifier.DROPSIZE,
+                                                   ImageClassifier.DROPSIZE)
+        except RuntimeError as err:
+            print("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
+            return None
         except Exception as err:
-            print("error", err)
+            print(f"unexpected err {err}")
             return None
         return transformed_img
 
-    def resnet_transform_image(self, image_path):
-        '''Using RESNET model, image transformation to specific size'''
-        imsize = 256
+    def resnet_transform_image(self, image_path: str):
+        """under RESNET model, image transformation to specific size"""
+        imsize = ImageClassifier.RESIZE_VALUE
         loader = transforms.Compose([transforms.Resize(imsize), transforms.ToTensor()])
         try:
             image = Image.open(image_path)
@@ -191,14 +233,17 @@ class ImageClassifier(ClassifierBase):
             image = Variable(image, requires_grad=True)
             image = image.unsqueeze(0)
             # check if channel is 3
-            if image.shape[1] != 3:
+            if image.shape[1] != ImageClassifier.RGB_CHANNELS:
                 return None
+        except RuntimeError as err:
+            print("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
+            return None
         except Exception as err:
-            print("error", err)
+            print(f"unexpected err {err}")
             return None
         return image.cpu()
 
-    def prettify(self, tensor_topk):
+    def prettify(self, tensor_topk) -> list:
         """transfer tensor object into list of confidence level"""
         result = []
         for i in range(tensor_topk.n_fields):
@@ -207,12 +252,21 @@ class ImageClassifier(ClassifierBase):
 
 
 if __name__ == '__main__':
-    image_classifier = ImageClassifier("resnet")
+    image_classifier = ImageClassifier(ImageClassifier.VGG_MODEL)
     image_classifier.set_model()
     # test case
-    prediction_result = image_classifier.predict('https://pbs.twimg.com/media/CxT4tldUkAAN68b.jpg')
+    prediction_result = image_classifier.predict('https://pbs.twimg.com/media/CzRw4VgUAAA15kZ.jpg')
     print(prediction_result)
 
-    # training process(independent), parameters are path of train dataset and validation dataset
-    image_classifier.train("/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/train",
-                           "/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/val")
+    # train model, parameters are path of train dataset and validation dataset
+    train_path = "/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/train"
+    val_path = "/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/val"
+    model = image_classifier.train(train_path, val_path)
+
+    # save the model locally
+    image_classifier.save_model(model, modelname="ResNet50.ckpt")
+
+    # check and print accuracy
+    image_classifier.check_accuracy(model, val_path)
+
+

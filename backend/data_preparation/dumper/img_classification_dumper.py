@@ -1,4 +1,4 @@
-from typing import List
+from typing import Tuple
 
 import rootpath
 
@@ -10,7 +10,7 @@ from backend.data_preparation.connection import Connection
 
 class ImgClassificationDumper(DumperBase):
 
-    def insert(self, model_type: str, image_url: str, data: List[float]):
+    def insert(self, model_type: str, image_url: str, data: Tuple[float]):
         """
         data: image prediction result -- probability of being wildfire and not wildfire
         insert image prediction result into images table
@@ -32,6 +32,8 @@ class ImgClassificationDumper(DumperBase):
 
             except Exception as err:
                 print("error", err)
+        else:
+            print("Insertion fail. Please specify the model type to be vgg or resnet.")
 
 
 if __name__ == '__main__':

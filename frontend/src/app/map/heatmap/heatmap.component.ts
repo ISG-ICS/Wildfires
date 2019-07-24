@@ -116,9 +116,11 @@ export class HeatmapComponent implements OnInit {
 
         this.clickOnMap();
 
-        this.mapService.getRecentTweetData();
-        this.mapService.RecentTweetLoaded.subscribe(this.liveTweetLoadHandler);
-    }
+    this.mapService.getRecentTweetData();
+    this.mapService.RecentTweetLoaded.subscribe(this.liveTweetLoadHandler);
+
+      this.mapService.ClickPointLoaded.subscribe(this.ClickPointHandler);
+  }
 
     getBoundary = () => {
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
@@ -270,21 +272,21 @@ export class HeatmapComponent implements OnInit {
                 radius: 40000
             }).addTo(that.map);
 
-            marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
-            marker.getPopup().on('remove', function () {
-                that.map.removeLayer(marker);
-                that.map.removeLayer(circle);
-            });
+      marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
+        marker.getPopup().on('remove', function () {
+        that.map.removeLayer(marker);
+        that.map.removeLayer(circle);
+      });
 
-            /*
-            marker.on('dragend', function(event){
-            var marker = event.target;
-            var position = marker.getLatLng();
-            alert(position);
-            marker.setLatLng([position],{draggable:'true'}).bindPopup(position).update();
-           });*/
-        }
+        that.mapService.ClickPointData(e.latlng.lat, e.latlng.lng, 40000);
+
     }
+  }
+
+    ClickPointHandler = (data) => {
+
+    }
+
 
     liveTweetLoadHandler = (data) => {
         console.log('livetweetData')

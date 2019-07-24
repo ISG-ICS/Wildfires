@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_cors import CORS
-import db
 import search_router
 import data_router
 
@@ -20,7 +19,6 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
-    db.init_app(app)
     app.register_blueprint(search_router.bp)
     app.register_blueprint(data_router.bp)
 
@@ -28,5 +26,5 @@ def create_app(test_config=None):
 
 
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True)
+    server_app = create_app()
+    server_app.run(debug=True)

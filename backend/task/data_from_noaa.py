@@ -5,9 +5,8 @@ from datetime import datetime, timedelta, timezone
 
 import rootpath
 
-from paths import GRIB2_DATA_DIR
-
 rootpath.append()
+from paths import GRIB2_DATA_DIR
 from backend.task.runnable import Runnable
 from backend.data_preparation.crawler.noaa_crawler import NOAACrawler
 from backend.data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum

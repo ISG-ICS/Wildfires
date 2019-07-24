@@ -1,8 +1,34 @@
 from flask import Blueprint, make_response, jsonify, send_from_directory, request as flask_request
 
-from flaskr.db import get_db
+from db import get_db
 
 bp = Blueprint('data', __name__, url_prefix='/data')
+
+
+@bp.route("/aggregation", methods=['POST', 'GET'])
+def aggregation():
+    request_json = flask_request.get_json(force=True)
+    lat = float(request_json['lat'])
+    lon = float(request_json['lon'])
+    radius = float(request_json['radius'])
+
+    query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s)'
+    query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s)'
+    query3_mois = 'SELECT * from aggregate_moisture(%s, %s, %s)'
+    conn = get_db().getconn()
+    cur = conn.cursor()
+
+    cur.execute(query_tweet, (lon, lat, radius))
+    tweet = cur.fetchone()
+    cur.execute(query2_temp, (lon, lat, radius))
+    temp = cur.fetchone()
+    cur.execute(query3_mois, (lon, lat, radius))
+    mois = cur.fetchone()
+    resp = make_response(jsonify({'tmp': temp[0], 'soilw': mois[0], 'cnt_tweet': tweet[0]}))
+
+    cur.close()
+    get_db().putconn(conn)
+    return resp
 
 
 @bp.route("/temp", methods=['POST', 'GET'])

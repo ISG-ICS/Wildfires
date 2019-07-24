@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
-from . import db
-from . import search_router
-from . import data_router
+import db
+import search_router
+import data_router
 
 
 def create_app(test_config=None):
@@ -25,3 +25,8 @@ def create_app(test_config=None):
     app.register_blueprint(data_router.bp)
 
     return app
+
+
+if __name__ == '__main__':
+    app = create_app()
+    app.run(debug=True)

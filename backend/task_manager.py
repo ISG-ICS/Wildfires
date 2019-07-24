@@ -4,6 +4,11 @@ import time
 
 import rootpath
 
+import json
+import logging.config
+from paths import LOG_CONFIG_PATH
+
+
 rootpath.append()
 
 # don't delete these imports because they're called implicitly
@@ -33,6 +38,13 @@ class TaskManager:
     for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
         task_options[i + 1] = [sub_cls.__name__, sub_cls().run, 1]
     task_option_id = 1
+
+    @staticmethod
+    def initialize_logger(name):
+        with open(LOG_CONFIG_PATH, 'r') as file:
+            config = json.load(file)
+            logging.config.dictConfig(config)
+        return logging.getLogger(name)
 
     @classmethod
     def add_task_option(cls, task_name, task_func, task_number):
@@ -76,12 +88,14 @@ class TaskManager:
         :param args: argument for the task
         :return: None
         """
+        logger = TaskManager.initialize_logger('TaskManager')
 
         if args is None:
             args = []
         target_func = cls.task_options[task_option_id][1]
         th_name = cls.task_options[task_option_id][0] + str(cls.task_options[task_option_id][2])
         th = threading.Thread(target=cls._thread_runner_, args=(target_func, th_name, interval, args))
+        logger.info('hahaha')
         th.setDaemon(True)
         cls.running_threads.append([th, th_name, loop])
         th.start()
@@ -215,5 +229,10 @@ class TaskManager:
 
 
 if __name__ == "__main__":
-    task_manager = TaskManager()
-    task_manager.main_loop()
+    logger = TaskManager.initialize_logger('YourFault')
+    try:
+        task_manager = TaskManager()
+        task_manager.main_loop()
+    except:
+        logger.error('Invalid Input Cause Error')
+

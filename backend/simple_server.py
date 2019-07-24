@@ -1,12 +1,6 @@
-import json
 import pickle
-import re
-import string
-from typing import Dict
 
-import requests
 import rootpath
-import twitter
 
 rootpath.append()
 
@@ -20,7 +14,7 @@ import re
 import string
 import matplotlib.path as mplPath
 import numpy as np
-from typing import List,Dict
+from typing import List, Dict
 import os
 from utilities.ini_parser import parse
 
@@ -218,6 +212,7 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
     if not isinstance(pnts, list):
         raise TypeError("Input should be list as : [dict, dict, ...]")
 
+    # TODO: move this bound file to database.
     with open(os.path.join(BOUNDARY_PATH, "USbound.json")) as json_file:
         data = json.load(json_file)
         main_land_poly = mplPath.Path(np.array(data["mainland"][::5]))
@@ -227,7 +222,6 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
                     or main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=-accuracy):
                 result.append(pnt)
         return result
-
 
 
 if __name__ == "__main__":

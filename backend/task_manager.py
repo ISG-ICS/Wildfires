@@ -133,6 +133,27 @@ class TaskManager:
                 time.sleep(interval)
             target_func(*args)
 
+    def pass_arguments(self, task_prompt):
+        """get function run()'s arguments and let user to enter the arguments, then return the argument list args"""
+        args = []
+        arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
+        arg_types = inspect.getfullargspec(self.task_options[task_prompt][1]).annotations
+
+        if arg_types != {}:
+            for arg in arguments:
+                if arg == 'self':
+                    continue
+                # argument value passed by user
+                passed_arg = input(arg + "(" + str(arg_types[arg].__name__) + "): ")
+                # convert argument's type as required
+                if arg_types[arg].__name__ == 'list':
+                    converted_arg = eval(passed_arg)
+                else:
+                    converted_arg = arg_types[arg](passed_arg)
+
+                args.append(converted_arg)
+        return args
+
     def main_loop(self):
         task_loop = False
 
@@ -182,26 +203,7 @@ class TaskManager:
             try:
                 interval_prompt = int(interval_prompt)
 
-                args = []
-
-                # ************#
-                arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
-                arg_types = inspect.getfullargspec(self.task_options[task_prompt][1]).annotations
-
-                args_list = []
-
-                if arg_types != {}:
-                    for arg in arguments:
-                        if arg == 'self':
-                            continue
-                        temp = input(arg + "(" + str(arg_types[arg].__name__) + "): ")
-                        if arg_types[arg].__name__ == 'list':
-                            tem = eval(temp)
-                        else:
-                            tem = arg_types[arg](temp)
-                        print(tem)
-                        args_list.append(tem)
-                # ************#
+                args = self.pass_arguments(task_prompt)
 
                 self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
                 # Increment number of user specified task

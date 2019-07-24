@@ -1,21 +1,26 @@
-import json
 import pickle
-import re
-import string
-from typing import Dict
 
-import requests
 import rootpath
-import twitter
 
 rootpath.append()
+
 from backend.data_preparation.connection import Connection
 from backend.classifiers.nltktest import NLTKTest
+
+import twitter
+import json
+import requests
+import re
+import string
+import matplotlib.path as mplPath
+import numpy as np
+from typing import List, Dict
+import os
 from utilities.ini_parser import parse
 
 from flask import Flask, send_from_directory, make_response, jsonify, request as flask_request
 
-from paths import NLTK_MODEL_PATH, TWITTER_API_CONFIG_PATH
+from paths import NLTK_MODEL_PATH, BOUNDARY_PATH, TWITTER_API_CONFIG_PATH
 
 app = Flask(__name__, static_url_path='')
 app.config.from_pyfile('server_config.py', silent=True)
@@ -168,6 +173,55 @@ def send_wildfire():
     resp.headers['Access-Control-Allow-Origin'] = '*'
 
     return resp
+
+
+@app.route("/recent-temp")
+def send_temperature_data():
+    # This sql gives the second lastest data for temperature within ractangle around US,
+    # since the most lastest data is always updating (not completed)
+    temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t " \
+                                                 "where t.endtime = (select max(t.endtime) from recent_temperature t" \
+                                                 " where t.endtime <(select max(t.endtime) from recent_temperature t)) ")
+
+    temperature_data_celsius = []  # format temp data into a dictionary structure
+
+    for row in temperature_fetch:
+        temperature_object = {}
+        temperature_object["lat"] = row[0]
+        temperature_object["long"] = row[1] % (-360)  # convert longtitude range
+        temperature_object["temp"] = row[2] - 273.15  # change temp into celsius
+        temperature_data_celsius.append(temperature_object)
+
+    temperature_data_us = points_in_us(temperature_data_celsius)  # restrict data within US boundary.
+
+    resp = make_response(jsonify(temperature_data_us))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    # sends temperature data with coordinate within us boundary
+    return resp
+
+
+def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
+    """
+        To filter a list of points dict to a list of them within us boundary
+        :param pnts: list of raw points that to be filtered. The format is [{lng: .., lat: .., else: ..}, ...]
+        :param accuracy: Allow the path to be made slightly larger or smaller by change the default set of this value.
+
+        :returns: a list of filtered points, in the same format of input pnt dicts
+
+    """
+    if not isinstance(pnts, list):
+        raise TypeError("Input should be list as : [dict, dict, ...]")
+
+    # TODO: move this bound file to database.
+    with open(os.path.join(BOUNDARY_PATH, "USbound.json")) as json_file:
+        data = json.load(json_file)
+        main_land_poly = mplPath.Path(np.array(data["mainland"][::5]))
+        result = []
+        for pnt in pnts:
+            if main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=accuracy) \
+                    or main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=-accuracy):
+                result.append(pnt)
+        return result
 
 
 if __name__ == "__main__":

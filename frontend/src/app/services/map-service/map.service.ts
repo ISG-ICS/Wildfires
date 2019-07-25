@@ -68,7 +68,7 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/recent_tweet',
+            url: 'http://127.0.0.1:5000/tweet/recent_tweet',
             dataType: 'text',
 
         }).done(data => {

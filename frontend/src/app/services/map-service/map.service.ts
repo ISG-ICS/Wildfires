@@ -88,7 +88,7 @@ export class MapService {
                 dataArray.push([leftTop[0], leftTop[1], entry.create_at, entry.id, entry.text]);
             });
 
-            this.RecentTweetLoaded.emit({livetweetData: dataArray});
+            this.RecentTweetLoaded.emit(dataArray);
         });
     }
 

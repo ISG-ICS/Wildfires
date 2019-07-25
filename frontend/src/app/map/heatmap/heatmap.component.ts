@@ -336,18 +336,103 @@ export class HeatmapComponent implements OnInit {
 
     recentTweetLoadHandler = (data) => {
         console.log('livetweetData')
-        console.log(data.livetweetData)
+        console.log(data)
+
+
+        function translateTweetDataToShow(tweetJSON) {
+            let tweetid = "";
+            try {
+                tweetid = tweetJSON[3];
+            } catch (e) {
+                //tweetid missing in this Tweet.
+            }
+
+            let userName = "";
+            try {
+                userName = tweetJSON["user.name"];
+            } catch (e) {
+                //userName missing in this Tweet.
+            }
+
+            let userPhotoUrl = "";
+            try {
+                userPhotoUrl = tweetJSON["user.profile_image_url"];
+            } catch (e) {
+                //user.profile_image_url missing in this Tweet.
+            }
+
+            let tweetText = "";
+            try {
+                tweetText = tweetJSON[4];
+            } catch (e) {
+                //Text missing in this Tweet.
+            }
+
+            let tweetTime = "";
+            try {
+                var createdAt = new Date(tweetJSON[2]);
+                tweetTime = createdAt.toISOString();
+            } catch (e) {
+                //Time missing in this Tweet.
+            }
+
+            let tweetLink = "";
+            try {
+                tweetLink = "https://twitter.com/" + userName + "/status/" + tweetid;
+            } catch (e) {
+                //tweetLink missing in this Tweet.
+            }
+
+            let tweetTemplate;
+
+            //handles exceptions:
+            if (tweetText == "" || null || undefined) {
+                tweetTemplate = "\n"
+                    + "<div>"
+                    + "Fail to get Tweets data."
+                    + "</div>\n";
+            } else {
+                //presents all the information.
+                tweetTemplate = "\n"
+                    + "<div class=\"tweet\">\n "
+                    + "  <div class=\"tweet-body\">"
+                    + "    <div class=\"user-info\"> "
+                    + "      <img src=\""
+                    + userPhotoUrl
+                    + "\" onerror=\" this.src='/assets/images/default_pinicon.png'\" style=\"width: 32px; display: inline; \">\n"
+                    + "      <span class=\"name\" style='color: #0e90d2; font-weight: bold'> "
+                    + userName
+                    + "      </span> "
+                    + "    </div>\n	"
+                    + "    <span class=\"tweet-time\" style='color: darkgray'>"
+                    + tweetTime
+                    + "    <br></span>\n	 "
+                    + "    <span class=\"tweet-text\" style='color: #0f0f0f'>"
+                    + tweetText
+                    + "    </span><br>\n	 "
+                    + "\n <a href=\""
+                    + tweetLink
+                    + "\"> "
+                    + tweetLink
+                    + "</a>"
+                    + "  </div>\n	"
+                    + "</div>\n";
+            }
+            return tweetTemplate;
+        }
 
         const fireEventList = [];
 
-        for (const ev of  data.livetweetData.slice(0, 200)) {
+        for (const ev of  data.slice(0, 200)) {
             const point = [ev[0], ev[1]];
             const size = 12.5;
             const fireIcon = L.icon({
                 iconUrl: 'assets/image/perfectBird.gif',
                 iconSize: [size, size],
             });
-            const marker = L.marker(point, {icon: fireIcon}).bindPopup('CONTENT: ' + ev[4] + '<br/>TIME: ' + ev[2] + '<br/>TWEETID#: ' + ev[3]);
+            const tweetContent = translateTweetDataToShow(ev);
+            //const tweetContent = 'CONTENT: ' + ev[4] + '<br/>TIME: ' + ev[2] + '<br/>TWEETID#: ' + ev[3];
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup(tweetContent);
             fireEventList.push(marker);
 
         }

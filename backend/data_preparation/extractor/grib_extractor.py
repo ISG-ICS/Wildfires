@@ -1,14 +1,14 @@
 import json
 import os
+import pygrib
+from enum import Enum, auto
 from typing import Dict
 
-import pygrib
 import rootpath
-from enum import Enum, auto
 
 rootpath.append()
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
-from paths import TEST_DATA_PATH
+from paths import GRIB2_DATA_DIR
 
 
 class GRIBEnum(Enum):
@@ -22,8 +22,11 @@ class GRIBEnum(Enum):
 
 class GRIBExtractor(ExtractorBase):
     NAMES = {
-        GRIBEnum.NOAA_WIND_U: {'name': 'U component of wind'},
-        GRIBEnum.NOAA_WIND_V: {'name': 'V component of wind'},
+        # original version of these two attributes' names, but didn't work on my computer
+        # GRIBEnum.NOAA_WIND_U: {'name': 'U component of wind'},
+        # GRIBEnum.NOAA_WIND_V: {'name': 'V component of wind'},
+        GRIBEnum.NOAA_WIND_U: {'name': '100 metre U wind component'},
+        GRIBEnum.NOAA_WIND_V: {'name': '100 metre V wind component'},
         GRIBEnum.NOAA_TMP: {'name': 'Temperature'},
         GRIBEnum.NOAA_SOILW: {'name': 'Volumetric soil moisture content'},
         GRIBEnum.TEMPERATURE_MODE: {'name': 'Temperature', 'typeOfLevel': 'surface'},
@@ -56,9 +59,14 @@ class GRIBExtractor(ExtractorBase):
 
 
 if __name__ == '__main__':
-    # FIXME: argument mismatching
-    grib_extractor = GRIBExtractor(os.path.join(TEST_DATA_PATH, 'cdas1.t00z.sfluxgrbf00.grib2.txt'), 'Temperature',
-                                   'surface')
-    temperature = grib_extractor[89.84351351786847, 1.8409067652075042]
+    # to extract wind-u, wind-v, temperature and moisture data from a certain grib file
+    grib_extractor = GRIBExtractor(os.path.join(GRIB2_DATA_DIR, '2019072218.f000'))
+    ugnd = grib_extractor.extract(GRIBEnum.NOAA_WIND_U)
+    vgnd = grib_extractor.extract(GRIBEnum.NOAA_WIND_V)
+    tmp = grib_extractor.extract(GRIBEnum.NOAA_TMP)
+    soilw = grib_extractor.extract(GRIBEnum.NOAA_SOILW)
 
-    print(temperature)
+    # to see the names of the attributes in the grib file
+    grib_info_file = pygrib.open(os.path.join(GRIB2_DATA_DIR, '2019072218.f000')).read()
+    for each_attribute in grib_info_file:
+        print(each_attribute)

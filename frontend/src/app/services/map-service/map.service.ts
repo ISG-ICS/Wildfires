@@ -16,6 +16,9 @@ export class MapService {
 
     temperatureDataLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
+    windDataLoaded = new EventEmitter();
+    searchDataLoaded = new EventEmitter();
+    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
 
     constructor() {
@@ -37,6 +40,26 @@ export class MapService {
             matrix.push(entries);
         }
         return matrix;
+    }
+
+
+    getHeatmapData(): void {
+        const heatData = [];
+        const that = this;
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/temp',
+            dataType: 'text',
+        }).done(data => {
+            const dataList = JSON.parse(data);
+            console.log(dataList);
+            const testData = {
+                max: 8,
+                data: dataList
+            };
+            this.heatmapDataLoaded.emit({heatmapData: testData});
+        });
+
     }
 
     getTweetsData(): void {
@@ -74,6 +97,8 @@ export class MapService {
     }
 
     getWildfirePredictionData(): void {
+
+        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/wildfire_prediction',
@@ -100,6 +125,48 @@ export class MapService {
                 that.liveTweetLoaded.emit({data});
             });
         }, 20000);
+    }
+
+    getWindData(): void {
+        const that = this;
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/wind'
+        }).done((data) => {
+            this.windDataLoaded.emit({data});
+
+        });
+    }
+
+    getSearch(userInput): void {
+        const that = this;
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/search',
+            data: {keyword: userInput},
+        }).done((data) => {
+            console.log('data', data);
+            this.searchDataLoaded.emit({data});
+        });
+    }
+
+    getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
+        const that = this;
+        $.ajax({
+            type: 'POST',
+            url: 'http://127.0.0.1:5000/search/boundaries',
+            data: JSON.stringify({
+                states: stateLevel,
+                cities: cityLevel,
+                counties: countyLevel,
+                northEast: northEastBoundaries,
+                southWest: southWestBoundaries,
+            })
+        }).done((data) => {
+
+            const dict = {type: 'FeatureCollection', features: data};
+            this.boundaryDataLoaded.emit(dict);
+        });
     }
 
     stopliveTweet(): void {

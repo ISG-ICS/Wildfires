@@ -25,7 +25,7 @@
   },
   "formatters": {
     "beautiful": {
-      "format": "%(asctime)s - %(threadName)s - %(name)s - %(levelname)-8s - %(message)s"
+      "format": "[%(asctime)s][%(levelname)s] [%(threadName)s]: %(message)s"
     },
     "simple": {
       "format": "%(levelname)s %(message)s"
@@ -38,7 +38,6 @@
     "TaskManager": {
       "handlers": [
         "actions",
-        "console",
         "errors"
       ],
       "level": "DEBUG",

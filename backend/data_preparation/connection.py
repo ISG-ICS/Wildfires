@@ -1,45 +1,52 @@
 from datetime import datetime
 from typing import Generator, Tuple, Any, List
 
-import psycopg2
+import psycopg2.pool
 import rootpath
 
 rootpath.append()
-
 from paths import DATABASE_CONFIG_PATH
 from utilities.ini_parser import parse
 
 
 class Connection:
+    _pool = None
 
     def __init__(self):
         self.conn = None
+        if not Connection._pool:
+            Connection._pool = psycopg2.pool.ThreadedConnectionPool(1, 5, **self.config())
 
-    def __call__(self):
-        connection = psycopg2.connect(**self.config())
+    def __enter__(self):
+        self.conn = Connection._pool.getconn()
+        self.get_connection_status(self.conn)
+        return self.conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        Connection._pool.putconn(self.conn)
+
+    @staticmethod
+    def config():
+        return parse(DATABASE_CONFIG_PATH, 'postgresql')
+
+    @staticmethod
+    def get_connection_status(connection):
         cursor = connection.cursor()
         cursor.execute("SELECT sum(numbackends) FROM pg_stat_database;")
         connection_count, = cursor.fetchone()
         cursor.execute("SHOW max_connections;")
         connection_max_count, = cursor.fetchone()
-
         # adding this log to show current database connection status
         print(
-            f"[DATABASE] HOST = {self.config().get('host')}, CONNECTION COUNT "
+            f"[DATABASE] HOST = {Connection.config().get('host')}, CONNECTION COUNT "
             f"= {connection_count}, MAXIMUM = {connection_max_count}")
         cursor.close()
+
+    # not recommended: connection would not be recycled and user should close it manually
+    def __call__(self, *args, **kwargs):
+        connection = psycopg2.connect(**self.config())
+        Connection.get_connection_status(connection)
         return connection
-
-    def __enter__(self):
-        self.conn = self()
-        return self.conn
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.conn.close()
-
-    @staticmethod
-    def config():
-        return parse(DATABASE_CONFIG_PATH, 'postgresql')
 
     def sql_execute(self, sql: str) -> Generator[Tuple[Any], None, None]:
         """to execute an SQL query and iterate the output"""
@@ -91,13 +98,13 @@ if __name__ == '__main__':
         print(cur.fetchall())
         cur.close()
 
-    # use normally
-    conn = Connection()()  # call the object to return a new connection
+    # # not recommended: connection would not be recycled and user should close it manually
+    conn = Connection()()  # call the object to return a connection from pool
     cur = conn.cursor()
     cur.execute("select * from pg_tables")
     print(cur.fetchall())
     cur.close()
-    conn.close()
+    conn.close()  # user should close it manually
 
     # execute sql directly, with output fetched iteratively
     for row in Connection().sql_execute("select * from pg_tables"):

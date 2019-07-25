@@ -103,7 +103,7 @@ export class MapService {
             dataType: 'text',
             data: JSON.stringify({lat, lng, radius})
         }).done(data => {
-            this.ClickPointLoaded.emit(data);
+            this.ClickPointLoaded.emit(JSON.parse(data));
         });
     };
 }

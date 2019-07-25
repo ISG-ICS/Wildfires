@@ -53,7 +53,7 @@ export class HeatmapComponent implements OnInit {
 
     //For what to present when click event happens
     //private circle;
-    //private marker;
+    private marker;
 
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
@@ -252,18 +252,19 @@ export class HeatmapComponent implements OnInit {
     clickOnMap = () => {
         const that = this;
         this.map.on('click', onMapClick);
-        let marker;
+        //let marker;
         let circle;
-
+        let pinRadius = 100000;
         function onMapClick(e) {
+            that.mapService.getClickData(e.latlng.lat, e.latlng.lng, pinRadius / 111000);
             const clickIcon = L.icon({
                 iconUrl: 'assets/image/pin6.gif',
                 iconSize: [26, 30],
             });
-            if (marker) { // check
-                that.map.removeLayer(marker); // remove
+            if (that.marker) { // check
+                that.map.removeLayer(that.marker); // remove
             }
-            marker = L.marker(e.latlng, {draggable: false, icon: clickIcon}).addTo(that.map);
+            that.marker = L.marker(e.latlng, {draggable: false, icon: clickIcon}).addTo(that.map);
 
             if (circle) { // check
                 that.map.removeLayer(circle); // remove
@@ -272,22 +273,25 @@ export class HeatmapComponent implements OnInit {
                 color: 'white',
                 fillColor: 'white',
                 fillOpacity: 0.35,
-                radius: 40000
+                radius: pinRadius
             }).addTo(that.map);
-
-            marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
-            marker.getPopup().on('remove', function () {
-                that.map.removeLayer(marker);
-                that.map.removeLayer(circle);
-            });
-
-            that.mapService.getClickData(e.latlng.lat, e.latlng.lng, 40000);
+            that.marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
+            //that.marker.getPopup().on('remove', function () {
+            //that.map.removeLayer(that.marker);
+            //that.map.removeLayer(circle);
+            //});
         }
     }
 
 
     ClickPointHandler = (data) => {
-        //this.marker.bindPopup(data).openPopup();
+        let content_to_show: string;
+        content_to_show = 'Temperature Average: ' + data.tmp + '<br/>Solid Moisture Average: ' + data.soilw
+            + '<br/>All Historical Tweet Count: ' + data.cnt_tweet;
+        this.marker.bindPopup(content_to_show).openPopup();
+        this.marker.getPopup().on('remove', function () {
+            this.map.removeLayer(this.marker);
+        });
     }
 
 

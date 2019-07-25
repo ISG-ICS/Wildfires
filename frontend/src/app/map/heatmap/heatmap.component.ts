@@ -118,11 +118,10 @@ export class HeatmapComponent implements OnInit {
         this.map.on('zoomend, moveend', this.getBoundary);
 
         this.clickOnMap();
+        this.mapService.ClickPointLoaded.subscribe(this.clickPointHandler);
 
         this.mapService.getRecentTweetData();
         this.mapService.RecentTweetLoaded.subscribe(this.recentTweetLoadHandler);
-
-        this.mapService.ClickPointLoaded.subscribe(this.ClickPointHandler);
     }
 
     getBoundary = () => {
@@ -183,7 +182,47 @@ export class HeatmapComponent implements OnInit {
             }
         });
         this.tweetLayer.setData(tempData);
-    }
+    };
+
+    fireEventHandler = (data) => {
+
+        const fireEventList = [];
+
+        for (const ev of data.fireEvents) {
+            const point = [ev.lat, ev.long];
+            const size = 40;
+            const fireIcon = L.icon({
+                iconUrl: 'assets/image/pixelfire.gif',
+                iconSize: [size, size],
+            });
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%). My evidence is:<br/>' + ev.text);
+            fireEventList.push(marker);
+
+        }
+        const fireEvents = L.layerGroup(fireEventList);
+        this.mainControl.addOverlay(fireEvents, 'Fire event');
+    };
+
+    windDataHandler = (wind) => {
+        // there's not much document about leaflet-velocity.
+        // all we got is an example usage from
+        // github.com/0nza1101/leaflet-velocity-ts
+        const velocityLayer = L.velocityLayer({
+            displayValues: true,
+            displayOptions: {
+                position: 'bottomleft', // REQUIRED !
+                emptyString: 'No velocity data', // REQUIRED !
+                angleConvention: 'bearingCW', // REQUIRED !
+                velocityType: 'Global Wind',
+                displayPosition: 'bottomleft',
+                displayEmptyString: 'No wind data',
+                speedUnit: 'm/s'
+            },
+            data: wind.data,
+            maxVelocity: 12 // affect color and animation speed of wind
+        });
+        this.mainControl.addOverlay(velocityLayer, 'Global wind');
+    };
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap
@@ -255,6 +294,7 @@ export class HeatmapComponent implements OnInit {
         //let marker;
         let circle;
         let pinRadius = 100000;
+
         function onMapClick(e) {
             that.mapService.getClickData(e.latlng.lat, e.latlng.lng, pinRadius / 111000);
             const clickIcon = L.icon({
@@ -276,15 +316,15 @@ export class HeatmapComponent implements OnInit {
                 radius: pinRadius
             }).addTo(that.map);
             that.marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
-            //that.marker.getPopup().on('remove', function () {
-            //that.map.removeLayer(that.marker);
-            //that.map.removeLayer(circle);
-            //});
+            that.marker.getPopup().on('remove', function () {
+                that.map.removeLayer(that.marker);
+                that.map.removeLayer(circle);
+            });
         }
     }
 
 
-    ClickPointHandler = (data) => {
+    clickPointHandler = (data) => {
         let content_to_show: string;
         content_to_show = 'Temperature Average: ' + data.tmp + '<br/>Solid Moisture Average: ' + data.soilw
             + '<br/>All Historical Tweet Count: ' + data.cnt_tweet;
@@ -293,7 +333,6 @@ export class HeatmapComponent implements OnInit {
             this.map.removeLayer(this.marker);
         });
     }
-
 
     recentTweetLoadHandler = (data) => {
         console.log('livetweetData')

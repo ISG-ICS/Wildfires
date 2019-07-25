@@ -85,7 +85,7 @@ export class MapService {
                 }
 
                 const leftTop = [entry.lat, entry.long];
-                dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
+                dataArray.push([leftTop[0], leftTop[1], entry.create_at, entry.id, entry.text]);
             });
 
             this.RecentTweetLoaded.emit({livetweetData: dataArray});

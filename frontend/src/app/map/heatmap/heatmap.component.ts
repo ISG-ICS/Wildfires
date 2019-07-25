@@ -51,6 +51,9 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
+    //For what to present when click event happens
+    //private circle;
+    //private marker;
 
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
@@ -116,11 +119,11 @@ export class HeatmapComponent implements OnInit {
 
         this.clickOnMap();
 
-    this.mapService.getRecentTweetData();
-    this.mapService.RecentTweetLoaded.subscribe(this.liveTweetLoadHandler);
+        this.mapService.getRecentTweetData();
+        this.mapService.RecentTweetLoaded.subscribe(this.recentTweetLoadHandler);
 
-      this.mapService.ClickPointLoaded.subscribe(this.ClickPointHandler);
-  }
+        this.mapService.ClickPointLoaded.subscribe(this.ClickPointHandler);
+    }
 
     getBoundary = () => {
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
@@ -272,23 +275,23 @@ export class HeatmapComponent implements OnInit {
                 radius: 40000
             }).addTo(that.map);
 
-      marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
-        marker.getPopup().on('remove', function () {
-        that.map.removeLayer(marker);
-        that.map.removeLayer(circle);
-      });
+            marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
+            marker.getPopup().on('remove', function () {
+                that.map.removeLayer(marker);
+                that.map.removeLayer(circle);
+            });
 
-        that.mapService.getClickData(e.latlng.lat, e.latlng.lng, 40000);
-
+            that.mapService.getClickData(e.latlng.lat, e.latlng.lng, 40000);
+        }
     }
-  }
+
 
     ClickPointHandler = (data) => {
-
+        //this.marker.bindPopup(data).openPopup();
     }
 
 
-    liveTweetLoadHandler = (data) => {
+    recentTweetLoadHandler = (data) => {
         console.log('livetweetData')
         console.log(data.livetweetData)
 
@@ -296,12 +299,12 @@ export class HeatmapComponent implements OnInit {
 
         for (const ev of  data.livetweetData.slice(0, 200)) {
             const point = [ev[0], ev[1]];
-            const size = 10;
+            const size = 12.5;
             const fireIcon = L.icon({
                 iconUrl: 'assets/image/perfectBird.gif',
                 iconSize: [size, size],
             });
-            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am a tweet about fire');
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('CONTENT: ' + ev[4] + '<br/>TIME: ' + ev[2] + '<br/>TWEETID#: ' + ev[3]);
             fireEventList.push(marker);
 
         }

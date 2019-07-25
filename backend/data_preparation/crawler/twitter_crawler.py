@@ -17,13 +17,12 @@ from backend.data_preparation.dumper.dumperbase import DumperBase, DumperExcepti
 from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
 from utilities.ini_parser import parse
 
-api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
-
 
 class TweetCrawler(CrawlerBase):
 
     def __init__(self, extractor: ExtractorBase = None, dumper: DumperBase = None):
         super().__init__(extractor, dumper)
+        self.api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
         self.data = []
         self.keywords = []
         self.total_crawled_count = 0
@@ -67,7 +66,7 @@ class TweetCrawler(CrawlerBase):
         # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
         ids = list(self.crawled_id_set)
         try:
-            self.data = api.GetStatuses(ids)
+            self.data = self.api.GetStatuses(ids)
             # reset the set to empty so that the id will not accumulate
             # in the case that the twitter API works
         except Exception as err:

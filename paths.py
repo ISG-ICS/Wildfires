@@ -30,3 +30,5 @@ GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
 TWEET_IMAGES_DIR = os.path.join(ROOT_DIR, 'data/tweet_images')
 
 MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend/models/')
+
+BOUNDARY_PATH = os.path.join(ROOT_DIR, 'data/boundaries')

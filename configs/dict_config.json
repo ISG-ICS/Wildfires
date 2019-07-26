@@ -5,27 +5,28 @@
     "actions": {
       "level": "DEBUG",
       "class": "logging.FileHandler",
-      "filename": "./example.log",
-      "formatter": "beautiful"
+      "filename": "./taskManager_info.log",
+      "formatter": "beautiful",
+      "mode": "a",
+      "delay": "True"
     },
     "console": {
       "level": "WARNING",
       "class": "logging.StreamHandler",
       "formatter": "simple"
     },
-    "null": {
-      "class": "logging.NullHandler"
-    },
     "errors": {
       "class": "logging.FileHandler",
-      "filename": "./errors.log",
+      "filename": "./taskManager_error.log",
       "level": "ERROR",
-      "formatter": "detailed"
+      "formatter": "beautiful",
+      "mode": "a",
+      "delay": "True"
     }
   },
   "formatters": {
     "beautiful": {
-      "format": "[%(asctime)s][%(levelname)s] [%(threadName)s]: %(message)s"
+      "format": "[%(asctime)s] [%(levelname)5s] [%(threadName)10s] [%(module)22s] [%(funcName)15s]: %(message)s"
     },
     "simple": {
       "format": "%(levelname)s %(message)s"
@@ -36,10 +37,6 @@
   },
   "loggers": {
     "TaskManager": {
-      "handlers": [
-        "actions",
-        "errors"
-      ],
       "level": "DEBUG",
       "propagate": 1
     },

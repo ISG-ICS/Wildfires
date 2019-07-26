@@ -26,7 +26,7 @@
   },
   "formatters": {
     "beautiful": {
-      "format": "[%(asctime)s] [%(levelname)5s] [%(threadName)10s] [%(module)22s] [%(funcName)15s]: %(message)s"
+      "format": "[%(asctime)s] [%(levelname)5s] [%(threadName)10s] [%(module)22s] [%(funcName)18s]: %(message)s"
     },
     "simple": {
       "format": "%(levelname)s %(message)s"

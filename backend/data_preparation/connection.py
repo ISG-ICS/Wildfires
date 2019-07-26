@@ -73,10 +73,10 @@ class Connection:
     @staticmethod
     def sql_execute(sql: str) -> Generator[Tuple[Any], None, None]:
         """to execute an SQL query and iterate the output"""
-        logger.info(f"SQL: {sql}")
+        # logger.info(f"SQL: {sql}")
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             logger.error("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
-                  "sql_execute_commit")
+                         "sql_execute_commit")
             return
         with Connection() as connection:
             cursor = connection.cursor()

@@ -1,13 +1,19 @@
+import logging
 import re
+import traceback
 import urllib.request
 from typing import Union, List, Dict
 
 import requests
+import rootpath
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
+rootpath.append()
 from backend.classifiers.url_classifier import URLClassifier, MediaURL
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
+
+logger = logging.getLogger('TaskManager')
 
 
 class TweetMediaExtractor(ExtractorBase):
@@ -21,7 +27,7 @@ class TweetMediaExtractor(ExtractorBase):
         for short_url in short_urls:
             link_type: MediaURL = URLClassifier.classify(short_url)
             result_urls += handlers[link_type](short_url)
-        print(f"     Extracting {short_urls}, results = {result_urls}")
+        logger.info(f"     extracting {short_urls}, results = {result_urls}")
         return result_urls
 
     def _get_twitter_image(self, url: str) -> List[str]:
@@ -63,9 +69,10 @@ class TweetMediaExtractor(ExtractorBase):
                                 "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
                 return [img_urls[0]]
             else:
-                print('error: ', response.status_code)
+                logger.error('invalid url: ' + str(response.status_code))
                 return list()
-        except:
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
             return list()
 
     def export(self, file_type: str, file_name: str) -> None:

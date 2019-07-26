@@ -5,6 +5,8 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # directory for all runnable tasks
 TASK_DIR = os.path.join(ROOT_DIR, 'backend', 'task')
+# directory for all tasks' logs
+LOG_DIR = os.path.join(ROOT_DIR, 'backend', 'logs')
 
 # dir for all configs
 CONFIGS_DIR = os.path.join(ROOT_DIR, 'configs')

@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -11,6 +12,8 @@ from backend.task.runnable import Runnable
 from backend.data_preparation.crawler.noaa_crawler import NOAACrawler
 from backend.data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum
 from backend.data_preparation.dumper.noaa_dumper import NOAADumper
+
+logger = logging.getLogger('TaskManager')
 
 
 class DataFromNoaa(Runnable):
@@ -37,6 +40,7 @@ class DataFromNoaa(Runnable):
             microseconds=begin_time.microsecond)
         while time_t >= end_time:
             if (time_t,) not in exists_list:
+                logger.info('start crawling')
                 # crawl the data from website
                 stamp = self.crawler.crawl(time_t)
 
@@ -46,17 +50,17 @@ class DataFromNoaa(Runnable):
                 vgnd = extractor.extract(GRIBEnum.NOAA_WIND_V)
                 tmp = extractor.extract(GRIBEnum.NOAA_TMP)
                 soilw = extractor.extract(GRIBEnum.NOAA_SOILW)
-                print('extracted')
+                logger.info('extraction finished')
 
                 # dump the extracted data into database
                 self.dumper.insert(ugnd, vgnd, tmp, soilw, time_t, stamp)
-                print('dumped')
+                logger.info('dumping finished')
 
                 # remove the dumped data file
                 self.crawler.remove_grib2_file(stamp)
 
             time_t -= timedelta(hours=self.crawler.interval)
-        print('time to sleep')
+        logger.info('time to sleep')
 
 
 if __name__ == '__main__':

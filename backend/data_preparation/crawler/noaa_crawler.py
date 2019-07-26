@@ -1,7 +1,9 @@
+import logging
 import math
 import os
 import sys
 import time
+import traceback
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -13,6 +15,8 @@ from paths import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
 from backend.data_preparation.dumper.noaa_dumper import NOAADumper
+
+logger = logging.getLogger('TaskManager')
 
 
 class NOAACrawler(CrawlerBase):
@@ -71,7 +75,7 @@ class NOAACrawler(CrawlerBase):
             response = requests.get(url=self.baseDir, params=qs)
             if response.status_code != 200:
                 # try -6h
-                print(stamp + ' not found')
+                logger.error('file: ' + stamp + ' not found')
             else:
                 # create dirs
                 if not os.path.isdir(GRIB2_DATA_DIR):
@@ -79,10 +83,10 @@ class NOAACrawler(CrawlerBase):
                 # write file
                 with open(os.path.join(GRIB2_DATA_DIR, stamp + '.f000'), 'wb') as f:
                     f.write(response.content)
-                    print('saved')
-        except IOError as e:
+                    logger.info('saved file: ' + stamp)
+        except IOError:
             # try -6h
-            print(e)
+            logger.error('error: ' + traceback.format_exc())
         return stamp
 
     def get_exists(self):
@@ -101,6 +105,7 @@ class NOAACrawler(CrawlerBase):
             return str(result) if result >= 10 else '0' + str(result)
         else:
             raise RuntimeError('interval should NOT set to zero')
+            logger.error('error: interval should NOT set to zero')
 
     @staticmethod
     def remove_grib2_file(stamp):

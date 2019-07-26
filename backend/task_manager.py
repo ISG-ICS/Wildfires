@@ -1,15 +1,14 @@
 import inspect
+import json
+import logging.config
 import threading
 import time
+import traceback
 
 import rootpath
 
-import json
-import logging.config
-from paths import LOG_CONFIG_PATH
-
-
 rootpath.append()
+from paths import LOG_CONFIG_PATH
 
 # don't delete these imports because they're called implicitly
 exec("from backend.task import *")
@@ -40,11 +39,25 @@ class TaskManager:
     task_option_id = 1
 
     @staticmethod
-    def initialize_logger(name):
+    def initialize_logger():
         with open(LOG_CONFIG_PATH, 'r') as file:
             config = json.load(file)
+            # use json file to config the logger
             logging.config.dictConfig(config)
-        return logging.getLogger(name)
+            logger = logging.getLogger('TaskManager')
+            info_format = '[%(asctime)s] [%(levelname)5s] [%(threadName)10s] [%(module)22s] [%(funcName)15s]: %(message)s'
+            date_format = '%m/%d/%Y-%H:%M:%S'
+            formatter = logging.Formatter(fmt=info_format, datefmt=date_format)
+            handler_names = ['taskManager_info.log', 'taskManager_error.log']
+            current_time = time.strftime('%m%d%Y_%H:%M:%S_', time.localtime(time.time()))
+            for handler_name in handler_names:
+                file_name = current_time + handler_name
+                file_handler = logging.FileHandler(file_name, mode='a', encoding=None, delay=False)
+                file_handler.setLevel(
+                    logging.DEBUG if handler_name.split('.')[0].split('_')[-1] == 'info' else logging.ERROR)
+                file_handler.setFormatter(formatter)
+                logger.addHandler(file_handler)
+        return logger
 
     @classmethod
     def add_task_option(cls, task_name, task_func, task_number):
@@ -88,14 +101,13 @@ class TaskManager:
         :param args: argument for the task
         :return: None
         """
-        logger = TaskManager.initialize_logger('TaskManager')
 
         if args is None:
             args = []
         target_func = cls.task_options[task_option_id][1]
         th_name = cls.task_options[task_option_id][0] + str(cls.task_options[task_option_id][2])
         th = threading.Thread(target=cls._thread_runner_, args=(target_func, th_name, interval, args))
-        logger.info('hahaha')
+        logger.info('A new task will be running!')
         th.setDaemon(True)
         cls.running_threads.append([th, th_name, loop])
         th.start()
@@ -113,6 +125,7 @@ class TaskManager:
         for i, thlis in enumerate(cls.running_threads):
             if thlis[1] == thread_name:
                 cls.running_threads[i][2] = False
+                logger.info('TASK ' + cls.running_threads[i][1] + ' KILLED!')
                 break
 
     @classmethod
@@ -141,7 +154,9 @@ class TaskManager:
             if th_name == thread_[1]:
                 break
             index_ += 1
+        logger.info('TASK ' + th_name + ' START!')
         target_func(*args)
+        logger.info('TASK ' + th_name + ' END!')
         while cls.running_threads[index_][2]:
             if interval != 0:
                 time.sleep(interval)
@@ -170,7 +185,6 @@ class TaskManager:
 
     def main_loop(self):
         task_loop = False
-
         while True:
             print("#" * 80)
             print("#" + "".center(78, " ") + "#")
@@ -211,28 +225,26 @@ class TaskManager:
                 break
             elif loop_prompt == 'y':
                 task_loop = True
-                interval_prompt = input("Interval between each run enter a NUMBER of seconds\n")
+                interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
             elif loop_prompt == 'n':
                 interval_prompt = 0
             try:
                 interval_prompt = int(interval_prompt)
-
                 args = self.pass_arguments(task_prompt)
-
                 self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
                 # Increment number of user specified task
                 self.task_options[task_prompt][2] += 1
                 print("Your task is running!")
-            except Exception as e:
-                print(e)
+            except Exception:
+                logger.error('error: ' + traceback.format_exc())
                 print("[Error] Your input is not all correct, the task has not started")
 
 
 if __name__ == "__main__":
-    logger = TaskManager.initialize_logger('YourFault')
+    logger = TaskManager.initialize_logger()
+    logger.info('Task manager is running now!')
     try:
         task_manager = TaskManager()
         task_manager.main_loop()
     except:
         logger.error('Invalid Input Cause Error')
-

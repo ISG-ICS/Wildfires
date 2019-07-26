@@ -340,53 +340,62 @@ export class HeatmapComponent implements OnInit {
 
 
         function translateTweetDataToShow(tweetJSON) {
-            let tweetid = "";
+            // still need username, userPhotoUrl,imageurl from database
+            let tweetid = '';
             try {
                 tweetid = tweetJSON[3];
             } catch (e) {
-                //tweetid missing in this Tweet.
+                // tweetid missing in this Tweet.
             }
 
-            let userName = "";
+            let userName = '';
             try {
-                userName = tweetJSON["user.name"];
+                userName = 'user';//tweetJSON[5];
             } catch (e) {
-                //userName missing in this Tweet.
+                // userName missing in this Tweet.
             }
 
-            let userPhotoUrl = "";
+            let userPhotoUrl = '';
             try {
-                userPhotoUrl = tweetJSON["user.profile_image_url"];
+                //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
+                userPhotoUrl = 'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'//tweetJSON[6];
             } catch (e) {
-                //user.profile_image_url missing in this Tweet.
+                // user.profile_image_url missing in this Tweet.
             }
 
-            let tweetText = "";
+            let tweetText = '';
             try {
                 tweetText = tweetJSON[4];
             } catch (e) {
                 //Text missing in this Tweet.
             }
 
-            let tweetTime = "";
+            let tweetTime = '';
             try {
-                var createdAt = new Date(tweetJSON[2]);
+                let createdAt = new Date(tweetJSON[2]);
                 tweetTime = createdAt.toISOString();
             } catch (e) {
                 //Time missing in this Tweet.
             }
 
-            let tweetLink = "";
+            let tweetLink = '';
             try {
-                tweetLink = "https://twitter.com/" + userName + "/status/" + tweetid;
+                tweetLink = 'https://twitter.com/' + userName + '/status/' + tweetid;
             } catch (e) {
                 //tweetLink missing in this Tweet.
+            }
+
+            let imageUrl = '';
+            try {
+                imageUrl = 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'//tweetJSON[7];
+            } catch (e) {
+                //imageLink missing in this Tweet.
             }
 
             let tweetTemplate;
 
             //handles exceptions:
-            if (tweetText == "" || null || undefined) {
+            if (tweetText === '' || null || undefined) {
                 tweetTemplate = "\n"
                     + "<div>"
                     + "Fail to get Tweets data."
@@ -416,6 +425,9 @@ export class HeatmapComponent implements OnInit {
                     + tweetLink
                     + "</a>"
                     + "  </div>\n	"
+                    + "      <img src=\""
+                    + imageUrl
+                    + "\" onerror=\" this.src='/assets/images/default_pinicon.png'\" style=\"width: 250px; \">\n"
                     + "</div>\n";
             }
             return tweetTemplate;

@@ -9,12 +9,13 @@ import {SearchComponent} from './search/search.component';
 
 
 @NgModule({
-    declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent, TemperatureRangeSliderComponent,SearchComponent],
+    declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent, TemperatureRangeSliderComponent, SearchComponent],
   exports: [
     HeatmapComponent,
     SidebarComponent,
     TimeSeriesComponent,
-      SearchComponent,
+    TemperatureRangeSliderComponent,
+    SearchComponent,
   ],
   imports: [
     CommonModule,

@@ -7,7 +7,7 @@ import * as $ from 'jquery';
 export class MapService {
 
     // Declare data events for components to action
-    tweetDataLoaded = new EventEmitter();
+    fireTweetDataLoaded = new EventEmitter();
     heatmapDataLoaded = new EventEmitter();
     timeseriesDataLoaded = new EventEmitter();
     fireEventDataLoaded = new EventEmitter();
@@ -48,7 +48,7 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/temp',
+            url: 'http://127.0.0.1:5000/data/temp',
             dataType: 'text',
         }).done(data => {
             const dataList = JSON.parse(data);
@@ -62,12 +62,12 @@ export class MapService {
 
     }
 
-    getTweetsData(): void {
+    getFireTweetData(): void {
         const chartData = [];
         const dailyCount = {};
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/tweets',
+            url: 'http://127.0.0.1:5000/tweet/fire-tweet',
             dataType: 'text',
         }).done(data => {
 
@@ -91,7 +91,7 @@ export class MapService {
                 chartData.push([new Date(key).getTime(), dailyCount[key]]);
             });
 
-            this.tweetDataLoaded.emit({tweetData: dataArray});
+            this.fireTweetDataLoaded.emit({tweetData: dataArray});
             this.timeseriesDataLoaded.emit({chartData});
         });
     }
@@ -101,7 +101,7 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/wildfire_prediction',
+            url: 'http://127.0.0.1:5000/wildfire-prediction',
             dataType: 'text'
         }).done((data) => {
             const wildfire = JSON.parse(data).filter(entry => entry.nlp === true);
@@ -113,14 +113,14 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/live_tweet'
+            url: 'http://127.0.0.1:5000/tweet/live-tweet'
         }).done((data) => {
             that.liveTweetLoaded.emit({data});
         });
         this.liveTweetCycle = setInterval(() => {
             $.ajax({
                 type: 'GET',
-                url: 'http://127.0.0.1:5000/live_tweet'
+                url: 'http://127.0.0.1:5000/tweet/live-tweet'
             }).done((data) => {
                 that.liveTweetLoaded.emit({data});
             });
@@ -131,7 +131,7 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/wind'
+            url: 'http://127.0.0.1:5000/data/wind'
         }).done((data) => {
             this.windDataLoaded.emit({data});
 
@@ -176,7 +176,7 @@ export class MapService {
     getTemperatureData(): void {
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/recent-temp',
+            url: 'http://127.0.0.1:5000/data/recent-temp',
             dataType: 'text',
         }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
     }

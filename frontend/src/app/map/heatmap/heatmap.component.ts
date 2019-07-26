@@ -84,8 +84,8 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
 
         // Get tweets data from service
-        this.mapService.getTweetsData();
-        this.mapService.tweetDataLoaded.subscribe(this.tweetDataHandler);
+        this.mapService.getFireTweetData();
+        this.mapService.fireTweetDataLoaded.subscribe(this.tweetDataHandler);
 
         // Get fire events data from service
         this.mapService.getWildfirePredictionData();

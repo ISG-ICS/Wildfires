@@ -1,3 +1,4 @@
+matplotlib
 beautifulsoup4
 selenium
 wget

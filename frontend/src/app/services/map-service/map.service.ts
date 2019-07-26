@@ -13,7 +13,6 @@ export class MapService {
     fireEventDataLoaded = new EventEmitter();
     liveTweetLoaded = new EventEmitter();
     mapLoaded = new EventEmitter();
-
     temperatureDataLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
     windDataLoaded = new EventEmitter();
@@ -44,8 +43,6 @@ export class MapService {
 
 
     getHeatmapData(): void {
-        const heatData = [];
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/data/temp',
@@ -86,7 +83,7 @@ export class MapService {
                 dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
             });
 
-            // timebar
+            // time bar
             Object.keys(dailyCount).sort().forEach(key => {
                 chartData.push([new Date(key).getTime(), dailyCount[key]]);
             });
@@ -98,7 +95,6 @@ export class MapService {
 
     getWildfirePredictionData(): void {
 
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/wildfire-prediction',
@@ -128,7 +124,6 @@ export class MapService {
     }
 
     getWindData(): void {
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/data/wind'
@@ -139,19 +134,17 @@ export class MapService {
     }
 
     getSearch(userInput): void {
-        const that = this;
         $.ajax({
             type: 'GET',
             url: 'http://127.0.0.1:5000/search',
             data: {keyword: userInput},
         }).done((data) => {
             console.log('data', data);
-            this.searchDataLoaded.emit({data});
+            this.searchDataLoaded.emit(data);
         });
     }
 
     getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
-        const that = this;
         $.ajax({
             type: 'POST',
             url: 'http://127.0.0.1:5000/search/boundaries',
@@ -164,12 +157,11 @@ export class MapService {
             })
         }).done((data) => {
 
-            const dict = {type: 'FeatureCollection', features: data};
-            this.boundaryDataLoaded.emit(dict);
+            this.boundaryDataLoaded.emit({type: 'FeatureCollection', features: data});
         });
     }
 
-    stopliveTweet(): void {
+    stopLiveTweet(): void {
         window.clearInterval(this.liveTweetCycle);
     }
 

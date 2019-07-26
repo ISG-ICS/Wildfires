@@ -122,7 +122,7 @@ export class HeatmapComponent implements OnInit {
     liveTweetSwitchHandler = (_) => {
         if (this.switchStatus === 1) {
             this.liveTweetLayer.clearLayers();
-            this.mapService.stopliveTweet();
+            this.mapService.stopLiveTweet();
             this.switchStatus = 0;
             return;
         }

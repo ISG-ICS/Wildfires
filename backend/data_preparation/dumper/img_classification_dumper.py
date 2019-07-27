@@ -1,3 +1,5 @@
+import logging
+import traceback
 from typing import Tuple
 
 import rootpath
@@ -6,6 +8,8 @@ rootpath.append()
 from backend.data_preparation.dumper.dumperbase import DumperBase
 from backend.classifiers.image_classifier import ImageClassifier
 from backend.data_preparation.connection import Connection
+
+logger = logging.getLogger('TaskManager')
 
 
 class ImgClassificationDumper(DumperBase):
@@ -22,18 +26,18 @@ class ImgClassificationDumper(DumperBase):
                     f"UPDATE images SET not_wildfire_prob = {prob_not_wildfire}, wildfire_prob = {prob_wildfire} "
                     f"WHERE image_url = {repr(image_url)}")
 
-            except Exception as err:
-                print("error", err)
+            except Exception:
+                logger.error("error: " + traceback.format_exc())
         elif model_type == ImageClassifier.RESNET_MODEL:
             try:
                 Connection().sql_execute_commit(
                     f"UPDATE images SET resnet_not_wildfire = {prob_not_wildfire}, resnet_wildfire = {prob_wildfire} "
                     f"WHERE image_url = {repr(image_url)}")
 
-            except Exception as err:
-                print("error", err)
+            except Exception:
+                logger.error("error: " + traceback.format_exc())
         else:
-            print("Insertion fail. Please specify the model type to be vgg or resnet.")
+            logger.error("Insertion fail. Please specify the model type to be vgg or resnet.")
 
 
 if __name__ == '__main__':

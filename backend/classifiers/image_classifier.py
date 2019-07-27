@@ -1,25 +1,28 @@
+import logging
 import os
-import wget
+import traceback
 from urllib.error import HTTPError
+
+import rootpath
 import torch
-import torchvision
-from torch.autograd import Variable
-import torchvision.transforms as transforms
-import torchvision.datasets as datasets
-import torch.utils.data
-import torchvision.models as models
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+import torch.utils.data
+import torchvision
+import torchvision.datasets as datasets
+import torchvision.models as models
+import torchvision.transforms as transforms
+import wget
 from PIL import Image
-
-import rootpath
+from torch.autograd import Variable
 
 rootpath.append()
 from backend.classifiers.classifierbase import ClassifierBase
 from backend.models.cnn_module import CNN
 import paths
+
+logger = logging.getLogger('TaskManager')
 
 
 class ImageClassifier(ClassifierBase):
@@ -72,7 +75,7 @@ class ImageClassifier(ClassifierBase):
     def predict(self, url: str) -> tuple:
         """predict classification result of the image from url"""
 
-        print("url: " + url)
+        logger.info("predicting url: " + url)
         # download image from url
         image_path = self.download_image(url)
 
@@ -112,7 +115,7 @@ class ImageClassifier(ClassifierBase):
         optimizer = optim.RMSprop(model.parameters(), lr=ImageClassifier.LEARNING_RATE)
 
         for epoch in range(num_epochs):
-            print('Starting epoch %d / %d' % (epoch + 1, num_epochs))
+            logger.info('Starting epoch %d / %d' % (epoch + 1, num_epochs))
             model.train()
             for t, (x, y) in enumerate(train_loader):
                 x_var = Variable(x)
@@ -120,7 +123,7 @@ class ImageClassifier(ClassifierBase):
 
                 scores = model(x_var)
                 loss = loss_fn(scores, y_var)
-                print('t = %d, loss = %.4f' % (t + 1, loss.item()))
+                logger.info('t = %d, loss = %.4f' % (t + 1, loss.item()))
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -174,7 +177,7 @@ class ImageClassifier(ClassifierBase):
             num_correct += (preds == y).sum()
             num_samples += preds.size(0)
         acc = float(num_correct) / num_samples
-        print('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
+        logger.info('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
     def save_model(self, model: RESNET_MODEL_TYPE, modelname: str):
         """save the model locally"""
@@ -188,10 +191,10 @@ class ImageClassifier(ClassifierBase):
         try:
             wget.download(url=url, out=download_path)
         except HTTPError:
-            print("HTTP Error 404: Website url not found.")
+            logger.error("HTTP Error 404: Website url not found.")
             return None
         except Exception as err:
-            print(f"unexpected err {err}")
+            logger.error("error: " + traceback.format_exc())
             return None
         return download_path
 
@@ -217,10 +220,10 @@ class ImageClassifier(ClassifierBase):
             transformed_img = transformed_img.view(1, ImageClassifier.RGB_CHANNELS, ImageClassifier.DROPSIZE,
                                                    ImageClassifier.DROPSIZE)
         except RuntimeError as err:
-            print("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
+            logger.error("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
             return None
         except Exception as err:
-            print(f"unexpected err {err}")
+            logger.error("error: " + traceback.format_exc())
             return None
         return transformed_img
 
@@ -237,10 +240,10 @@ class ImageClassifier(ClassifierBase):
             if image.shape[1] != ImageClassifier.RGB_CHANNELS:
                 return None
         except RuntimeError as err:
-            print("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
+            logger.error("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
             return None
         except Exception as err:
-            print(f"unexpected err {err}")
+            logger.error("error: " + traceback.format_exc())
             return None
         return image.cpu()
 
@@ -269,5 +272,3 @@ if __name__ == '__main__':
 
     # check and print accuracy
     image_classifier.check_accuracy(model, val_path)
-
-

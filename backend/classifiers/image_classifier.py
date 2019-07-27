@@ -81,6 +81,8 @@ class ImageClassifier(ClassifierBase):
             image = self.vgg_transform_image(image_path)
         elif self.model_type == ImageClassifier.RESNET_MODEL:
             image = self.resnet_transform_image(image_path)
+            # set resnet model to evalution mode
+            self.model.eval()
         # if fail to open image, then image is None type, defaultly output the image as "not wildfire"
         if image is None:
             if image_path is not None:

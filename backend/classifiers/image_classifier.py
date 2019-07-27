@@ -246,17 +246,28 @@ class ImageClassifier(ClassifierBase):
 
     def prettify(self, tensor_topk) -> list:
         """transfer tensor object into list of confidence level"""
-        result = []
+        result = [0, 0]
+        idx = [0, 0]
+        prob = [0, 0]
         for i in range(tensor_topk.n_fields):
-            result.append(tensor_topk.values.data.cpu()[0][i].item())
+            idx[i] = tensor_topk.indices.data.cpu()[0][i].item()
+            prob[i] = tensor_topk.values.data.cpu()[0][i].item()
+        # change the larger index value to 1, and the smaller index value to 0,
+        # so the prediction result has correct correspondence between classification class and prediction value
+        if idx[0] < idx[1]:
+            idx = [0, 1]
+        else:
+            idx = [1, 0]
+        result[idx[0]] = prob[0]
+        result[idx[1]] = prob[1]
         return result
 
 
 if __name__ == '__main__':
-    image_classifier = ImageClassifier(ImageClassifier.VGG_MODEL)
+    image_classifier = ImageClassifier(ImageClassifier.RESNET_MODEL)
     image_classifier.set_model()
     # test case
-    prediction_result = image_classifier.predict('https://pbs.twimg.com/media/CzRw4VgUAAA15kZ.jpg')
+    prediction_result = image_classifier.predict('https://pbs.twimg.com/media/De1Oc7XU8AA5JcO.jpg')
     print(prediction_result)
 
     # train model, parameters are path of train dataset and validation dataset
@@ -269,5 +280,3 @@ if __name__ == '__main__':
 
     # check and print accuracy
     image_classifier.check_accuracy(model, val_path)
-
-

@@ -1,3 +1,4 @@
+import threading
 from datetime import datetime
 from typing import Generator, Tuple, Any, List
 
@@ -10,13 +11,24 @@ from paths import DATABASE_CONFIG_PATH
 from utilities.ini_parser import parse
 
 
+def synchronized(func):
+    func.__lock__ = threading.Lock()
+
+    def lock_func(*args, **kwargs):
+        with func.__lock__:
+            return func(*args, **kwargs)
+
+    return lock_func
+
+
 class Connection:
     _pool = None
 
+    @synchronized
     def __init__(self):
         self.conn = None
         if not Connection._pool:
-            Connection._pool = psycopg2.pool.ThreadedConnectionPool(1, 5, **self.config())
+            Connection._pool = psycopg2.pool.ThreadedConnectionPool(**self.config())
 
     def __enter__(self, *args, **kwargs):
         """Context Manager enter point, returns an available connection from the _pool"""
@@ -33,7 +45,8 @@ class Connection:
     @deprecated(reason="__call__ will no longer be provided in future, please always use context manager (with)")
     def __call__(*args, **kwargs):
         """returns a newly created connection, which is not maintained by the _pool"""
-        connection = psycopg2.connect(*args, **Connection.config(), **kwargs)
+        # TODO: remove temporary database.ini.bak after removing deprecated function
+        connection = psycopg2.connect(*args, **parse(DATABASE_CONFIG_PATH + '.bak', 'postgresql'), **kwargs)
         Connection.get_connection_status(connection)
         return connection
 
@@ -101,7 +114,7 @@ class Connection:
 
 
 if __name__ == '__main__':
-    # use as a context contextmanager
+    # use as a context manager
     with Connection() as conn:
         cur = conn.cursor()
         cur.execute("select * from pg_tables")

@@ -4,5 +4,3 @@ database = testdb
 user = tester
 password = testpassword
 port = 5432
-minconn = 4
-maxconn = 10

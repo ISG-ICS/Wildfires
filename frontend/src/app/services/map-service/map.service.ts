@@ -144,6 +144,7 @@ export class MapService {
         });
     }
 
+    // get administrative boundaries within screen
     getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
         $.ajax({
             type: 'POST',

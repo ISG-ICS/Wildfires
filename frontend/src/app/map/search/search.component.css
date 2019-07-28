@@ -36,21 +36,3 @@
     color: white;
     font-size: 1rem;
 }
-
-/*#locationNameBox {*/
-/*    position: absolute;*/
-/*    top: 5%;*/
-/*    left: 40%;*/
-/*    z-index: 1000;*/
-/*    color: red;*/
-/*}*/
-
-/*#locationNameBox:hover {*/
-/*    animation: breath 2s infinite;*/
-/*    border-bottom: solid 2px #e25822;*/
-/*}*/
-
-/*#locationNameBox::placeholder {*/
-/*    color: white;*/
-/*    font-size: 1rem;*/
-/*}*/

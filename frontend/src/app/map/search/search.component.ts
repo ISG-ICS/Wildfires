@@ -20,6 +20,7 @@ export class SearchComponent implements OnInit {
     private static STATE_LEVEL_ZOOM = 8;
     private static COUNTY_LEVEL_ZOOM = 9;
     private map;
+    private mainControl;
     private geojson;
     private userInput;
     private globalData;
@@ -32,8 +33,9 @@ export class SearchComponent implements OnInit {
 
     ngOnInit() {
         this.mapService.boundaryDataLoaded.subscribe(this.getBoundaryScreenDataHandler);
-        this.mapService.mapLoaded.subscribe((map) => {
+        this.mapService.mapLoaded.subscribe(([map, mainControl]) => {
             this.map = map;
+            this.mainControl = mainControl; // get map and mainControl when heatmap.component loaded
             this.getBoundary();
 
             this.map.on('zoomend, moveend', () => {
@@ -91,14 +93,10 @@ export class SearchComponent implements OnInit {
 
     getBoundary = () => {
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
-        console.log('here in get bound');
         const zoom = this.map.getZoom();
         const bound = this.map.getBounds();
-        console.log('zoom level', zoom);
-        console.log('move level', bound);
         const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
         const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
-        console.log('zoom', zoom);
         // tslint:disable-next-line:one-variable-per-declaration
         let showCityLevel, showStateLevel, showCountyLevel;
 
@@ -130,17 +128,25 @@ export class SearchComponent implements OnInit {
 
     getBoundaryScreenDataHandler = (data) => {
         // receives data from the database
-        console.log('data in screen data handler', data);
         this.globalData = data;
 
-        if (this.geojson) {
-            console.log('layer in search key', this.map.removeLayer(this.geojson));
+        // do nothing if checkbox is not checked
+        if (!this.map.hasLayer(this.geojson) && this.geojson) {
+            return;
         }
-        console.log('this data', data);
+
+        // remove previous overlay
+        if (this.geojson) {
+            this.map.removeLayer(this.geojson);
+            this.mainControl.removeLayer(this.geojson);
+        }
         this.geojson = L.geoJson(data, {
             style: this.style,
             onEachFeature: this.onEachFeature
-        }).addTo(this.map);
+        });
+
+        this.mainControl.addOverlay(this.geojson, 'Boundary');
+        this.map.addLayer(this.geojson);
     }
 
 
@@ -169,7 +175,6 @@ export class SearchComponent implements OnInit {
 
     onEachFeature = (feature, layer) => {
         // controls the interaction between the mouse and the map
-        console.log('feature layer', layer);
         layer.on({
             mouseover: this.highlightFeature,
             mouseout: this.resetHighlight,
@@ -218,7 +223,6 @@ export class SearchComponent implements OnInit {
     highlightFeature = (event) => {
         // highlights the region when the mouse moves over the region
         const layer = event.target;
-        console.log('e target', event.target);
         layer.setStyle({
             weight: 5,
             color: '#e3d926',
@@ -247,7 +251,6 @@ export class SearchComponent implements OnInit {
 
     resetHighlight = (event) => {
         // gets rid of the highlight when the mouse moves out of the region
-        console.log('e target', event.target);
         if (this.theHighlightMarker) {
             this.map.removeControl(this.theHighlightMarker);
         }
@@ -259,7 +262,6 @@ export class SearchComponent implements OnInit {
 
     zoomToFeature = (event) => {
         // zooms to a region when the region is clicked
-        console.log('target at zoom to ', event.target);
         this.map.fitBounds(event.target.getBounds());
 
     }

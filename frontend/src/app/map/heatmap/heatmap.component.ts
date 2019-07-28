@@ -67,7 +67,7 @@ export class HeatmapComponent implements OnInit {
 
         this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
-        this.mapService.mapLoaded.emit(this.map);
+        this.mapService.mapLoaded.emit([this.map, this.mainControl]);
         // Generate coordinate in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;

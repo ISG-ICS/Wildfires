@@ -1,5 +1,5 @@
-import threading
 import logging
+import threading
 from datetime import datetime
 from typing import Generator, Tuple, Any, List
 
@@ -95,12 +95,12 @@ class Connection:
     @staticmethod
     def sql_execute_commit(sql: str) -> None:
         """to execute and commit an SQL query"""
-        logger.info(f"SQL: {sql}")
+        # logger.info(f"SQL: {sql}")
         with Connection() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
             connection.commit()
-            logger.info(f"     Affected rows:{cursor.rowcount}")
+            logger.info(f"Affected rows:{cursor.rowcount}")
             cursor.close()
 
     @staticmethod

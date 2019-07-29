@@ -79,6 +79,8 @@ class ImageClassifier(ClassifierBase):
         # download image from url
         image_path = self.download_image(url)
 
+        image = None
+
         # transform image
         if self.model_type == ImageClassifier.VGG_MODEL:
             image = self.vgg_transform_image(image_path)

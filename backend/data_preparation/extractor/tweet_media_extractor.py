@@ -27,7 +27,7 @@ class TweetMediaExtractor(ExtractorBase):
         for short_url in short_urls:
             link_type: MediaURL = URLClassifier.classify(short_url)
             result_urls += handlers[link_type](short_url)
-        logger.info(f"     extracting {short_urls}, results = {result_urls}")
+        logger.info(f"extracting {short_urls}, results = {result_urls}")
         return result_urls
 
     def _get_twitter_image(self, url: str) -> List[str]:

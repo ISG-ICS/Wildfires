@@ -387,7 +387,7 @@ export class HeatmapComponent implements OnInit {
 
             let imageUrl = '';
             try {
-                imageUrl = 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'//tweetJSON[7];
+                imageUrl = tweetJSON[5];//'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'
             } catch (e) {
                 //imageLink missing in this Tweet.
             }
@@ -434,7 +434,6 @@ export class HeatmapComponent implements OnInit {
         }
 
         const fireEventList = [];
-
         for (const ev of  data.slice(0, 200)) {
             const point = [ev[0], ev[1]];
             const size = 12.5;

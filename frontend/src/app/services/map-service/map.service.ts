@@ -73,24 +73,27 @@ export class MapService {
 
         }).done(data => {
 
-            const tempData = JSON.parse(data);
-            const dataArray = [];
-            tempData.forEach(entry => {
-                const createAt = entry.create_at.split('T')[0];
+            /*          const tempData = JSON.parse(data);
+                        const dataArray = [];
+                        tempData.forEach(entry => {
+                            const createAt = entry.create_at.split('T')[0];
 
-                if (dailyCount.hasOwnProperty(createAt)) {
-                    dailyCount[createAt]++;
-                } else {
-                    dailyCount[createAt] = 1;
-                }
+                            if (dailyCount.hasOwnProperty(createAt)) {
+                                dailyCount[createAt]++;
+                            } else {
+                                dailyCount[createAt] = 1;
+                            }
 
-                const leftTop = [entry.lat, entry.long];
-                dataArray.push([leftTop[0], leftTop[1], entry.create_at, entry.id, entry.text]);
-            });
+                            const leftTop = [entry.lat, entry.long];
+                            dataArray.push([leftTop[0], leftTop[1], entry.create_at, entry.id, entry.text,entry.image]);
+                        });
 
-            this.RecentTweetLoaded.emit(dataArray);
+                        this.RecentTweetLoaded.emit(dataArray);
+
+             */
+            this.RecentTweetLoaded.emit(JSON.parse(data));
         });
-    }
+    };
 
     getTemperatureData(): Observable<HeatMap[]> {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');

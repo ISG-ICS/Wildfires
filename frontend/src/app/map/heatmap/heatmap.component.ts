@@ -349,7 +349,6 @@ export class HeatmapComponent implements OnInit {
     }
 
     recentTweetLoadHandler = (data) => {
-        console.log('livetweetData')
         console.log(data)
 
 
@@ -357,7 +356,7 @@ export class HeatmapComponent implements OnInit {
             // still need username, userPhotoUrl,imageurl from database
             let tweetid = '';
             try {
-                tweetid = tweetJSON[3];
+                tweetid = tweetJSON.id;
             } catch (e) {
                 // tweetid missing in this Tweet.
             }
@@ -379,14 +378,14 @@ export class HeatmapComponent implements OnInit {
 
             let tweetText = '';
             try {
-                tweetText = tweetJSON[4];
+                tweetText = tweetJSON.text;
             } catch (e) {
                 //Text missing in this Tweet.
             }
 
             let tweetTime = '';
             try {
-                let createdAt = new Date(tweetJSON[2]);
+                let createdAt = new Date(tweetJSON.create_at);
                 tweetTime = createdAt.toISOString();
             } catch (e) {
                 //Time missing in this Tweet.
@@ -401,7 +400,7 @@ export class HeatmapComponent implements OnInit {
 
             let imageUrl = '';
             try {
-                imageUrl = tweetJSON[5];//'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'
+                imageUrl = tweetJSON.image; // 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'
             } catch (e) {
                 //imageLink missing in this Tweet.
             }
@@ -441,7 +440,7 @@ export class HeatmapComponent implements OnInit {
                     + "  </div>\n	"
                     + "      <img src=\""
                     + imageUrl
-                    + "\" onerror=\" this.src='/assets/images/default_pinicon.png'\" style=\"width: 250px; \">\n"
+                    + "\" onerror=\" this.src='http://www.defaulticon.com/images/icons32x32/alert-alt.png?itok=hIkRlO7s'\" style=\"width: 180px; \">\n"
                     + "</div>\n";
             }
             return tweetTemplate;
@@ -449,7 +448,7 @@ export class HeatmapComponent implements OnInit {
 
         const fireEventList = [];
         for (const ev of  data.slice(0, 200)) {
-            const point = [ev[0], ev[1]];
+            const point = [ev.lat, ev.long];
             const size = 12.5;
             const fireIcon = L.icon({
                 iconUrl: 'assets/image/perfectBird.gif',

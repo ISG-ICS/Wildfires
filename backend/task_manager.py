@@ -45,7 +45,7 @@ class TaskManager:
             # use json file to config the logger
             logging.config.dictConfig(config)
             logger = logging.getLogger('TaskManager')
-            info_format = '[%(asctime)s] [%(levelname)5s] [%(threadName)10s] [%(module)22s] [%(funcName)15s]: %(message)s'
+            info_format = '[%(asctime)s] [%(levelname)5s] [%(threadName)21s] [%(module)25s] [%(funcName)21s]: %(message)s'
             date_format = '%m/%d/%Y-%H:%M:%S'
             formatter = logging.Formatter(fmt=info_format, datefmt=date_format)
             handler_names = ['taskManager_info.log', 'taskManager_error.log']

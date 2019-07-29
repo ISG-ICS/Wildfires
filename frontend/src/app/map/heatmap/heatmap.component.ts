@@ -325,10 +325,24 @@ export class HeatmapComponent implements OnInit {
 
 
     clickPointHandler = (data) => {
-        let content_to_show: string;
-        content_to_show = 'Temperature Average: ' + data.tmp + '<br/>Solid Moisture Average: ' + data.soilw
+        const tmpTime = [];
+        const tmpValue = [];
+        for (const i of data.tmp) {
+            tmpTime.push(i[0]);
+            tmpValue.push(Number(i[1] - 273.15).toFixed(2));
+        }
+
+        const soilwTime = [];
+        const soilwValue = [];
+        for (const j of data.soilw) {
+            soilwTime.push(j[0]);
+            soilwValue.push(j[1].toFixed(3));
+        }
+
+        let contentToShow: string;
+        contentToShow = 'Temperature Average: ' + tmpValue + '<br/>Solid Moisture Average: ' + soilwValue
             + '<br/>All Historical Tweet Count: ' + data.cnt_tweet;
-        this.marker.bindPopup(content_to_show).openPopup();
+        this.marker.bindPopup(contentToShow).openPopup();
         this.marker.getPopup().on('remove', function () {
             this.map.removeLayer(this.marker);
         });

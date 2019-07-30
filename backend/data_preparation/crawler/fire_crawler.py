@@ -8,7 +8,7 @@ import datetime
 rootpath.append()
 
 from paths import FIRE_DATA_DIR, FIRE_PROGRESS_DIR
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
+from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 
 
 class FireCrawler(CrawlerBase):
@@ -26,7 +26,7 @@ class FireCrawler(CrawlerBase):
     Step 2: Get Nodes: Nodes pattern: fire_name
 
     """
-    def __init__(self, year, state):
+    def __init__(self):
         super().__init__()
         self.baseDir = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
         self.years = []
@@ -43,8 +43,7 @@ class FireCrawler(CrawlerBase):
     def extract_all_fires(self):
         """
         extract all fires on the website and return :
-        0: tuples of (trueyear,firename)
-        1: all links for these fires
+        tuples of (trueyear,firename)
         :return: list of tuples
         """
         current_year = datetime.datetime.now().date().year
@@ -54,21 +53,19 @@ class FireCrawler(CrawlerBase):
         # year_nodes are now fire data of a certain year or current year
         # e.g. '2010_fire_data', 'current_year_fire_data'
         fire = []
-        #fire_links = []
         for year_node in year_nodes:
             true_year = current_year if year_node == "current_year_fire_data" else int(year_node.split("_")[0])
             list_of_CA_fires = requests.get(url="{}{}/California/".format(self.baseDir, year_node)).content.decode("utf-8")
             re_formula = r'<A .*?>(\w*?)</A>'
             fires = re.findall(re_formula, list_of_CA_fires, re.S | re.M)
             fire += list(map(lambda f: (true_year, f), fires))
-            #fire_links += list(map(lambda f: "{}{}/California/{}".format(self.baseDir, year_node, f), fires))
         return fire
 
     def generate_url_from_tuple(self, fires:set, current_year:int):
         urls = []
         for t in fires:
             year_of_t = "current_year" if t[0] == current_year else str(t[0])
-            urls.append("{}{}_fire_data//California/{}".format(self.baseDir, year_of_t, t[1]))
+            urls.append("{}{}_fire_data/California/{}".format(self.baseDir, year_of_t, t[1]))
         return urls
 
     def crawl(self, url_to_crawl):
@@ -98,7 +95,13 @@ class FireCrawler(CrawlerBase):
                 wget.download(url=url_to_crawl + f, out=outpath)
         return
 
-
     def cleanup(self):
-        pass
-
+        """
+        clean up the temp data folder
+        Haven't been test yet since I don't know what right the runnable have
+        on the server
+        :return:
+        """
+        foldersToRemove = [os.path.join(FIRE_DATA_DIR, f) for f in os.listdir(FIRE_DATA_DIR)]
+        for f in foldersToRemove:
+            os.remove(f)

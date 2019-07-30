@@ -54,25 +54,21 @@ class DataFromNoaa(Runnable):
         # start to crawl
         for url in url_to_crawl:
             self.crawler.crawl(url)
-            for folder in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]:
-                absolute_path_folder = os.path.join(FIRE_DATA_DIR, folder)
-                self.extractor.extract(absolute_path_folder, folder)
+            # whether a record belongs to a sequence of fire is important
+            # set up a bool value of this purpose
+            if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
+            for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]:
+                # for a single fire, there can be multiple stages, which shows how this fire develops and dies out.
+                # each stage should be treated as a separate record
+                absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
+                single_record = self.extractor.extract(absolute_path_folder, record, if_sequence)
+                self.dumper.insert(single_record)
+            self.crawler.cleanup()
+
+        print("Fire information updated.")
+        return
 
 
 
 
-
-
-
-
-        if os.path.exists(FIRE_PROGRESS_DIR + "/crawler_history.txt"):
-            with open(FIRE_PROGRESS_DIR + "/crawler_history.txt") as history:
-                for line in history:
-                    pair = line.strip().split(",")
-                    self.explored_fire.add("{}{}/California/{}/".format(self.crawler.baseDir, pair[0], pair[1]))
-        # self.explored: a set of explored links
-        to_crawl = set(self.crawler.extract_all_fires()).difference(self.explored_fire)
-
-        for link in to_crawl:
-            self.crawler.crawl(link)
 

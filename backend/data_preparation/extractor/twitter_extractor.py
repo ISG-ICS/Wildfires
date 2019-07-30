@@ -33,11 +33,11 @@ class TweetExtractor(ExtractorBase):
 
                 # extracts (filters) the useful information
                 date_time: datetime = datetime.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y')
-                full_text: str = tweet.get("full_text").replace("'", "''")
+                full_text: str = tweet.get("full_text")
                 hashtags: List[str] = [tag['text'] for tag in tweet["hashtags"]]
                 profile_pic: str = tweet.get('user').get('profile_image_url')
-                screen_name: str = tweet.get('user').get('screen_name').replace("'", "''")
-                user_name: str = tweet.get('user').get('name').replace("'", "''")
+                screen_name: str = tweet.get('user').get('screen_name')
+                user_name: str = tweet.get('user').get('name')
                 created_date_time: datetime = datetime.strptime(tweet['user']["created_at"], '%a %b %d %H:%M:%S %z %Y')
                 followers_count: int = tweet.get('user').get('followers_count')
                 favourites_count: int = tweet.get('user').get('favourites_count')
@@ -45,10 +45,6 @@ class TweetExtractor(ExtractorBase):
                 user_id: int = tweet.get('user').get('id')
                 if tweet.get('user').get('geo_enabled') is True:
                     user_location: str = tweet.get('user').get('location')
-                    if user_location is not None:
-                        user_location.replace("'", "''")
-                    else:
-                        user_location: str = 'None'
                 else:
                     user_location: str = 'None'
                 statuses_count: int = tweet.get('user').get('statuses_count')

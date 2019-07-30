@@ -5,7 +5,7 @@ import string
 import requests
 import rootpath
 import twitter
-from flask import Blueprint, make_response, jsonify
+from flask import Blueprint, make_response, jsonify, request as flask_request
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
@@ -68,4 +68,42 @@ def send_recent_tweet_data():
                 "select r.create_at,l.top_left_long,l.top_left_lat,l.bottom_right_long,l.bottom_right_lat, l.id, "
                 "r.text from records r,locations l where r.id=l.id and r.create_at > NOW() - interval '3 day'")]))
 
+    return resp
+
+
+@bp.route('/region-tweet')
+def region_tweet():
+    region_id = int(flask_request.args.get('region_id'))
+    timestamp_str = flask_request.args.get('timestamp')
+    days = int(flask_request.args.get('days', 7))
+
+    query = '''
+    select date(rft.create_at), count(rft."id") from
+    (
+        SELECT id, create_at from records rec
+        where rec.create_at < TIMESTAMP '{timestamp}' -- UTC timezong
+        -- returning PDT without timezong label
+        and rec.create_at > TIMESTAMP '{timestamp}' - interval '{days} day'
+    ) as rft,
+    (
+        SELECT id from locations loc,
+        (
+            SELECT geom from us_states WHERE state_id={region_id}
+            union
+                SELECT geom from us_counties2 WHERE geoid={region_id}
+                union
+                SELECT geom from us_cities WHERE city_id={region_id}
+        ) as region
+        where st_contains(region.geom, st_makepoint(loc.top_left_long, loc.top_left_lat))
+    ) as gids
+    where rft."id"= gids."id"
+    GROUP BY date(rft.create_at)
+    '''
+
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
+        resp = make_response(jsonify(
+            [a_row for a_row in cur.fetchall()]
+        ))
     return resp

@@ -45,9 +45,9 @@ def send_boundaries_data():
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
 
-    select_states = "SELECT * from select_states_intersects(%s)"
-    select_counties = "SELECT * from select_counties_intersects(%s)"
-    select_cities = "SELECT * from select_cities_intersects(%s)"
+    select_states = "SELECT * from boundaries_states(%s)"
+    select_counties = "SELECT * from boundaries_counties(%s)"
+    select_cities = "SELECT * from boundaries_cities(%s)"
     poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat +-180
 
     with Connection() as conn:
@@ -70,9 +70,9 @@ def _get_geometry(cur, sql, poly) -> list:
     # FIXME: density is random...
 
     cur.execute(sql, (poly,))
-    return [{"type": "Feature",
+    return [{"type": "Feature", "id": _id,
              "properties": {"name": name, "density": random.random() * 1200},
-             "geometry": json.loads(geom)} for name, geom in cur.fetchall()]
+             "geometry": json.loads(geojson)} for _id, name, geojson, _ in cur.fetchall()]
 
 
 # abbreviation of states

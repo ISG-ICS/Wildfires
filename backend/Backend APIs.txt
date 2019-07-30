@@ -56,3 +56,20 @@ returns: json
 {lat: 39.25, lng: 287.75, temperature: 299},
 {lat: 39.25, lng: 289, temperature: 299},
  ... ]
+
+
+/data/region-temp
+/data/region-moisture
+/tweet/region-tweet
+    GET
+    region_id=2699
+    timestamp=2019-07-30T15:37:27Z (ISO timestamp, UTC)
+    days=7 (default=7)
+
+returns: json
+[
+    [timestamp, val],
+    [timestamp, val],
+    ...
+]
+

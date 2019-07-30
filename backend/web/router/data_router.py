@@ -39,6 +39,82 @@ def aggregation():
     return resp
 
 
+@bp.route('region-temp', methods=['GET'])
+def region_temp():
+    region_id = int(flask_request.args.get('region_id'))
+    timestamp_str = flask_request.args.get('timestamp')
+    days = int(flask_request.args.get('days', 7))
+
+    query = '''
+    select rft.reftime, avg(tmp) from noaa0p25 noaa,
+    (
+        SELECT reftime, tid from noaa0p25_reftime rft
+        where rft.reftime < TIMESTAMP '{timestamp}'
+        and rft.reftime > TIMESTAMP '{timestamp}' - interval '{days} day'
+    ) as rft,
+    (
+        SELECT geometry.gid from noaa0p25_geometry_neg geometry,
+        (
+            SELECT geom from us_states WHERE state_id={region_id}
+            union
+            SELECT geom from us_counties2 WHERE geoid={region_id}
+            union
+            SELECT geom from us_cities WHERE city_id={region_id}
+        ) as region
+        where st_contains(region.geom, geometry.geom)
+    ) as gids
+    where noaa.gid=gids.gid
+    and noaa.tid = rft.tid
+    GROUP BY rft.reftime
+    '''
+
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
+        resp = make_response(jsonify(
+            [a_row for a_row in cur.fetchall()]
+        ))
+    return resp
+
+
+@bp.route('region-moisture', methods=['GET'])
+def region_moisture():
+    region_id = int(flask_request.args.get('region_id'))
+    timestamp_str = flask_request.args.get('timestamp')
+    days = int(flask_request.args.get('days', 7))
+
+    query = '''
+    select rft.reftime, avg(soilw) from noaa0p25 noaa,
+    (
+        SELECT reftime, tid from noaa0p25_reftime rft
+        where rft.reftime < TIMESTAMP '{timestamp}'
+        and rft.reftime > TIMESTAMP '{timestamp}' - interval '{days} day'
+    ) as rft,
+    (
+        SELECT geometry.gid from noaa0p25_geometry_neg geometry,
+        (
+            SELECT geom from us_states WHERE state_id={region_id}
+            union
+            SELECT geom from us_counties2 WHERE geoid={region_id}
+            union
+            SELECT geom from us_cities WHERE city_id={region_id}
+        ) as region
+        where st_contains(region.geom, geometry.geom)
+    ) as gids
+    where noaa.gid=gids.gid
+    and noaa.tid = rft.tid
+    GROUP BY rft.reftime
+    '''
+
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
+        resp = make_response(jsonify(
+            [a_row for a_row in cur.fetchall()]
+        ))
+    return resp
+
+
 @bp.route("/temp", methods=['POST'])
 def temperature_in_screen():
     request_json = flask_request.get_json(force=True)
@@ -100,9 +176,9 @@ def rainfall():
 def send_temperature_data():
     # This sql gives the second lastest data for temperature within ractangle around US,
     # since the most lastest data is always updating (not completed)
-    temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t " \
-                                                 "where t.endtime = (select max(t.endtime) from recent_temperature t" \
-                                                 " where t.endtime <(select max(t.endtime) from recent_temperature t)) ")
+    temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t "
+                                                 "where t.endtime = (select max(t.endtime) from recent_temperature t"
+                                                 " where t.endtime <(select max(t.endtime) from recent_temperature t))")
 
     temperature_data_celsius = []  # format temp data into a dictionary structure
 

@@ -7,15 +7,17 @@ import * as $ from 'jquery';
 export class MapService {
 
     // Declare data events for components to action
-    tweetDataLoaded = new EventEmitter();
+    fireTweetDataLoaded = new EventEmitter();
     heatmapDataLoaded = new EventEmitter();
     timeseriesDataLoaded = new EventEmitter();
     fireEventDataLoaded = new EventEmitter();
     liveTweetLoaded = new EventEmitter();
     mapLoaded = new EventEmitter();
-
     temperatureDataLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
+    windDataLoaded = new EventEmitter();
+    searchDataLoaded = new EventEmitter();
+    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
 
     constructor() {
@@ -39,12 +41,30 @@ export class MapService {
         return matrix;
     }
 
-    getTweetsData(): void {
+
+    getHeatmapData(): void {
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/data/temp',
+            dataType: 'text',
+        }).done(data => {
+            const dataList = JSON.parse(data);
+            console.log(dataList);
+            const testData = {
+                max: 8,
+                data: dataList
+            };
+            this.heatmapDataLoaded.emit({heatmapData: testData});
+        });
+
+    }
+
+    getFireTweetData(): void {
         const chartData = [];
         const dailyCount = {};
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/tweets',
+            url: 'http://127.0.0.1:5000/tweet/fire-tweet',
             dataType: 'text',
         }).done(data => {
 
@@ -63,20 +83,21 @@ export class MapService {
                 dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
             });
 
-            // timebar
+            // time bar
             Object.keys(dailyCount).sort().forEach(key => {
                 chartData.push([new Date(key).getTime(), dailyCount[key]]);
             });
 
-            this.tweetDataLoaded.emit({tweetData: dataArray});
+            this.fireTweetDataLoaded.emit({tweetData: dataArray});
             this.timeseriesDataLoaded.emit({chartData});
         });
     }
 
     getWildfirePredictionData(): void {
+
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/wildfire_prediction',
+            url: 'http://127.0.0.1:5000/wildfire-prediction',
             dataType: 'text'
         }).done((data) => {
             const wildfire = JSON.parse(data).filter(entry => entry.nlp === true);
@@ -88,28 +109,67 @@ export class MapService {
         const that = this;
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/live_tweet'
+            url: 'http://127.0.0.1:5000/tweet/live-tweet'
         }).done((data) => {
             that.liveTweetLoaded.emit({data});
         });
         this.liveTweetCycle = setInterval(() => {
             $.ajax({
                 type: 'GET',
-                url: 'http://127.0.0.1:5000/live_tweet'
+                url: 'http://127.0.0.1:5000/tweet/live-tweet'
             }).done((data) => {
                 that.liveTweetLoaded.emit({data});
             });
         }, 20000);
     }
 
-    stopliveTweet(): void {
+    getWindData(): void {
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/data/wind'
+        }).done((data) => {
+            this.windDataLoaded.emit({data});
+
+        });
+    }
+
+    getSearch(userInput): void {
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/search',
+            data: {keyword: userInput},
+        }).done((data) => {
+            console.log('data', data);
+            this.searchDataLoaded.emit(data[0]);
+        });
+    }
+
+    // get administrative boundaries within screen
+    getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
+        $.ajax({
+            type: 'POST',
+            url: 'http://127.0.0.1:5000/search/boundaries',
+            data: JSON.stringify({
+                states: stateLevel,
+                cities: cityLevel,
+                counties: countyLevel,
+                northEast: northEastBoundaries,
+                southWest: southWestBoundaries,
+            })
+        }).done((data) => {
+
+            this.boundaryDataLoaded.emit({type: 'FeatureCollection', features: data});
+        });
+    }
+
+    stopLiveTweet(): void {
         window.clearInterval(this.liveTweetCycle);
     }
 
     getTemperatureData(): void {
         $.ajax({
             type: 'GET',
-            url: 'http://127.0.0.1:5000/recent-temp',
+            url: 'http://127.0.0.1:5000/data/recent-temp',
             dataType: 'text',
         }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
     }

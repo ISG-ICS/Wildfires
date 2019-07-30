@@ -363,7 +363,7 @@ export class HeatmapComponent implements OnInit {
 
             let userName = '';
             try {
-                userName = 'user';//tweetJSON[5];
+                userName = tweetJSON.user;//tweetJSON[5];
             } catch (e) {
                 // userName missing in this Tweet.
             }
@@ -371,7 +371,7 @@ export class HeatmapComponent implements OnInit {
             let userPhotoUrl = '';
             try {
                 //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
-                userPhotoUrl = 'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'//tweetJSON[6];
+                userPhotoUrl = tweetJSON.profilePic;//tweetJSON[6];
             } catch (e) {
                 // user.profile_image_url missing in this Tweet.
             }
@@ -447,7 +447,7 @@ export class HeatmapComponent implements OnInit {
         }
 
         const fireEventList = [];
-        for (const ev of  data.slice(0, 200)) {
+        for (const ev of  data.slice(0, 150)) {
             const point = [ev.lat, ev.long];
             const size = 12.5;
             const fireIcon = L.icon({

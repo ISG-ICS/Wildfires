@@ -1,6 +1,7 @@
 import inspect
 import json
 import logging.config
+import os
 import threading
 import time
 import traceback
@@ -8,7 +9,7 @@ import traceback
 import rootpath
 
 rootpath.append()
-from paths import LOG_CONFIG_PATH
+from paths import LOG_DIR, LOG_CONFIG_PATH
 
 # don't delete these imports because they're called implicitly
 exec("from backend.task import *")
@@ -41,6 +42,10 @@ class TaskManager:
     @staticmethod
     def initialize_logger():
         with open(LOG_CONFIG_PATH, 'r') as file:
+
+            # create path to save logs
+            if not os.path.exists(LOG_DIR):
+                os.makedirs(LOG_DIR)
             config = json.load(file)
             # use json file to config the logger
             logging.config.dictConfig(config)
@@ -51,7 +56,10 @@ class TaskManager:
             handler_names = ['taskManager_info.log', 'taskManager_error.log']
             current_time = time.strftime('%m%d%Y_%H:%M:%S_', time.localtime(time.time()))
             for handler_name in handler_names:
-                file_name = current_time + handler_name
+                file_name = os.path.join(LOG_DIR, current_time + handler_name)
+                # create log file in advance
+                if not os.path.exists(file_name):
+                    os.system(r"touch {}".format(file_name))
                 file_handler = logging.FileHandler(file_name, mode='a', encoding=None, delay=False)
                 file_handler.setLevel(
                     logging.DEBUG if handler_name.split('.')[0].split('_')[-1] == 'info' else logging.ERROR)
@@ -167,15 +175,19 @@ class TaskManager:
         args = []
         arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
         arg_types = inspect.getfullargspec(self.task_options[task_prompt][1]).annotations
-
+        arg_default = inspect.getfullargspec(self.task_options[task_prompt][1]).defaults
         if arg_types != {}:
-            for arg in arguments:
+            for i, arg in enumerate(arguments):
                 if arg == 'self':
                     continue
                 # argument value passed by user
-                passed_arg = input(arg + "(" + str(arg_types[arg].__name__) + "): ")
+                passed_arg = input(
+                    arg + "(" + str(arg_types[arg].__name__) + ", default: " + str(arg_default[i - 1]) + "): ")
+                if passed_arg == "":
+                    # use the default value, the default value set doesn't include self, so use i-1 instead
+                    converted_arg = arg_default[i - 1]
                 # convert argument's type as required
-                if arg_types[arg].__name__ == 'list':
+                elif arg_types[arg] in (list, bool):
                     converted_arg = eval(passed_arg)
                 else:
                     converted_arg = arg_types[arg](passed_arg)

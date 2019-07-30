@@ -175,7 +175,7 @@ class TaskManager:
                 # argument value passed by user
                 passed_arg = input(arg + "(" + str(arg_types[arg].__name__) + "): ")
                 # convert argument's type as required
-                if arg_types[arg].__name__ == 'list':
+                if arg_types[arg] in [list, bool]:
                     converted_arg = eval(passed_arg)
                 else:
                     converted_arg = arg_types[arg](passed_arg)

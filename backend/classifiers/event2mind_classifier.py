@@ -1,3 +1,4 @@
+import logging
 from typing import Union, Dict, List, Tuple, Optional
 
 import rootpath
@@ -9,6 +10,8 @@ from backend.classifiers.classifierbase import ClassifierBase
 from backend.data_preparation.dumper.event2mind_dumper import Event2MindDumper
 from backend.data_preparation.connection import Connection
 import paths
+
+logger = logging.getLogger('TaskManager')
 
 
 class Event2MindClassifier(ClassifierBase):
@@ -51,9 +54,9 @@ class Event2MindClassifier(ClassifierBase):
             try:
                 self.model = Predictor.from_path(paths.EVENT2MIND_MODEL_PATH)
             except FileNotFoundError:
-                print(f"Downloading event2mind model {self.URL_EVENT2MIND} to {paths.EVENT2MIND_MODEL_PATH}")
+                logger.info(f"Downloading event2mind model {self.URL_EVENT2MIND} to {paths.EVENT2MIND_MODEL_PATH}")
                 wget.download(self.URL_EVENT2MIND, paths.EVENT2MIND_MODEL_PATH)
-                print("Done!")
+                logger.info("Done!")
                 self.model = Predictor.from_path(paths.EVENT2MIND_MODEL_PATH)
 
     def predict(self, text: str, target: Optional[int] = None) -> Union[Dict, List, Tuple]:

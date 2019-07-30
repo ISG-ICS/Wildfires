@@ -1,7 +1,8 @@
-from typing import List, Dict
 import datetime
+import logging
+import traceback
+from typing import List, Dict
 
-import psycopg2
 import rootpath
 
 rootpath.append()
@@ -9,6 +10,8 @@ rootpath.append()
 from backend.data_preparation.connection import Connection
 
 from backend.data_preparation.dumper.dumperbase import DumperBase
+
+logger = logging.getLogger('TaskManager')
 
 
 class TweetDumper(DumperBase):
@@ -25,10 +28,10 @@ class TweetDumper(DumperBase):
 
             if data['top_left'] is not None and data['bottom_right'] is not None:
                 location_string += f"({data['id']}, {data['top_left'][1]}, {data['top_left'][0]}, " \
-                    f"{data['bottom_right'][1]}, {data['bottom_right'][0]}), "
+                                   f"{data['bottom_right'][1]}, {data['bottom_right'][0]}), "
                 self.inserted_locations_count += 1
             record_string += f"({data['id']}, '{data['date_time']}', '{data['text']}', " \
-                f"'{', '.join(data['hashtags']) if data['hashtags'] else None}'), "
+                             f"'{', '.join(data['hashtags']) if data['hashtags'] else None}'), "
             self.inserted_count += 1
         record_string = record_string[:-2]
         location_string = location_string[:-2]
@@ -40,7 +43,7 @@ class TweetDumper(DumperBase):
                     f"insert into records (id, create_at, text, hash_tag) values {record_string} "
                     f"on conflict (id) do nothing;")
         except Exception:
-            pass
+            logger.error('error: ' + traceback.format_exc())
 
         try:
             # makes sure that the line after 'values' is not empty, and no error exists
@@ -49,7 +52,7 @@ class TweetDumper(DumperBase):
                     f"insert into locations (id, top_left_lat,top_left_long,bottom_right_lat,bottom_right_long) "
                     f"values {location_string} on conflict (id) do nothing;")
         except Exception:
-            pass
+            logger.error('error: ' + traceback.format_exc())
 
     def report_status(self):
         return self.inserted_count, self.inserted_locations_count

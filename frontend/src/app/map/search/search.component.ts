@@ -23,7 +23,6 @@ export class SearchComponent implements OnInit {
     private mainControl;
     private geojson;
     private userInput;
-    private globalData;
     private theHighlightMarker;
     private theSearchMarker;
 
@@ -61,7 +60,7 @@ export class SearchComponent implements OnInit {
         const listWithFixedLL = [];
         if (data !== null) {
             // list will be converted because of the lat and lon are misplaced
-            for (const item of data[0].coordinates[0]) {
+            for (const item of data.coordinates[0]) {
                 listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
             }
             this.map.fitBounds(listWithFixedLL); // fits map according to the given fixed boundary list
@@ -101,34 +100,25 @@ export class SearchComponent implements OnInit {
         let showCityLevel, showStateLevel, showCountyLevel;
 
         // the boundary display with zoom levels is defined arbitrarily
-        switch (true) {
-            case (zoom < SearchComponent.STATE_LEVEL_ZOOM):
-                showCityLevel = false;
-                showCountyLevel = false;
-                showStateLevel = true;
-                break;
-            case (zoom >= SearchComponent.STATE_LEVEL_ZOOM && zoom < SearchComponent.COUNTY_LEVEL_ZOOM):
-                showCityLevel = false;
-                showCountyLevel = true;
-                showStateLevel = true;
-                break;
-            case (zoom >= SearchComponent.COUNTY_LEVEL_ZOOM):
-                showCityLevel = true;
-                showCountyLevel = true;
-                showStateLevel = true;
-                break;
-            default:
-                showCityLevel = false;
-                showCountyLevel = false;
-                showStateLevel = false;
-                break;
+        if (zoom < SearchComponent.STATE_LEVEL_ZOOM) {
+            showCityLevel = false;
+            showCountyLevel = false;
+            showStateLevel = true;
+        } else if (zoom < SearchComponent.COUNTY_LEVEL_ZOOM) {
+            showCityLevel = false;
+            showCountyLevel = true;
+            showStateLevel = true;
+        } else {
+            showCityLevel = true;
+            showCountyLevel = true;
+            showStateLevel = true;
         }
+
+
         this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW);
     }
 
     getBoundaryScreenDataHandler = (data) => {
-        // receives data from the database
-        this.globalData = data;
 
         // do nothing if checkbox is not checked
         if (!this.map.hasLayer(this.geojson) && this.geojson) {

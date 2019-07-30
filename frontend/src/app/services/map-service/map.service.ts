@@ -140,7 +140,7 @@ export class MapService {
             data: {keyword: userInput},
         }).done((data) => {
             console.log('data', data);
-            this.searchDataLoaded.emit(data);
+            this.searchDataLoaded.emit(data[0]);
         });
     }
 

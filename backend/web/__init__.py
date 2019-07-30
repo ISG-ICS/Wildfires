@@ -7,6 +7,7 @@ import router.search_router
 import router.tweet_router
 
 rootpath.append()
+# TODO: change model loading
 from backend.classifiers.nltktest import NLTKTest  # must import NLTKTest before root_router
 
 nl: NLTKTest  # to avoid NLTKTest importation being optimized by IDE

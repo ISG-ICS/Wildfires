@@ -1,7 +1,7 @@
 import json
 import random
-import rootpath
 
+import rootpath
 from flask import Blueprint, make_response, jsonify, request as flask_request
 
 rootpath.append()
@@ -48,7 +48,7 @@ def send_boundaries_data():
     select_states = "SELECT * from select_states_intersects(%s)"
     select_counties = "SELECT * from select_counties_intersects(%s)"
     select_cities = "SELECT * from select_cities_intersects(%s)"
-    poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat
+    poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat +-180
 
     with Connection() as conn:
         cur = conn.cursor()

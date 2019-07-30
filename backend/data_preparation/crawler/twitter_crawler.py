@@ -70,9 +70,9 @@ class TweetCrawler(CrawlerBase):
         logger.info("crawled: " + str(len(self.crawled_id_set)))
         if not fetch_from_db:
             # crawl status ids
-            print("TOTAL CRAWLED COUNT", self.total_crawled_count)
+            logger.info("TOTAL CRAWLED COUNT", self.total_crawled_count)
             self.crawled_id_set = self._crawl_tweet_ids()
-            print("crawled", len(self.crawled_id_set))
+            logger.info("crawled", len(self.crawled_id_set))
 
             while len(self.crawled_id_set) < batch_number:
                 # loops until the number of id collected is greater than the batch number
@@ -87,7 +87,7 @@ class TweetCrawler(CrawlerBase):
         else:
             # reprocess the crawled status ids that are stored in db
             ids = next(self.id_generator)
-            print('ids taken from db length', len(ids))
+            logger.info('ids taken from db length', len(ids))
         try:
             self.data = self.api.GetStatuses(ids)
             # reset the set to empty so that the id will not accumulate

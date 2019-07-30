@@ -1,4 +1,6 @@
+torch
 matplotlib
+deprecated
 beautifulsoup4
 selenium
 wget
@@ -14,3 +16,4 @@ pandas
 nltk==3.4.3
 numpy==1.16.4
 psycopg2==2.8.3
+timeout-decorator

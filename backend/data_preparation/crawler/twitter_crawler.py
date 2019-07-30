@@ -1,6 +1,8 @@
+import logging
 import re
 import string
 import time
+import traceback
 from typing import List, Set, Union, Dict
 
 import requests
@@ -17,13 +19,14 @@ from backend.data_preparation.dumper.dumperbase import DumperBase, DumperExcepti
 from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
 from utilities.ini_parser import parse
 
-api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
+logger = logging.getLogger('TaskManager')
 
 
 class TweetCrawler(CrawlerBase):
 
     def __init__(self, extractor: ExtractorBase = None, dumper: DumperBase = None):
         super().__init__(extractor, dumper)
+        self.api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
         self.data = []
         self.keywords = []
         self.total_crawled_count = 0
@@ -34,8 +37,10 @@ class TweetCrawler(CrawlerBase):
 
         if not self.extractor:
             raise ExtractorException('Extractor not found')
+            logger.error('Extractor not found')
         if not self.dumper:
             raise DumperException('Dumper not found')
+            logger.error('Dumper not found')
 
         # TODO: check for exceptions raised from extractor and dumper
 
@@ -52,9 +57,9 @@ class TweetCrawler(CrawlerBase):
 
     def crawl(self, keywords: List, batch_number) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
-        print("TOTAL CRAWLED COUNT", self.total_crawled_count)
+        logger.info("TOTAL CRAWLED COUNT: " + str(self.total_crawled_count))
         self.crawled_id_set = self._crawl_tweet_ids()
-        print("crawled", len(self.crawled_id_set))
+        logger.info("crawled: " + str(len(self.crawled_id_set)))
 
         while len(self.crawled_id_set) < batch_number:
             # loops until the number of id collected is greater than the batch number
@@ -62,16 +67,16 @@ class TweetCrawler(CrawlerBase):
             time.sleep(10)
             self.crawled_id_set.update(self._crawl_tweet_ids())
             if len(self.crawled_id_set) > current_count:
-                print("crawled", len(self.crawled_id_set))
+                logger.info("crawled: " + str(len(self.crawled_id_set)))
 
         # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
         ids = list(self.crawled_id_set)
         try:
-            self.data = api.GetStatuses(ids)
+            self.data = self.api.GetStatuses(ids)
             # reset the set to empty so that the id will not accumulate
             # in the case that the twitter API works
-        except Exception as err:
-            print(err)
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
             # in this case the collected twitter id will be recorded and tried again next time
         else:
             self.crawled_id_set.clear()
@@ -96,6 +101,7 @@ class TweetCrawler(CrawlerBase):
                     f'\"%20within%3A8000mi&l=en&src=typd', headers=headers)
 
             except requests.exceptions.RequestException:
+                logger.error('error: ' + traceback.format_exc())
                 continue
                 # Clears all punctuation from raw response body
             content = str(resp.content).translate(str.maketrans("", "", string.punctuation))

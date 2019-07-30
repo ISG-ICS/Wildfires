@@ -2,10 +2,9 @@ from enum import Enum, auto
 
 import requests
 import rootpath
+import timeout_decorator
 
 rootpath.append()
-
-from utilities.decorators import timeout
 
 
 class MediaURL(Enum):
@@ -18,7 +17,7 @@ class MediaURL(Enum):
 class URLClassifier:
 
     @staticmethod
-    @timeout(5)
+    @timeout_decorator.timeout(5, use_signals=False)
     def classify(short_link) -> MediaURL:
         # function returns the type of the link, 3 is tweet, 4 is ins, 5 is others
         expanded_url = requests.get(short_link).url

@@ -93,7 +93,7 @@ class Connection:
                 cursor.close()
 
     @staticmethod
-    def sql_execute_commit(sql: str) -> None:
+    def sql_execute_commit(sql: object) -> object:
         """to execute and commit an SQL query"""
         # logger.info(f"SQL: {sql}")
         with Connection() as connection:

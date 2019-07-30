@@ -46,6 +46,7 @@ class FireExtractor(ExtractorBase):
         result = dict()
 
         # read the shp
+        #!!!!record need to be fixed since some files are not the same name as their folders
         shp = shapefile.Reader(path + "/" + record)
 
         # fill result dict based on the format for this year

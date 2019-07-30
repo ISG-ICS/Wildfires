@@ -16,7 +16,7 @@ from backend.data_preparation.dumper.fire_dumper import FireDumper
 
 
 
-class DataFromNoaa(Runnable):
+class DataFromFire(Runnable):
     """run once per day/week/, not any time"""
     def __init__(self):
         self.crawler = FireCrawler()
@@ -40,7 +40,7 @@ class DataFromNoaa(Runnable):
             os.makedirs(FIRE_DATA_DIR)
 
         # check all links
-        all_fire_tuples, all_fire_links = self.crawler.extract_all_fires()
+        all_fire_tuples = self.crawler.extract_all_fires()
 
         # check for crawled fires from database
         crawled = set(self.dumper.retrieve_all_fires())
@@ -67,6 +67,8 @@ class DataFromNoaa(Runnable):
 
         print("Fire information updated.")
         return
+
+
 
 
 

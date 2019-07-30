@@ -3,7 +3,11 @@ import os
 import signal
 from functools import wraps
 
+from deprecated import deprecated
 
+
+@deprecated(reason="this does not work with multi-threading. Please use @timeout_decorator.timeout(using_signals = "
+                   "False) instead")
 def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
     def decorator(func):
         def _handle_timeout(signum, frame):

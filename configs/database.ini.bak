@@ -1,0 +1,6 @@
+[postgresql]
+host = cloudberry05.ics.uci.edu
+database = testdb
+user = tester
+password = testpassword
+port = 5432

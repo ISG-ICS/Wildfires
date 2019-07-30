@@ -107,7 +107,7 @@ class ImageClassifier(ClassifierBase):
         elif self.model_type == ImageClassifier.RESNET_MODEL:
             return tuple(self.prettify(torch.topk(percentages, 2)))
 
-    def train(self, train_path: str, val_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
+    def train(self, train_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
         """train model"""
         train_loader = ImageClassifier.load_dataloader(train_path, ImageClassifier.TRAIN_MODE)
         model = models.resnet50(pretrained=True, progress=True)
@@ -273,10 +273,20 @@ if __name__ == '__main__':
     prediction_result = image_classifier.predict('https://pbs.twimg.com/media/De1Oc7XU8AA5JcO.jpg')
     print(prediction_result)
 
-    # train model, parameters are path of train dataset and validation dataset
-    train_path = "/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/train"
-    val_path = "/Users/wangyutong/PycharmProjects/wildfire_prediction/Data/val"
-    model = image_classifier.train(train_path, val_path)
+    # train model, parameters are path of training dataset and validation dataset
+
+    # Instructions on making image dataset:
+    #   To create training dataset and validation dataset for tweet images, first make a directory named image_dataset in ROOTDIR/data/ ,
+    #   within ROOTDIR/data/image_dataset, make 2 directories named train and val,
+    #   then in both train and val, make 2 directories called "wildfire" and "not-wildfire", put images into them respectively.
+    # Example(numbers below are for example, the more images the better):
+    #   put 400 wildfire images into ROOTDIR/data/image_dataset/train/wildfire
+    #   put 400 not wildfire images into ROOTDIR/data/image_dataset/train/not-wildfire
+    #   put another 100 wildfire images into ROOTDIR/data/image_dataset/val/wildfire
+    #   put another 100 not wildfire images into ROOTDIR/data/image_dataset/val/not-wildfire
+    train_path = paths.IMAGE_TRAIN_PATH
+    val_path = paths.IMAGE_VAL_PATH
+    model = image_classifier.train(train_path)
 
     # save the model locally
     image_classifier.save_model(model, modelname="ResNet50.ckpt")

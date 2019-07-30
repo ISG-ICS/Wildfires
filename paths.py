@@ -32,3 +32,7 @@ TWEET_IMAGES_DIR = os.path.join(ROOT_DIR, 'data/tweet_images')
 MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend/models/')
 
 BOUNDARY_PATH = os.path.join(ROOT_DIR, 'data/boundaries')
+
+IMAGE_TRAIN_PATH = os.path.join(ROOT_DIR, 'data/image_dataset/train')
+
+IMAGE_VAL_PATH = os.path.join(ROOT_DIR, 'data/image_dataset/val')

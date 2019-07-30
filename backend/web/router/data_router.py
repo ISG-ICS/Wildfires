@@ -29,9 +29,9 @@ def aggregation():
 
         cur.execute(query_tweet, (lng, lat, radius))  # lng lat
         tweet = cur.fetchone()
-        cur.execute(query2_temp, (lat, lng % 360, radius))
+        cur.execute(query2_temp, (lng, lat, radius))
         temp = cur.fetchone()
-        cur.execute(query3_mois, (lat, lng % 360, radius))
+        cur.execute(query3_mois, (lng, lat, radius))
         mois = cur.fetchone()
         resp = make_response(jsonify({'tmp': temp[0] - 273.15, 'soilw': mois[0], 'cnt_tweet': tweet[0]}))
 
@@ -107,10 +107,12 @@ def send_temperature_data():
     temperature_data_celsius = []  # format temp data into a dictionary structure
 
     for row in temperature_fetch:
-        temperature_object = {}
-        temperature_object["lat"] = row[0]
-        temperature_object["long"] = row[1] % (-360)  # convert longtitude range
-        temperature_object["temp"] = row[2] - 273.15  # change temp into celsius
+        temperature_object = {
+            "lat": row[0],
+            "long": row[1] % (-360),  # convert longtitude range
+            "temp": row[2] - 273.15,  # change temp into celsius
+        }
+
         temperature_data_celsius.append(temperature_object)
 
     temperature_data_us = points_in_us(temperature_data_celsius)  # restrict data within US boundary.

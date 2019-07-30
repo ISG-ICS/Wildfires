@@ -22,7 +22,7 @@ export class HeatmapComponent implements OnInit {
     private liveTweetMarkers;
     private liveTweetIdSet = new Set();
     private map;
-    private switchStatus = 0;
+    private switchStatus = false;
 
     // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
@@ -119,16 +119,16 @@ export class HeatmapComponent implements OnInit {
     };
 
 
-    liveTweetSwitchHandler = (_) => {
-        if (this.switchStatus === 1) {
+    liveTweetSwitchHandler = () => {
+        if (this.switchStatus === true) {
             this.liveTweetLayer.clearLayers();
             this.mapService.stopLiveTweet();
-            this.switchStatus = 0;
+            this.switchStatus = false;
             return;
         }
         this.mapService.getLiveTweetData();
         this.mapService.liveTweetLoaded.subscribe(this.liveTweetDataHandler);
-        this.switchStatus = 1;
+        this.switchStatus = true;
     };
 
     liveTweetDataHandler = (data) => {

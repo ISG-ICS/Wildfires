@@ -4,6 +4,7 @@ import traceback
 from typing import List, Dict
 
 import rootpath
+from psycopg2 import extras
 
 rootpath.append()
 
@@ -18,41 +19,61 @@ class TweetDumper(DumperBase):
     def __init__(self):
         super().__init__()
         self.inserted_locations_count = 0
+        self.inserted_count = 0
 
     def insert(self, data_list: List[Dict]) -> None:
         """inserts the given list into the database"""
-
-        location_string = ""
-        record_string = ""
+        # construct sql statement to insert data into the records db table
+        tuples_records = []
         for data in data_list:
-
-            if data['top_left'] is not None and data['bottom_right'] is not None:
-                location_string += f"({data['id']}, {data['top_left'][1]}, {data['top_left'][0]}, " \
-                                   f"{data['bottom_right'][1]}, {data['bottom_right'][0]}), "
-                self.inserted_locations_count += 1
-            record_string += f"({data['id']}, '{data['date_time']}', '{data['text']}', " \
-                             f"'{', '.join(data['hashtags']) if data['hashtags'] else None}'), "
+            tuples_records += [(data['id'], data['date_time'], data['full_text'],
+                                ', '.join(data['hashtags']) if data['hashtags'] else None, data['profile_pic'],
+                                data['created_date_time'], data['screen_name'], data['user_name'],
+                                data['followers_count'],
+                                data['favourites_count'], data['friends_count'], data['user_id'], data['user_location'],
+                                data['statuses_count'])]
             self.inserted_count += 1
-        record_string = record_string[:-2]
-        location_string = location_string[:-2]
-
+        logger.info(f'data inserted into records {self.inserted_count}')
         try:
-            # makes sure that the line after 'values' is not empty, and no error exists
-            if record_string:
-                Connection().sql_execute_commit(
-                    f"insert into records (id, create_at, text, hash_tag) values {record_string} "
-                    f"on conflict (id) do nothing;")
-        except Exception:
-            logger.error('error: ' + traceback.format_exc())
+            with Connection() as connection:
+                cur = connection.cursor()
+                if tuples_records:
+                    extras.execute_values(cur,
+                                          f"insert into records (id,create_at, text, hash_tag,profile_pic,created_date_time,screen_name,"
+                                          f"user_name,followers_count,favourites_count,friends_count,user_id,user_location,statuses_count"
+                                          f") values %s "
+                                          f"ON CONFLICT(id) DO UPDATE set text = excluded.text, profile_pic = excluded.profile_pic, "
+                                          f"screen_name = excluded.screen_name, user_name = excluded.user_name, "
+                                          f"followers_count = excluded.followers_count, favourites_count = excluded.favourites_count, "
+                                          f"friends_count= excluded.friends_count, user_id= excluded.user_id, user_location= excluded.user_location, "
+                                          f" statuses_count= excluded.statuses_count;", tuples_records)
+                # if the data is fetched from db and reprocessed, the values will be updated with the help of the ON CONFLICT DO UPDATE
+                # if the data is just crawled, the sql statement will just simply insert data into db
+                connection.commit()
+                cur.close()
+        except Exception as err:
+            logger.error(str(err) + traceback.format_exc())
 
+        # construct sql statement to insert data into the locations db table
+        tuples_locations: list[tuple] = []
+        for data in data_list:
+            if data['top_left'] is not None and data['bottom_right'] is not None:
+                tuples_locations += [(data['id'], data['top_left'][1], data['top_left'][0], data['bottom_right'][1],
+                                      data['bottom_right'][0])]
+                self.inserted_locations_count += 1
+        logger.info(f'data inserted into locations {self.inserted_locations_count}')
         try:
-            # makes sure that the line after 'values' is not empty, and no error exists
-            if location_string:
-                Connection().sql_execute_commit(
-                    f"insert into locations (id, top_left_lat,top_left_long,bottom_right_lat,bottom_right_long) "
-                    f"values {location_string} on conflict (id) do nothing;")
-        except Exception:
-            logger.error('error: ' + traceback.format_exc())
+            with Connection() as connection:
+                cur = connection.cursor()
+                if tuples_locations:
+                    extras.execute_values(cur,
+                                          f"insert into locations (id, top_left_lat, top_left_long, bottom_right_lat,"
+                                          f"bottom_right_long) values %s "
+                                          f"ON CONFLICT(id) DO NOTHING;", tuples_locations)
+                connection.commit()
+                cur.close()
+        except Exception as err:
+            logger.error(str(err) + traceback.format_exc())
 
     def report_status(self):
         return self.inserted_count, self.inserted_locations_count

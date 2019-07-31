@@ -2,6 +2,7 @@ import datetime
 import json
 from datetime import datetime
 from typing import List, Optional, Dict
+
 import rootpath
 
 rootpath.append()
@@ -32,8 +33,21 @@ class TweetExtractor(ExtractorBase):
 
                 # extracts (filters) the useful information
                 date_time: datetime = datetime.strptime(tweet["created_at"], '%a %b %d %H:%M:%S %z %Y')
-                text: str = tweet["text"].replace("'", "''")
+                full_text: str = tweet.get("full_text")
                 hashtags: List[str] = [tag['text'] for tag in tweet["hashtags"]]
+                profile_pic: str = tweet.get('user').get('profile_image_url')
+                screen_name: str = tweet.get('user').get('screen_name')
+                user_name: str = tweet.get('user').get('name')
+                created_date_time: datetime = datetime.strptime(tweet['user']["created_at"], '%a %b %d %H:%M:%S %z %Y')
+                followers_count: int = tweet.get('user').get('followers_count')
+                favourites_count: int = tweet.get('user').get('favourites_count')
+                friends_count: int = tweet.get('user').get('friends_count')
+                user_id: int = tweet.get('user').get('id')
+                if tweet.get('user').get('geo_enabled') is True:
+                    user_location: str = tweet.get('user').get('location')
+                else:
+                    user_location: str = 'None'
+                statuses_count: int = tweet.get('user').get('statuses_count')
                 if tweet.get('place') is not None:
                     top_left, _, bottom_right, _ = tweet["place"]['bounding_box']['coordinates'][0]
 
@@ -42,8 +56,13 @@ class TweetExtractor(ExtractorBase):
                     # where the geolocation does not exist
 
                 self.data.append(
-                    {'id': id, 'date_time': date_time, 'text': text, 'hashtags': hashtags, 'top_left': top_left,
-                     'bottom_right': bottom_right})
+                    {'id': id, 'date_time': date_time, 'full_text': full_text, 'hashtags': hashtags,
+                     'top_left': top_left,
+                     'bottom_right': bottom_right, 'profile_pic': profile_pic, 'screen_name': screen_name,
+                     'user_name': user_name, 'created_date_time': created_date_time, 'followers_count': followers_count,
+                     'favourites_count': favourites_count, 'friends_count': friends_count, 'user_id': user_id,
+                     'user_location': user_location, 'statuses_count': statuses_count})
+
         return self.data
         # stores self.data and returns a reference of it
 

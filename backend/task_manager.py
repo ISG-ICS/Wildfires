@@ -187,7 +187,9 @@ class TaskManager:
                     # use the default value, the default value set doesn't include self, so use i-1 instead
                     converted_arg = arg_default[i - 1]
                 # convert argument's type as required
+
                 elif arg_types[arg] in (list, bool):
+
                     converted_arg = eval(passed_arg)
                 else:
                     converted_arg = arg_types[arg](passed_arg)

@@ -5,6 +5,8 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import * as Highcharts from 'highcharts';
+
 import {SearchService} from '../../services/search/search.service';
 import {FireTweetLayer} from '../layers/FireTweetLayer';
 import {WindLayer} from '../layers/WindLayer';
@@ -323,26 +325,106 @@ export class HeatmapComponent implements OnInit {
         }
     }
 
-
     clickPointHandler = (data) => {
+        console.log(data)
+
+        function drawChart(timeArray, tempArray, moistureArray) {
+            Highcharts.chart('container', {
+                title: {
+                    text: '',
+                },
+                chart: {
+                    zoomType: 'x',
+                    style: {
+                        fontSize: '10px',
+                    },
+                },
+                xAxis: {
+                    categories: timeArray,
+                    crosshair: true,
+                },
+                plotOptions: {
+                    series: {
+                        allowPointSelect: true,
+                    }
+                },
+                yAxis: [{ // Primary yAxis
+                    labels: {
+                        format: '{value}°C',
+                        style: {
+                            color: Highcharts.getOptions().colors[1],
+                            fontSize: '8px',
+                        }
+                    },
+                    title: {
+                        text: '',
+                    }
+                }, { // Secondary yAxis
+                    title: {
+                        text: '',
+                    },
+                    labels: {
+                        format: '{value} mm',
+                        style: {
+                            color: Highcharts.getOptions().colors[0],
+                            fontSize: '8px',
+                        }
+                    },
+                    opposite: true
+                }],
+                tooltip: {
+                    shared: true,
+                },
+                series: [{
+                    name: 'Rainfall',
+                    type: 'spline',
+                    yAxis: 1,
+                    data: moistureArray,
+                    tooltip: {
+                        valueSuffix: ' mm'
+                    },
+                    showInLegend: false
+
+                }, {
+                    name: 'Temperature',
+                    type: 'spline',
+                    data: tempArray,
+                    yAxis: 0,
+                    tooltip: {
+                        valueSuffix: '°C'
+                    },
+                    showInLegend: false
+                }]
+            });
+        }
+
         const tmpTime = [];
         const tmpValue = [];
         for (const i of data.tmp) {
             tmpTime.push(i[0]);
-            tmpValue.push(Number(i[1] - 273.15).toFixed(2));
+            tmpValue.push(i[1]);
+            //tmpValue.push(Number(i[1] - 273.15).toFixed(2));
         }
 
         const soilwTime = [];
         const soilwValue = [];
         for (const j of data.soilw) {
             soilwTime.push(j[0]);
-            soilwValue.push(j[1].toFixed(3));
+            soilwValue.push(j[1]);
+            //soilwValue.push(j[1].toFixed(3));
         }
 
         let contentToShow: string;
         contentToShow = 'Temperature Average: ' + tmpValue + '<br/>Solid Moisture Average: ' + soilwValue
             + '<br/>All Historical Tweet Count: ' + data.cnt_tweet;
-        this.marker.bindPopup(contentToShow).openPopup();
+
+        const chartContents = '<div id="container" style="width: 300px; height: 150px;"></div>'
+        ;
+
+        this.marker.bindPopup(chartContents).openPopup();
+        drawChart(tmpTime, tmpValue, soilwValue);
+        console.log(tmpTime, tmpValue, soilwValue);
+        //drawChart([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7]);
         this.marker.getPopup().on('remove', function () {
             this.map.removeLayer(this.marker);
         });

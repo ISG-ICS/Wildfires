@@ -48,8 +48,8 @@ class Connection:
     @deprecated(reason="__call__ will no longer be provided in future, please always use context manager (with)")
     def __call__(*args, **kwargs):
         """returns a newly created connection, which is not maintained by the _pool"""
-        # TODO: remove temporary database.ini.bak after removing deprecated function
-        connection = psycopg2.connect(*args, **parse(DATABASE_CONFIG_PATH + '.bak', 'postgresql'), **kwargs)
+        connection = psycopg2.connect(*args, **parse(DATABASE_CONFIG_PATH, 'postgresql',
+                                                     unwanted_fields=["minconn", "maxconn"]), **kwargs)
         Connection.get_connection_status(connection)
         return connection
 
@@ -73,7 +73,7 @@ class Connection:
     @staticmethod
     def sql_execute(sql: str) -> Generator[Tuple[Any], None, None]:
         """to execute an SQL query and iterate the output"""
-        # logger.info(f"SQL: {sql}")
+        logger.info(f"SQL: {sql}")
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             logger.error("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
                          "sql_execute_commit")
@@ -93,9 +93,9 @@ class Connection:
                 cursor.close()
 
     @staticmethod
-    def sql_execute_commit(sql: str) -> None:
+    def sql_execute_commit(sql: object) -> object:
         """to execute and commit an SQL query"""
-        # logger.info(f"SQL: {sql}")
+        logger.info(f"SQL: {sql}")
         with Connection() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)

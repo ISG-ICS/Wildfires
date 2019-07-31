@@ -125,6 +125,6 @@ class Event2MindDumper(DumperBase):
                 eid = self.insert_into_reactions(token)
             self.insert_into_pairs(record_id, eid, probabilities[i], table_name)
 
-    # TO DO:
+    # TODO:
     def batch_insert(self):
         pass

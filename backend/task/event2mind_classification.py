@@ -20,10 +20,18 @@ class Event2MindClassification(Runnable):
         # set up event2mind dumper
         event2mind_dumper = Event2MindDumper()
 
-        sql = "SELECT id, text  from records " \
-              "where id not in (SELECT record_id from intent_in_records)" \
-              "or id not in (SELECT record_id from reaction_x_in_records) " \
-              "or id not in (SELECT record_id from reaction_y_in_records)"
+        # set sql statement according to target, do not select records which have already been classified
+        if target == Event2MindClassifier.X_INTENT:
+            sql = "SELECT id, text  from records where id not in (SELECT record_id from intent_in_records)"
+        elif target == Event2MindClassifier.X_REACTION:
+            sql = "SELECT id, text  from records where id not in (SELECT record_id from reaction_x_in_records)"
+        elif target == Event2MindClassifier.Y_REACTION:
+            sql = "SELECT id, text  from records where id not in (SELECT record_id from reaction_y_in_records)"
+        else:
+            sql = "SELECT id, text  from records " \
+                  "where id not in (SELECT record_id from intent_in_records)" \
+                  "and id not in (SELECT record_id from reaction_x_in_records) " \
+                  "and id not in (SELECT record_id from reaction_y_in_records)"
 
         for id, text in Connection().sql_execute(sql):
             # get prediction result of text
@@ -37,7 +45,7 @@ if __name__ == '__main__':
 
     # get from database one record a time, use event2mind model to predict and dump results to database
     # specify what to get & dump: X_INTENT or X_REACTION or Y_REACTION
-    e2mClassification.run(Event2MindClassifier.X_INTENT)
+    e2mClassification.run(target=Event2MindClassifier.X_INTENT)
 
     # if no specification, get & dump three of them:
     e2mClassification.run()

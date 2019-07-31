@@ -1,4 +1,3 @@
-for searching:
 /search
 parameters:
 	keyword=CA
@@ -7,12 +6,12 @@ returns: json
 {"type":"Polygon","coordinates":[[[-123.233256,42.006186],[-122.378853,42.011663],[-121.037003,41.995232],[-120.001861,41.995232], ..., [-123.233256,42.006186]]]}
 
 
-for zooming/ moving:
-/boundaries
+/search/boundaries
 parameters: json
 {
-	"states":True/False, 
-	"cities", True/False,
+	"states":true/false, 
+	"cities": true/false,
+	"counties": true/false,
 	"northEast":{"lat":43.389, "lon": -100.415}, 
 	"southWest":{"lat": 29.305,"lon":-141.100}
 }
@@ -28,7 +27,21 @@ returns: json
 
 ]
 
-/temp
+/data/aggregation
+post, parameters: json
+{
+	"lat":
+	"lon":
+	"radius":
+}
+returns: json
+{
+	"tmp": 0,
+	"soilw": 0,
+	"cnt_tweet":
+}
+
+/data/temp
 post, parameters: json
 {
     "tid":2019071900,
@@ -38,7 +51,7 @@ post, parameters: json
 }
 
 returns: json
-[ 
+[
 {lat: 39.25, lng: 285.75, temperature: 301},
 {lat: 39.25, lng: 287.75, temperature: 299},
 {lat: 39.25, lng: 289, temperature: 299},

@@ -14,7 +14,7 @@ logger = logging.getLogger('TaskManager')
 
 class ImageClassification(Runnable):
 
-    def run(self, model_type: str):
+    def run(self, model_type: str = ImageClassifier.RESNET_MODEL):
         """get image_id and image_url from database and dump prediction results into database"""
         # set up image classifier
         image_classifier = ImageClassifier(model_type)

@@ -22,7 +22,7 @@ export class HeatmapComponent implements OnInit {
     private liveTweetMarkers;
     private liveTweetIdSet = new Set();
     private map;
-    private switchStatus = 0;
+    private switchStatus = false;
 
     // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
@@ -67,7 +67,7 @@ export class HeatmapComponent implements OnInit {
 
         this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
-        this.mapService.mapLoaded.emit(this.map);
+        this.mapService.mapLoaded.emit([this.map, this.mainControl]);
         // Generate coordinate in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;
@@ -84,8 +84,8 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
 
         // Get tweets data from service
-        this.mapService.getTweetsData();
-        this.mapService.tweetDataLoaded.subscribe(this.tweetDataHandler);
+        this.mapService.getFireTweetData();
+        this.mapService.fireTweetDataLoaded.subscribe(this.tweetDataHandler);
 
         // Get fire events data from service
         this.mapService.getWildfirePredictionData();
@@ -119,16 +119,16 @@ export class HeatmapComponent implements OnInit {
     };
 
 
-    liveTweetSwitchHandler = (_) => {
-        if (this.switchStatus === 1) {
+    liveTweetSwitchHandler = () => {
+        if (this.switchStatus === true) {
             this.liveTweetLayer.clearLayers();
-            this.mapService.stopliveTweet();
-            this.switchStatus = 0;
+            this.mapService.stopLiveTweet();
+            this.switchStatus = false;
             return;
         }
         this.mapService.getLiveTweetData();
         this.mapService.liveTweetLoaded.subscribe(this.liveTweetDataHandler);
-        this.switchStatus = 1;
+        this.switchStatus = true;
     };
 
     liveTweetDataHandler = (data) => {

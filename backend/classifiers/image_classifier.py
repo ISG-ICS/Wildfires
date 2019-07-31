@@ -108,24 +108,32 @@ class ImageClassifier(ClassifierBase):
             return tuple(self.prettify(torch.topk(percentages, 2)))
 
     def train(self, train_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
-        """train model"""
+        """train ResNet model"""
+        # 1. build data loader for training dataset from the path train_path.
         train_loader = ImageClassifier.load_dataloader(train_path, ImageClassifier.TRAIN_MODE)
+
+        # 2. set up the resnet model from the library
         model = models.resnet50(pretrained=True, progress=True)
+
+        # 3. set up the loss object and optimizer
         loss_fn = nn.CrossEntropyLoss()
         optimizer = optim.RMSprop(model.parameters(), lr=ImageClassifier.LEARNING_RATE)
 
+        # 4. train on several epoch based on the value of EPOCH
         for epoch in range(num_epochs):
             print('Starting epoch %d / %d' % (epoch + 1, num_epochs))
             model.train()
             for t, (x, y) in enumerate(train_loader):
                 x_var = Variable(x)
                 y_var = Variable(y.long())
-
+                # forward training
                 scores = model(x_var)
                 loss = loss_fn(scores, y_var)
                 print('t = %d, loss = %.4f' % (t + 1, loss.item()))
                 optimizer.zero_grad()
+                # backward propagation
                 loss.backward()
+                # optimize parameters
                 optimizer.step()
         return model
 

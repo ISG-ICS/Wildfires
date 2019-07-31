@@ -222,36 +222,59 @@ class TaskManager:
                 stop_task_prompt = input("(if you don't want to break the loop, enter anything else to continue)\n")
                 stop_task_prompt = int(stop_task_prompt)
                 self.stop_loop(self.running_threads[stop_task_prompt][1])
+                print("Task " + str(self.running_threads[stop_task_prompt][1]) + " has been stopped!\n")
             except:
                 print("Skipped, no task been terminated\n ")
-            task_prompt = input("Which task would you like to run:\n" + self.task_option_to_string() + " [q]: quit\n")
-            task_prompt = task_prompt.strip()
-            task_prompt = task_prompt.lower()
-            if task_prompt == 'q':
-                break
-            else:
-                task_prompt = int(task_prompt)
 
-            loop_prompt = input(
-                "Would you like to run task in a loop? yes/no ([y]/[n]) or [q] for quit\n").strip().lower()
-
-            if loop_prompt == 'q':
+            break_flag = False  # flag to terminate the TaskManager
+            while True:
+                try:
+                    task_prompt = input(
+                        "Which task would you like to run:\n" + self.task_option_to_string() + " [q]: quit\n")
+                    task_prompt = task_prompt.strip()
+                    task_prompt = task_prompt.lower()
+                    if task_prompt == 'q':
+                        break_flag = True
+                        break
+                    else:
+                        task_prompt = int(task_prompt)
+                        # to test whether this is a legal task
+                        arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
+                        break
+                except:
+                    continue
+            if break_flag:
                 break
-            elif loop_prompt == 'y':
-                task_loop = True
-                interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
-            elif loop_prompt == 'n':
-                interval_prompt = 0
-            try:
-                interval_prompt = int(interval_prompt)
-                args = self.pass_arguments(task_prompt)
-                self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
-                # Increment number of user specified task
-                self.task_options[task_prompt][2] += 1
-                print("Your task is running!")
-            except Exception:
-                logger.error('error: ' + traceback.format_exc())
-                print("[Error] Your input is not all correct, the task has not started")
+
+            break_flag = False
+            while True:
+                loop_prompt = input(
+                    "Would you like to run task in a loop? yes/no ([y]/[n]) or [q] for quit\n").strip().lower()
+                if loop_prompt == 'q':
+                    break_flag = True
+                    break
+                elif loop_prompt == 'y':
+                    task_loop = True
+                    interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
+                elif loop_prompt == 'n':
+                    interval_prompt = 0
+                else:
+                    continue
+                try:
+                    interval_prompt = int(interval_prompt)
+                    args = self.pass_arguments(task_prompt)
+                    self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
+                    # Increment number of user specified task
+                    self.task_options[task_prompt][2] += 1
+                    print("Your task is running!")
+                    break
+                except:
+                    logger.error('error: ' + traceback.format_exc())
+                    print("[Error] Your input is not all correct, the task has not started")
+                    continue
+
+            if break_flag:
+                break
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+import ctypes
 import inspect
 import json
 import logging.config
@@ -128,12 +129,22 @@ class TaskManager:
                 cls.running_threads.remove(th)
 
     @classmethod
-    def stop_loop(cls, thread_name):
+    def stop_thread(cls, thread_name):
         """Stops a looping function that was started with ThM.run(...)"""
         for i, thlis in enumerate(cls.running_threads):
             if thlis[1] == thread_name:
                 cls.running_threads[i][2] = False
+                cls.running_threads.remove(thlis)
+                exc = ctypes.py_object(SystemExit)
+                res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+                    ctypes.c_long(cls.running_threads[i][0].ident), exc)
+                if res == 0:
+                    raise ValueError("nonexistent thread id")
+                elif res > 1:
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i][0].ident, None)
+                    raise SystemError("PyThreadState_SetAsyncExc failed")
                 logger.info('TASK ' + cls.running_threads[i][1] + ' KILLED!')
+                # TaskManager.free_dead()
                 break
 
     @classmethod
@@ -202,42 +213,38 @@ class TaskManager:
 
     def main_loop(self):
         task_loop = False
+        print("#" * 80)
+        print("#" + "".center(78, " ") + "#")
+        print("#" + "".center(78, " ") + "#")
+        print("#" + "Welcome to wildfire Task Manager".center(78, " ") + "#")
+        print("#" + "Update: Bind task options to task_manager class".center(78, " ") + "#")
+        print("#" + "Version 0.2".center(78, " ") + "#")
+        print("#" + "Credit to Unicorn".center(78, " ") + "#")
+        print("#" + "".center(78, " ") + "#")
+        print("#" + "".center(78, " ") + "#")
+        print("#" * 80)
+
         while True:
-            print("#" * 80)
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "Welcome to wildfire Task Manager".center(78, " ") + "#")
-            print("#" + "Update: Bind task options to task_manager class".center(78, " ") + "#")
-            print("#" + "Version 0.2".center(78, " ") + "#")
-            print("#" + "Credit to Unicorn".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" + "".center(78, " ") + "#")
-            print("#" * 80)
-
-            # Clear finished thread
-            self.free_dead()
-            print("You have following task running in loop: ")
-            for i, thread in enumerate(self.running_threads):
-                if thread[2]:
-                    print("[%d]: %s" % (i, thread[1]))
-            print("\nEnter the task Number to stop the task:")
-            try:
-                stop_task_prompt = input("(if you don't want to break the loop, enter anything else to continue)\n")
-                stop_task_prompt = int(stop_task_prompt)
-                self.stop_loop(self.running_threads[stop_task_prompt][1])
-                print("Task " + str(self.running_threads[stop_task_prompt][1]) + " has been stopped!\n")
-            except:
-                print("Skipped, no task been terminated\n ")
-
-            break_flag = False  # flag to terminate the TaskManager
             while True:
+                # Clear finished thread
+                self.free_dead()
+                print("You have following task running: ")
+                for i, thread in enumerate(self.running_threads):
+                    # if thread[2]:
+                    print("[%d]: %s" % (i, thread[1]))
+                kill_thread_flag = False  # flag to kill thread
+                quit_flag = False  # flag to terminate the TaskManager
                 try:
                     task_prompt = input(
-                        "Which task would you like to run:\n" + self.task_option_to_string() + " [q]: quit\n")
+                        "\nWhich task would you like to run:\n" + self.task_option_to_string()
+                        + " [k]: kill running threads\n [q]: quit\n")
                     task_prompt = task_prompt.strip()
                     task_prompt = task_prompt.lower()
-                    if task_prompt == 'q':
-                        break_flag = True
+                    if task_prompt == 'k':
+                        kill_thread_flag = True
+                        break
+                    elif task_prompt == 'q':
+                        quit_flag = True
                         break
                     else:
                         task_prompt = int(task_prompt)
@@ -246,37 +253,47 @@ class TaskManager:
                         break
                 except:
                     continue
-            if break_flag:
+
+            if quit_flag:
                 break
 
-            break_flag = False
-            while True:
-                loop_prompt = input(
-                    "Would you like to run task in a loop? yes/no ([y]/[n]) or [q] for quit\n").strip().lower()
-                if loop_prompt == 'q':
-                    break_flag = True
-                    break
-                elif loop_prompt == 'y':
-                    task_loop = True
-                    interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
-                elif loop_prompt == 'n':
-                    interval_prompt = 0
-                else:
-                    continue
+            if not kill_thread_flag:
+                while True:
+                    loop_prompt = input(
+                        "Would you like to run task in a loop? yes/no ([y]/[n])\n").strip().lower()
+                    if loop_prompt == 'y':
+                        task_loop = True
+                        interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
+                    elif loop_prompt == 'n':
+                        interval_prompt = 0
+                    else:
+                        continue
+                    try:
+                        interval_prompt = int(interval_prompt)
+                        args = self.pass_arguments(task_prompt)
+                        self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
+                        # Increment number of user specified task
+                        self.task_options[task_prompt][2] += 1
+                        print("Task " + str(self.task_options[task_prompt][0]) + " has been started!\n")
+                        break
+                    except:
+                        print("Your input is not all correct, the task has not started, please try again")
+                        continue
+
+            else:
+                print("You have following tasks running: ")
+                for i, thread in enumerate(self.running_threads):
+                    # if thread[2]:
+                    print("[%d]: %s" % (i, thread[1]))
+                print("\nEnter the task Number to stop the task:")
                 try:
-                    interval_prompt = int(interval_prompt)
-                    args = self.pass_arguments(task_prompt)
-                    self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
-                    # Increment number of user specified task
-                    self.task_options[task_prompt][2] += 1
-                    print("Task " + str(self.task_options[task_prompt][0]) + " has been started!\n")
-                    break
+                    stop_task_prompt = input(
+                        "(if you don't want to kill any thread, enter anything else to continue)\n")
+                    stop_task_prompt = int(stop_task_prompt)
+                    self.stop_thread(self.running_threads[stop_task_prompt][1])
+                    print("Task " + str(self.running_threads[stop_task_prompt][1]) + " has been stopped!\n")
                 except:
-                    print("Your input is not all correct, the task has not started, please try again")
-                    continue
-
-            if break_flag:
-                break
+                    print("Skipped, no task been terminated\n ")
 
 
 if __name__ == "__main__":

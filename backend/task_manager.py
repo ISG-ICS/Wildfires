@@ -157,18 +157,21 @@ class TaskManager:
         """Internal function handling the running and looping of the threads
         Note: threading.Event() has not been taken into consideration and neither the
         other thread managing objects (semaphores, locks, etc.)"""
-        index_ = 0
-        for thread_ in cls.running_threads[:]:
-            if th_name == thread_[1]:
-                break
-            index_ += 1
-        logger.info('TASK ' + th_name + ' START!')
-        target_func(*args)
-        logger.info('TASK ' + th_name + ' END!')
-        while cls.running_threads[index_][2]:
-            if interval != 0:
-                time.sleep(interval)
+        try:
+            index_ = 0
+            for thread_ in cls.running_threads[:]:
+                if th_name == thread_[1]:
+                    break
+                index_ += 1
+            logger.info('TASK ' + th_name + ' START!')
             target_func(*args)
+            logger.info('TASK ' + th_name + ' END!')
+            while cls.running_threads[index_][2]:
+                if interval != 0:
+                    time.sleep(interval)
+                target_func(*args)
+        except:
+            logger.error("error: " + traceback.format_exc())
 
     def pass_arguments(self, task_prompt):
         """get function run()'s arguments and let user to enter the arguments, then return the argument list args"""
@@ -266,11 +269,10 @@ class TaskManager:
                     self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
                     # Increment number of user specified task
                     self.task_options[task_prompt][2] += 1
-                    print("Your task is running!")
+                    print("Task " + str(self.task_options[task_prompt][0]) + " has been started!\n")
                     break
                 except:
-                    logger.error('error: ' + traceback.format_exc())
-                    print("[Error] Your input is not all correct, the task has not started")
+                    print("Your input is not all correct, the task has not started, please try again")
                     continue
 
             if break_flag:

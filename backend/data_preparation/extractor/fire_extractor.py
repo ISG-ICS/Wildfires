@@ -48,14 +48,18 @@ class FireExtractor(ExtractorBase):
         # read the shp
         #!!!!record need to be fixed since some files are not the same name as their folders
         shp = shapefile.Reader(path + "/" + record)
-
+        print(shp.record(0))
         # fill result dict based on the format for this year
         if year < 2016:
             # FIRE_NAME, DATE_:  datetime.date(2014, 9, 11), TIME_: 0129, AGENCY: USFS or NULL
             result["firename"] = shp.record(0)["FIRE_NAME"].capitalize()
             result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
-            result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"]) + \
-                                                            shp.records()[0]['TIME_'], '%m%d%Y%H%M')
+            try:
+                result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"]) + \
+                                                            shp.record(0)['TIME_'], '%m%d%Y%H%M')
+            except ValueError:
+                result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"] + datetime.timedelta(days=1)) + \
+                                                                "0000", '%m%d%Y%H%M')
         else:
             if year < 2019:
                 # fireName, perDatTime(maybe just date but no time), agency(might be null)
@@ -73,6 +77,7 @@ class FireExtractor(ExtractorBase):
         result["geopolygon"] = shp.shapeRecord(0).shape.points
         result["year"] = year
         result["if_sequence"] = if_sequence
+        print(result)
         return result
 
     def export(self, file_type: str, file_name: str):

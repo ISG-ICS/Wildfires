@@ -40,13 +40,19 @@ class DataFromFire(Runnable):
             os.makedirs(FIRE_DATA_DIR)
 
         # check all links
+        print("Detecting all links...")
         all_fire_tuples = self.crawler.extract_all_fires()
+        print("Num of links:", len(all_fire_tuples))
 
         # check for crawled fires from database
+        print("Retrieving histore fires...")
         crawled = set(self.dumper.retrieve_all_fires())
+        print("Num of historical links:", len(crawled))
 
         # get the difference between all links and crawled
+        print("Calculating the difference...")
         to_crawl = set(all_fire_tuples).difference(crawled)
+        print("Num of new links:", len(to_crawl))
 
         # generate the final list of urls to crawl
         url_to_crawl = self.crawler.generate_url_from_tuple(to_crawl,current_year)

@@ -5,6 +5,7 @@ import rootpath
 import wget
 import os
 import datetime
+import shutil
 rootpath.append()
 
 from paths import FIRE_DATA_DIR, FIRE_PROGRESS_DIR
@@ -92,7 +93,7 @@ class FireCrawler(CrawlerBase):
                     os.makedirs(FIRE_DATA_DIR + "/" + foldername)
                     print("Downloading: {}...".format(foldername))
                 outpath = FIRE_DATA_DIR + "/" + foldername + "/"
-                wget.download(url=url_to_crawl + f, out=outpath)
+                wget.download(url=url_to_crawl + "/" + f, out=outpath)
         return
 
     def cleanup(self):
@@ -102,6 +103,9 @@ class FireCrawler(CrawlerBase):
         on the server
         :return:
         """
+        print("Cleaning up the temp folder...")
         foldersToRemove = [os.path.join(FIRE_DATA_DIR, f) for f in os.listdir(FIRE_DATA_DIR)]
         for f in foldersToRemove:
-            os.remove(f)
+            if f.__contains__(".DS"):
+                continue
+            shutil.rmtree(f)

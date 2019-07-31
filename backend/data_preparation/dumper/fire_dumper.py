@@ -35,6 +35,7 @@ class FireDumper(DumperBase):
         cur.execute(self.sql_check_if_history_table_exists)
         tables = cur.fetchall()
         if len(tables) == 0:
+            print("No history table exists. Creating a new one.")
             cur.execute(FireDumper.sql_create_history_table)
             conn.commit()
         cur.close()
@@ -48,6 +49,7 @@ class FireDumper(DumperBase):
         cur.execute(self.sql_check_if_fire_info_table_exists)
         tables = cur.fetchall()
         if len(tables) == 0:
+            print("No info table exists. Creating a new one.")
             cur.execute(FireDumper.sql_create_fire_info_table)
             conn.commit()
         cur.close()
@@ -65,6 +67,7 @@ class FireDumper(DumperBase):
         return result
 
     def insert(self, info: dict):
+        print("Inserting fire:",info["firename"],info["datetime"])
         s = "("
         for t in info["geopolygon"]:
             s += "({},{}),".format(t[0], t[1])
@@ -78,4 +81,5 @@ class FireDumper(DumperBase):
             cur.execute(self.sql_count_records)
             self.inserted_count = cur.fetchone()[0]
             cur.close()
+        print("Finished inserting file:",info["firename"],info["datetime"])
 

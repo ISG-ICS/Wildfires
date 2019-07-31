@@ -144,7 +144,6 @@ class TaskManager:
                     ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i][0].ident, None)
                     raise SystemError("PyThreadState_SetAsyncExc failed")
                 logger.info('TASK ' + cls.running_threads[i][1] + ' KILLED!')
-                # TaskManager.free_dead()
                 break
 
     @classmethod
@@ -292,6 +291,8 @@ class TaskManager:
                     stop_task_prompt = int(stop_task_prompt)
                     self.stop_thread(self.running_threads[stop_task_prompt][1])
                     print("Task " + str(self.running_threads[stop_task_prompt][1]) + " has been stopped!\n")
+                except SystemExit:
+                    pass
                 except:
                     print("Skipped, no task been terminated\n ")
 

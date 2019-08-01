@@ -74,11 +74,37 @@ class FireExtractor(ExtractorBase):
                 result["datetime"] = datetime.datetime.strptime(shp.record(0)['DATECRNT'], '%m/%d/%Y %I:%M:%S %p') if \
                     len(shp.record(0)['DATECRNT']) > 11 else datetime.datetime.strptime(shp.record(0)['DATECRNT'], '%m/%d/%Y')
 
+        #result["geopolygon"] = self.generate_geom_script(self.separate_multipart_shape(shp.shapeRecord(0).shape.points))
         result["geopolygon"] = shp.shapeRecord(0).shape.points
         result["year"] = year
         result["if_sequence"] = if_sequence
         print(result)
         return result
+
+    def separate_multipart_shape(self,multipartshape):
+        separated_shapes = []
+        shown_points = set()
+        current_shape = []
+        for point in multipartshape:
+            current_shape.append(point)
+            if point in shown_points:
+                print("endpoint:", point)
+                separated_shapes.append(current_shape)
+                current_shape = list()
+                shown_points = set()
+            shown_points.add(point)
+        print(separated_shapes)
+        return separated_shapes
+
+    def generate_geom_script(self, separated_shapes):
+        result = "MULTIPOLYGON("
+        for shape in separated_shapes:
+            result += "(("
+            for point in shape:
+                result += "{} {}, ".format(point[0],point[1])
+            result = result[:-2] + ")),"
+        print(result[:-1] + ")")
+        return result[:-1] + ")"
 
     def export(self, file_type: str, file_name: str):
         return

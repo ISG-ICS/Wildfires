@@ -102,21 +102,3 @@ if __name__ == "__main__":
 
             param_dict[u_l_param[i2]] = values_dict
         time_dict[u_l_time[i1]] = param_dict
-    pass
-
-
-
-"""
-{
-    "07/19/2019":{
-        "ppt":{
-            (120.1234,100.1234):2.5
-        }
-    },{
-        "name" : "tmax",
-        "values":{
-            "geo":(lat, lon.1234),
-            "value":2.3
-        }
-}
-"""

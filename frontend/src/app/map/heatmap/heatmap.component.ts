@@ -57,6 +57,19 @@ export class HeatmapComponent implements OnInit {
     //private circle;
     private marker;
 
+
+    private currentBounds = null;
+    private scale_x = 0;
+    private scale_y = 0;
+    private current_point = {'lat': 0, 'lng': 0};
+    private currentMarker = null;
+    private points = [];
+    private pointIDs = [];
+    private mouseOverPointI = 0;
+
+    private tempData = [];
+
+
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
@@ -114,6 +127,7 @@ export class HeatmapComponent implements OnInit {
 
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
+        $(window).on('timeRangeChange', this.IntentOnMap);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -124,6 +138,7 @@ export class HeatmapComponent implements OnInit {
 
         this.mapService.getRecentTweetData();
         this.mapService.RecentTweetLoaded.subscribe(this.recentTweetLoadHandler);
+
     }
 
     getBoundary = () => {
@@ -177,14 +192,211 @@ export class HeatmapComponent implements OnInit {
 
 
     timeRangeChangeHandler = (event, data) => {
-        const tempData = [];
+        this.tempData = [];
         this.tweetData.forEach(entry => {
             if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
-                tempData.push([entry[0], entry[1]]);
+                this.tempData.push([entry[0], entry[1]]);
             }
         });
-        this.tweetLayer.setData(tempData);
+        this.tweetLayer.setData(this.tempData);
     };
+
+    IntentOnMap = (event, data) => {
+        // Create a new event called "mouseintent" by listening to "mousemove".
+        this.map.on('mousemove', onMapMouseMove);
+        const that = this;
+        let timer = null;
+
+        // If user hang the mouse cursor for 300ms, fire a "mouseintent" event.
+        function onMapMouseMove(e) {
+            const duration = 300;
+            if (timer !== null) {
+                clearTimeout(timer);
+                timer = null;
+            }
+            timer = setTimeout(L.Util.bind(function () {
+                this.fire('mouseintent', {
+                    latlng: e.latlng,
+                    layer: e.layer
+                });
+                timer = null;
+            }, this), duration);
+        }
+
+
+        this.map.on('mouseintent', onMapMouseIntent);
+
+        function onMapMouseIntent(e) {
+            console.log(that.tempData);
+            //
+            // for (const point of that.tempData) {
+            //     if ((e.latlng.lat - point[0] <= 0.0001) && (e.latlng.lng - point[1] <= 0.0001)) {
+            //             console.log('Hi');
+            //             that.current_point.lat = point[0];
+            //             that.current_point.lng = point[1];
+            //             break;
+            //         }
+            // };
+            //
+            // //(1) If previous Marker is not null, destroy it.
+            // if (that.currentMarker != null) {
+            //   that.map.removeLayer(that.currentMarker);
+            // }
+            // //(2)
+            // that.currentMarker = L.circleMarker(that.current_point, {
+            //     radius: 6,
+            //     color: "#0d3e99",
+            //     weight: 3,
+            //     fillColor: "#b8e3ff",
+            //     fillOpacity: 1.0
+            // }).addTo(that.map);
+            // const pop = L.popup()
+            //                 .setLatLng(that.current_point)
+            //                 .setContent('<p>Hello world!<br />This is a nice popup.</p>')
+            //                 .openOn(that.map);
+
+
+            // make sure the scale metrics are updated
+            if (that.currentBounds === null || that.scale_x === 0 || that.scale_y === 0) {
+                that.currentBounds = that.map.getBounds();
+                that.scale_x = Math.abs(that.currentBounds.getEast()
+                    - that.currentBounds.getWest());
+                that.scale_y = Math.abs(that.currentBounds.getNorth()
+                    - that.currentBounds.getSouth());
+            }
+
+            let i = isMouseOverAPoint(e.latlng.lat, e.latlng.lng);
+
+            //if mouse over a new point, show the Popup Tweet!
+            if (i >= 0 && that.mouseOverPointI != i) {
+                that.mouseOverPointI = i;
+                // (1) If previous Marker is not null, destroy it.
+                if (that.currentMarker != null) {
+                    that.map.removeLayer(that.currentMarker);
+                }
+                // (2) Create a new Marker to highlight the point.
+                that.currentMarker = L.circleMarker(e.latlng, {
+                    radius: 6,
+                    color: "#0d3e99",
+                    weight: 3,
+                    fillColor: "#b8e3ff",
+                    fillOpacity: 1.0
+                }).addTo(that.map);
+                // send the query to cloudberry using string format.
+                // I will sent corrodinate and time range to backend, to get a random tweet setisfy the requirement of this coord and range
+                let passID = "" + that.pointIDs[i];
+                // cloudberry.pinMapOneTweetLookUpQuery(passID);
+            }
+        }
+
+        function isMouseOverAPoint(x, y) {
+            for (var i = 0; i < that.tempData.length; i += 1) {
+                var dist_x = Math.abs((that.tempData[i][0] - x) / that.scale_x);
+                var dist_y = Math.abs((that.tempData[i][1] - y) / that.scale_y);
+                if (dist_x <= 0.001 && dist_y <= 0.001) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+
+    }
+
+
+    translateTweetDataToShow(tweetJSON) {
+        // still need username, userPhotoUrl,imageurl from database
+        let tweetid = '';
+        try {
+            tweetid = tweetJSON.id;
+        } catch (e) {
+            // tweetid missing in this Tweet.
+        }
+
+        let userName = '';
+        try {
+            userName = tweetJSON.user;//tweetJSON[5];
+        } catch (e) {
+            // userName missing in this Tweet.
+        }
+
+        let userPhotoUrl = '';
+        try {
+            //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
+            userPhotoUrl = tweetJSON.profilePic;//tweetJSON[6];
+        } catch (e) {
+            // user.profile_image_url missing in this Tweet.
+        }
+
+        let tweetText = '';
+        try {
+            tweetText = tweetJSON.text;
+        } catch (e) {
+            //Text missing in this Tweet.
+        }
+
+        let tweetTime = '';
+        try {
+            let createdAt = new Date(tweetJSON.create_at);
+            tweetTime = createdAt.toISOString();
+        } catch (e) {
+            //Time missing in this Tweet.
+        }
+
+        let tweetLink = '';
+        try {
+            tweetLink = 'https://twitter.com/' + userName + '/status/' + tweetid;
+        } catch (e) {
+            //tweetLink missing in this Tweet.
+        }
+
+        let imageUrl = '';
+        try {
+            imageUrl = tweetJSON.image; // 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'
+        } catch (e) {
+            //imageLink missing in this Tweet.
+        }
+
+        let tweetTemplate;
+
+        //handles exceptions:
+        if (tweetText === '' || null || undefined) {
+            tweetTemplate = "\n"
+                + "<div>"
+                + "Fail to get Tweets data."
+                + "</div>\n";
+        } else {
+            //presents all the information.
+            tweetTemplate = "\n"
+                + "<div class=\"tweet\">\n "
+                + "  <div class=\"tweet-body\">"
+                + "    <div class=\"user-info\"> "
+                + "      <img src=\""
+                + userPhotoUrl
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJIsOFUYD9y2r12OzjDoEe5I1uhhF-gfVj5WGIqg8MzNBVzSogRw'\" style=\"width: 32px; display: inline; \">\n"
+                + "      <span class=\"name\" style='color: #0e90d2; font-weight: bold'> "
+                + userName
+                + "      </span> "
+                + "    </div>\n	"
+                + "    <span class=\"tweet-time\" style='color: darkgray'>"
+                + tweetTime
+                + "    <br></span>\n	 "
+                + "    <span class=\"tweet-text\" style='color: #0f0f0f'>"
+                + tweetText
+                + "    </span><br>\n	 "
+                + "\n <a href=\""
+                + tweetLink
+                + "\"> "
+                + tweetLink
+                + "</a>"
+                + "  </div>\n	"
+                + "      <img src=\""
+                + imageUrl
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"width: 180px; \">\n"
+                + "</div>\n";
+        }
+        return tweetTemplate;
+    }
 
     fireEventHandler = (data) => {
 
@@ -328,81 +540,11 @@ export class HeatmapComponent implements OnInit {
     clickPointHandler = (data) => {
         console.log(data)
 
-        function drawChart(timeArray, tempArray, moistureArray) {
-            Highcharts.chart('container', {
-                title: {
-                    text: '',
-                },
-                chart: {
-                    zoomType: 'x',
-                    style: {
-                        fontSize: '10px',
-                    },
-                },
-                xAxis: {
-                    categories: timeArray,
-                    crosshair: true,
-                },
-                plotOptions: {
-                    series: {
-                        allowPointSelect: true,
-                    }
-                },
-                yAxis: [{ // Primary yAxis
-                    labels: {
-                        format: '{value}°C',
-                        style: {
-                            color: Highcharts.getOptions().colors[1],
-                            fontSize: '8px',
-                        }
-                    },
-                    title: {
-                        text: '',
-                    }
-                }, { // Secondary yAxis
-                    title: {
-                        text: '',
-                    },
-                    labels: {
-                        format: '{value} mm',
-                        style: {
-                            color: Highcharts.getOptions().colors[0],
-                            fontSize: '8px',
-                        }
-                    },
-                    opposite: true
-                }],
-                tooltip: {
-                    shared: true,
-                },
-                series: [{
-                    name: 'Rainfall',
-                    type: 'spline',
-                    yAxis: 1,
-                    data: moistureArray,
-                    tooltip: {
-                        valueSuffix: ' mm'
-                    },
-                    showInLegend: false
-
-                }, {
-                    name: 'Temperature',
-                    type: 'spline',
-                    data: tempArray,
-                    yAxis: 0,
-                    tooltip: {
-                        valueSuffix: '°C'
-                    },
-                    showInLegend: false
-                }]
-            });
-        }
-
         const tmpTime = [];
         const tmpValue = [];
         for (const i of data.tmp) {
             tmpTime.push(i[0]);
-            tmpValue.push(i[1]);
+            tmpValue.push(i[1] - 273.15);
             //tmpValue.push(Number(i[1] - 273.15).toFixed(2));
         }
 
@@ -418,11 +560,19 @@ export class HeatmapComponent implements OnInit {
         contentToShow = 'Temperature Average: ' + tmpValue + '<br/>Solid Moisture Average: ' + soilwValue
             + '<br/>All Historical Tweet Count: ' + data.cnt_tweet;
 
-        const chartContents = '<div id="container" style="width: 300px; height: 150px;"></div>'
-        ;
+        const chartContents = '<div id="containers" style="width: 600px; height: 300px;">\n' +
+            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
+            '</div>';
 
         this.marker.bindPopup(chartContents).openPopup();
-        drawChart(tmpTime, tmpValue, soilwValue);
+        this.drawChart('container', soilwTime, "Fire event", [1, 2, 3, 4, 5, 6, 7], 'fires', 'Moisture', soilwValue, 'mm', 'green');
+        //this.drawChart('container2',tmpTime, [1,2,3,4,5,6,7], 'fire',tmpValue, 'Cesius');
+        this.drawChart('container3', tmpTime, "Fire event", [1, 2, 3, 4, 5, 6, 7], 'fires', 'Temperature', tmpValue, 'Cesius', 'red');
+        //this.drawChart('container4',tmpTime, [1,2,3,4,5,6,7], 'fire',soilwValue, 'mm');
+
         console.log(tmpTime, tmpValue, soilwValue);
         //drawChart([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7]);
         this.marker.getPopup().on('remove', function () {
@@ -432,102 +582,6 @@ export class HeatmapComponent implements OnInit {
 
     recentTweetLoadHandler = (data) => {
         console.log(data)
-
-
-        function translateTweetDataToShow(tweetJSON) {
-            // still need username, userPhotoUrl,imageurl from database
-            let tweetid = '';
-            try {
-                tweetid = tweetJSON.id;
-            } catch (e) {
-                // tweetid missing in this Tweet.
-            }
-
-            let userName = '';
-            try {
-                userName = tweetJSON.user;//tweetJSON[5];
-            } catch (e) {
-                // userName missing in this Tweet.
-            }
-
-            let userPhotoUrl = '';
-            try {
-                //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
-                userPhotoUrl = tweetJSON.profilePic;//tweetJSON[6];
-            } catch (e) {
-                // user.profile_image_url missing in this Tweet.
-            }
-
-            let tweetText = '';
-            try {
-                tweetText = tweetJSON.text;
-            } catch (e) {
-                //Text missing in this Tweet.
-            }
-
-            let tweetTime = '';
-            try {
-                let createdAt = new Date(tweetJSON.create_at);
-                tweetTime = createdAt.toISOString();
-            } catch (e) {
-                //Time missing in this Tweet.
-            }
-
-            let tweetLink = '';
-            try {
-                tweetLink = 'https://twitter.com/' + userName + '/status/' + tweetid;
-            } catch (e) {
-                //tweetLink missing in this Tweet.
-            }
-
-            let imageUrl = '';
-            try {
-                imageUrl = tweetJSON.image; // 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg'
-            } catch (e) {
-                //imageLink missing in this Tweet.
-            }
-
-            let tweetTemplate;
-
-            //handles exceptions:
-            if (tweetText === '' || null || undefined) {
-                tweetTemplate = "\n"
-                    + "<div>"
-                    + "Fail to get Tweets data."
-                    + "</div>\n";
-            } else {
-                //presents all the information.
-                tweetTemplate = "\n"
-                    + "<div class=\"tweet\">\n "
-                    + "  <div class=\"tweet-body\">"
-                    + "    <div class=\"user-info\"> "
-                    + "      <img src=\""
-                    + userPhotoUrl
-                    + "\" onerror=\" this.src='/assets/images/default_pinicon.png'\" style=\"width: 32px; display: inline; \">\n"
-                    + "      <span class=\"name\" style='color: #0e90d2; font-weight: bold'> "
-                    + userName
-                    + "      </span> "
-                    + "    </div>\n	"
-                    + "    <span class=\"tweet-time\" style='color: darkgray'>"
-                    + tweetTime
-                    + "    <br></span>\n	 "
-                    + "    <span class=\"tweet-text\" style='color: #0f0f0f'>"
-                    + tweetText
-                    + "    </span><br>\n	 "
-                    + "\n <a href=\""
-                    + tweetLink
-                    + "\"> "
-                    + tweetLink
-                    + "</a>"
-                    + "  </div>\n	"
-                    + "      <img src=\""
-                    + imageUrl
-                    + "\" onerror=\" this.src='http://www.defaulticon.com/images/icons32x32/alert-alt.png?itok=hIkRlO7s'\" style=\"width: 180px; \">\n"
-                    + "</div>\n";
-            }
-            return tweetTemplate;
-        }
-
         const fireEventList = [];
         for (const ev of  data.slice(0, 150)) {
             const point = [ev.lat, ev.long];
@@ -536,7 +590,7 @@ export class HeatmapComponent implements OnInit {
                 iconUrl: 'assets/image/perfectBird.gif',
                 iconSize: [size, size],
             });
-            const tweetContent = translateTweetDataToShow(ev);
+            const tweetContent = this.translateTweetDataToShow(ev);
             //const tweetContent = 'CONTENT: ' + ev[4] + '<br/>TIME: ' + ev[2] + '<br/>TWEETID#: ' + ev[3];
             const marker = L.marker(point, {icon: fireIcon}).bindPopup(tweetContent);
             fireEventList.push(marker);
@@ -578,17 +632,89 @@ export class HeatmapComponent implements OnInit {
                     break;
                 }
             }
-
-        }
-        // Remove previous canvas layers
-        for (const layer of this.tempLayers) {
-            this.map.removeLayer(layer);
-        }
-        // Add new canvas layers in the updated list tempRegionsMax to Map
-        for (const region of this.tempRegionsMax) {
-            region.addTo(this.map);
+            // Remove previous canvas layers
+            for (const layer of this.tempLayers) {
+                this.map.removeLayer(layer);
+            }
+            // Add new canvas layers in the updated list tempRegionsMax to Map
+            for (const region of this.tempRegionsMax) {
+                region.addTo(this.map);
+            }
+            console.log(this.tempRegionsMax);
         }
     }
+
+    drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
+        Highcharts.chart(name, {
+            title: {
+                text: '',
+            },
+            chart: {
+                zoomType: 'x',
+                style: {
+                    fontSize: '10px',
+                },
+            },
+            xAxis: {
+                categories: xValue,
+                crosshair: true,
+            },
+            plotOptions: {
+                series: {
+                    allowPointSelect: true,
+                }
+            },
+            yAxis: [{ // Primary yAxis
+                labels: {
+                    format: '{value}' + y1Unit,
+                    style: {
+                        color: 'black',
+                        fontSize: '8px',
+                    }
+                },
+                title: {
+                    text: '',
+                }
+            }, { // Secondary yAxis
+                title: {
+                    text: '',
+                },
+                labels: {
+                    format: '{value} ' + y2Unit,
+                    style: {
+                        color: y2Color,
+                        fontSize: '8px',
+                    }
+                },
+                opposite: true
+            }],
+            tooltip: {
+                shared: true,
+            },
+            series: [{
+                name: y2Name,
+                type: 'spline',
+                color: y2Color,
+                yAxis: 1,
+                data: y2Value,
+                tooltip: {
+                    valueSuffix: ' ' + y2Unit,
+                },
+                showInLegend: false
+
+            }, {
+                name: y1Name,
+                type: 'spline',
+                color: 'black',
+                data: y1Value,
+                yAxis: 0,
+                tooltip: {
+                    valueSuffix: y1Unit,
+                },
+                showInLegend: false
+            }]
+        });
+    };
 
     boundaryDataHandler = ([[data], value]) => {
         console.log(data);

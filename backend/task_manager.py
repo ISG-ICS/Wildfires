@@ -173,13 +173,24 @@ class TaskManager:
                 if th_name == thread_[1]:
                     break
                 index_ += 1
-            logger.info('TASK ' + th_name + ' START!')
-            target_func(*args)
-            logger.info('TASK ' + th_name + ' END!')
-            while cls.running_threads[index_][2]:
+
+            while True:
+                logger.info('TASK ' + th_name + ' START!')
+
+                # log error when worker crashed
+                try:
+                    target_func(*args)
+                except:
+                    logger.error("error: " + traceback.format_exc())
+
+                # 'END' means returned or crashed
+                logger.info('TASK ' + th_name + ' END!')
+                # whether a loop work?
+                if not cls.running_threads[index_][2]:
+                    break
                 if interval != 0:
                     time.sleep(interval)
-                target_func(*args)
+
         except:
             logger.error("error: " + traceback.format_exc())
 

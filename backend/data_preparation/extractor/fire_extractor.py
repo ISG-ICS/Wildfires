@@ -61,40 +61,49 @@ class FireExtractor(ExtractorBase):
                 result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"] + datetime.timedelta(days=1)) + \
                                                                 "0000", '%m%d%Y%H%M')
         else:
-            if year < 2019:
+            if year < datetime.datetime.now().date().year:
                 # fireName, perDatTime(maybe just date but no time), agency(might be null)
                 result["firename"] = shp.record(0)["fireName"].capitalize()
                 result["agency"] = shp.record(0)["agency"] if shp.record(0)["agency"] != "" else "Unknown"
                 result["datetime"] = datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y %I:%M:%S %p') if \
                     len(shp.record(0)['perDatTime']) > 11 else datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y')
             else:
-                # FIRENAME, DATECRNT, AGENCY
-                result["firename"] = shp.record(0)["FIRENAME"].capitalize()
-                result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
-                result["datetime"] = datetime.datetime.strptime(shp.record(0)['DATECRNT'], '%m/%d/%Y %I:%M:%S %p') if \
-                    len(shp.record(0)['DATECRNT']) > 11 else datetime.datetime.strptime(shp.record(0)['DATECRNT'], '%m/%d/%Y')
+                # FIRENAME, PERDATTIME, AGENCY or fireName, perDatTime, agency
+                try:
+                    result["firename"] = shp.record(0)["fireName"].capitalize()
+                    result["agency"] = shp.record(0)["agency"] if shp.record(0)["agency"] != "" else "Unknown"
+                    result["datetime"] = datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y %I:%M:%S %p') if \
+                        len(shp.record(0)['perDatTime']) > 11 else datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y')
+                except KeyError:
+                    result["firename"] = shp.record(0)["FIRENAME"].capitalize()
+                    result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
+                    result["datetime"] = datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y %I:%M:%S %p') if \
+                        len(shp.record(0)['PERDATTIME']) > 11 else datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y')
 
-        #result["geopolygon"] = self.generate_geom_script(self.separate_multipart_shape(shp.shapeRecord(0).shape.points))
-        result["geopolygon"] = shp.shapeRecord(0).shape.points
+        result["geopolygon"] = self.generate_geom_script(self.separate_multipart_shape(shp.shapeRecord(0).shape.points))
+        # result["geopolygon"] = shp.shapeRecord(0).shape.points
         result["year"] = year
         result["if_sequence"] = if_sequence
         print(result)
         return result
 
-    def separate_multipart_shape(self,multipartshape):
-        separated_shapes = []
-        shown_points = set()
+    def separate_multipart_shape(self, multipartshape):
+        result = []
         current_shape = []
-        for point in multipartshape:
-            current_shape.append(point)
-            if point in shown_points:
-                print("endpoint:", point)
-                separated_shapes.append(current_shape)
-                current_shape = list()
-                shown_points = set()
-            shown_points.add(point)
-        print(separated_shapes)
-        return separated_shapes
+        active_flag = True
+        start_point = multipartshape[0]
+        current_shape.append(multipartshape[0])
+        for p in multipartshape[1:]:
+            current_shape.append(p)
+            if active_flag:
+                if p == start_point:
+                    result.append(current_shape)
+                    current_shape = []
+                    active_flag = False
+            else:
+                start_point = p
+                active_flag = True
+        return result
 
     def generate_geom_script(self, separated_shapes):
         result = "MULTIPOLYGON("

@@ -18,7 +18,7 @@ class FireDumper(DumperBase):
     sql_create_fire_info_table = 'CREATE TABLE IF NOT EXISTS fire_info (name VARCHAR (40), if_sequence boolean, agency VARCHAR (20), time timestamp, geom geometry, PRIMARY KEY (name, time))'
     sql_insert_fire_into_history = 'INSERT INTO "fire_crawl_history" (year, name) VALUES (%(year)s, %(firename)s) ON CONFLICT DO NOTHING'
     sql_insert_fire_into_info = 'INSERT INTO "fire_info" (name, if_sequence, agency, time, geom) VALUES (%(firename)s,%(if_sequence)s,%(agency)s,%(datetime)s,%(geopolygon)s) ON CONFLICT DO NOTHING'
-    sql_count_records = 'SELECT COUNT(*) FROM fire_crawl_history'
+    sql_count_records = 'SELECT COUNT(*) FROM fire_info'
 
     def __init__(self):
         super().__init__()
@@ -86,7 +86,7 @@ class FireDumper(DumperBase):
 
     def insert_history(self,year,name):
         with Connection() as connect:
-            info = {"year":year,"name":name}
+            info = {"year":year,"firename":name}
             cur = connect.cursor()
             cur.execute(self.sql_insert_fire_into_history, info)
             connect.commit()

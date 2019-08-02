@@ -54,6 +54,10 @@ class ImageClassifier(ClassifierBase):
 
     def __init__(self, model_type: str):
         self.model_type = model_type
+        if torch.cuda.is_available():
+            self.dtype = torch.cuda.FloatTensor
+        else:
+            self.dtype = torch.float
 
     def set_model(self, model: str = None):
         """load trained model"""
@@ -66,11 +70,11 @@ class ImageClassifier(ClassifierBase):
                 self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_VGG_PATH, map_location='cpu'))
 
         elif self.model_type == ImageClassifier.RESNET_MODEL:
-            self.model = models.resnet50(pretrained=True, progress=True)
+            self.model = models.resnet50(pretrained=True, progress=True).type(self.dtype)
             if model:
-                self.model.load_state_dict(torch.load(model))
+                self.model.load_state_dict(torch.load(model)).type(self.dtype)
             else:
-                self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_RESNET_PATH, map_location='cpu'))
+                self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_RESNET_PATH, map_location='cpu')).type(self.dtype)
 
     def predict(self, url: str) -> tuple:
         """predict classification result of the image from url"""
@@ -127,9 +131,9 @@ class ImageClassifier(ClassifierBase):
             logger.info('Starting epoch %d / %d' % (epoch + 1, num_epochs))
             model.train()
             for t, (x, y) in enumerate(train_loader):
-                x_var = Variable(x)
-                y_var = Variable(y.long())
-                # forward training
+                x_var = Variable(x.type(self.dtype))
+                y_var = Variable(y.type(self.dtype).long())
+
                 scores = model(x_var)
                 loss = loss_fn(scores, y_var)
                 logger.info('t = %d, loss = %.4f' % (t + 1, loss.item()))
@@ -181,7 +185,7 @@ class ImageClassifier(ClassifierBase):
         num_samples = 0
         model.eval()  # Put the model in test mode (the opposite of model.train(), essentially)
         for x, y in loader:
-            x_var = Variable(x, volatile=True)
+            x_var = Variable(x.type(self.dtype), volatile=True)
 
             scores = model(x_var)
             _, preds = scores.data.cpu().max(1)

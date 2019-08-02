@@ -278,7 +278,7 @@ export class HeatmapComponent implements OnInit {
                     weight: 3,
                     fillColor: "#f7ada6",
                     fillOpacity: 1.0
-                }).bindPopup(that.mocktranslateTweetDataToShow()).addTo(that.map);
+                }).addTo(that.map);
 
                 let passID = "" + iandID[1];
                 console.log(iandID[1]);
@@ -308,102 +308,6 @@ export class HeatmapComponent implements OnInit {
         console.log(data);
         this.currentMarker.bindPopup(this.translateTweetDataToShow(data))
     }
-
-    mocktranslateTweetDataToShow() {
-        // still need username, userPhotoUrl,imageurl from database
-        let tweetid = '';
-        try {
-            tweetid = '1234567';
-        } catch (e) {
-            // tweetid missing in this Tweet.
-        }
-
-        let userName = '';
-        try {
-            userName = 'Caitlin Harvey';//tweetJSON[5];
-        } catch (e) {
-            // userName missing in this Tweet.
-        }
-
-        let userPhotoUrl = '';
-        try {
-            //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
-            userPhotoUrl = 'http://pbs.twimg.com/profile_images/1140343878010019840/CkH7wJdg_normal.jpg';//tweetJSON[6];
-        } catch (e) {
-            // user.profile_image_url missing in this Tweet.
-        }
-
-
-        let tweetText = '';
-        try {
-            tweetText = 'Crews are battling a 150-acre wildfire near Prospect. Here are a few of the viewer photos we’ve received. We’ll have more details coming up on a special edition of NewsWatch 12 at 8 PM. https://t.co/WA6oLBHee4';
-        } catch (e) {
-            //Text missing in this Tweet.
-        }
-
-        let tweetTime = '';
-        try {
-            let createdAt = new Date('2019-05-05 00:00:00.000000');
-            tweetTime = createdAt.toISOString();
-        } catch (e) {
-            //Time missing in this Tweet.
-        }
-
-        let tweetLink = '';
-        try {
-            tweetLink = 'https://twitter.com/' + userName + '/status/' + tweetid;
-        } catch (e) {
-            //tweetLink missing in this Tweet.
-        }
-
-        let imageUrl = '';
-        try {
-            imageUrl = 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg';
-        } catch (e) {
-            //imageLink missing in this Tweet.
-        }
-
-        let tweetTemplate;
-
-        //handles exceptions:
-        if (tweetText === '' || null || undefined) {
-            tweetTemplate = "\n"
-                + "<div>"
-                + "Fail to get Tweets data."
-                + "</div>\n";
-        } else {
-            //presents all the information.
-            tweetTemplate = "\n"
-                + "<div class=\"tweet\">\n "
-                + "  <div class=\"tweet-body\">"
-                + "    <div class=\"user-info\"> "
-                + "      <img src=\""
-                + userPhotoUrl
-                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJIsOFUYD9y2r12OzjDoEe5I1uhhF-gfVj5WGIqg8MzNBVzSogRw'\" style=\"width: 32px; display: inline; \">\n"
-                + "      <span class=\"name\" style='color: #0e90d2; font-weight: bold'> "
-                + userName
-                + "      </span> "
-                + "    </div>\n	"
-                + "    <span class=\"tweet-time\" style='color: darkgray'>"
-                + tweetTime
-                + "    <br></span>\n	 "
-                + "    <span class=\"tweet-text\" style='color: #0f0f0f'>"
-                + tweetText
-                + "    </span><br>\n	 "
-                + "\n <a href=\""
-                + tweetLink
-                + "\"> "
-                + tweetLink
-                + "</a>"
-                + "  </div>\n	"
-                + "      <img src=\""
-                + imageUrl
-                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"width: 180px; \">\n"
-                + "</div>\n";
-        }
-        return tweetTemplate;
-    }
-
 
     translateTweetDataToShow(tweetJSON) {
         // still need username, userPhotoUrl,imageurl from database
@@ -493,7 +397,7 @@ export class HeatmapComponent implements OnInit {
                 + "  </div>\n	"
                 + "      <img src=\""
                 + imageUrl
-                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"width: 180px; \">\n"
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"height: 150px; \">\n"
                 + "</div>\n";
         }
 
@@ -609,7 +513,7 @@ export class HeatmapComponent implements OnInit {
         this.map.on('click', onMapClick);
         //let marker;
         let circle;
-        let pinRadius = 100000;
+        let pinRadius = 40000;
 
         function onMapClick(e) {
             that.mapService.getClickData(e.latlng.lat, e.latlng.lng, pinRadius / 111000);

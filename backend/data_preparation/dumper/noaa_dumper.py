@@ -1,12 +1,17 @@
 import datetime
+import logging
 from ast import literal_eval as make_tuple
 from typing import Tuple, Generator
 
 import psycopg2.errors
 import psycopg2.extras
+import rootpath
 
+rootpath.append()
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.dumper.dumperbase import DumperBase
+
+logger = logging.getLogger('TaskManager')
 
 
 class NOAADumper(DumperBase):
@@ -37,10 +42,10 @@ class NOAADumper(DumperBase):
             # FIXME: when will this error happen? does it terminate at the error point? also not able to find error
             #  reference to `psycopg2.errors.UniqueViolation`
             except psycopg2.errors.UniqueViolation:
-                print('\n\tDuplicated Key')
+                logger.error('\n\tDuplicated Key')
             else:
                 self.inserted_count = cur.rowcount
-                print('Affected rows: ' + str(cur.rowcount))
+                logger.info('affected records: ' + str(cur.rowcount))
                 conn.commit()
             finally:
                 cur.close()

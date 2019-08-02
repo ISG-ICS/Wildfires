@@ -1,7 +1,12 @@
+import logging
+import traceback
+
 import rootpath
 
 rootpath.append()
 from backend.data_preparation.dumper.dumperbase import DumperBase
+
+logger = logging.getLogger('TastManager')
 
 
 class Event2MindDumper(DumperBase):
@@ -70,8 +75,8 @@ class Event2MindDumper(DumperBase):
                     eid = 1
                 cur.execute("INSERT INTO reactions(id, reaction) values (%s, %s) returning id",
                             (eid, e,))
-        except Exception as err:
-            print("error", err)
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
 
         conn.commit()
         cur.close()
@@ -95,8 +100,8 @@ class Event2MindDumper(DumperBase):
                     eid = 1
                 cur.execute("INSERT INTO intents(id, intent) values (%s, %s) returning id",
                             (eid, i,))
-        except Exception as err:
-            print("error", err)
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
         conn.commit()
         cur.close()
         return eid
@@ -115,7 +120,7 @@ class Event2MindDumper(DumperBase):
             elif tablename == Event2MindDumper.TABLE_INTENT_IN_RCD:
                 cur.execute("INSERT INTO intent_in_records(record_id,intent_id,probability) values (%s, %s, %s)",
                             (rid, eid, probability))
-        except Exception as err:
-            print("error", err)
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
         conn.commit()
         cur.close()

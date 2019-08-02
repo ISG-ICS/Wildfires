@@ -1,3 +1,4 @@
+import logging
 import threading
 from datetime import datetime
 from typing import Generator, Tuple, Any, List
@@ -9,6 +10,8 @@ from deprecated import deprecated
 rootpath.append()
 from paths import DATABASE_CONFIG_PATH
 from utilities.ini_parser import parse
+
+logger = logging.getLogger('TaskManager')
 
 
 def synchronized(func):
@@ -45,8 +48,8 @@ class Connection:
     @deprecated(reason="__call__ will no longer be provided in future, please always use context manager (with)")
     def __call__(*args, **kwargs):
         """returns a newly created connection, which is not maintained by the _pool"""
-        # TODO: remove temporary database.ini.bak after removing deprecated function
-        connection = psycopg2.connect(*args, **parse(DATABASE_CONFIG_PATH + '.bak', 'postgresql'), **kwargs)
+        connection = psycopg2.connect(*args, **parse(DATABASE_CONFIG_PATH, 'postgresql',
+                                                     unwanted_fields=["minconn", "maxconn"]), **kwargs)
         Connection.get_connection_status(connection)
         return connection
 
@@ -62,7 +65,7 @@ class Connection:
         cursor.execute("SHOW max_connections;")
         connection_max_count, = cursor.fetchone()
         # adding this log to show current database connection status
-        print(
+        logger.info(
             f"[DATABASE] HOST = {Connection.config().get('host')}, CONNECTION COUNT "
             f"= {connection_count}, MAXIMUM = {connection_max_count}")
         cursor.close()
@@ -70,10 +73,10 @@ class Connection:
     @staticmethod
     def sql_execute(sql: str) -> Generator[Tuple[Any], None, None]:
         """to execute an SQL query and iterate the output"""
-        print(f"SQL: {sql}")
+        logger.info(f"SQL: {sql}")
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
-            print("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
-                  "sql_execute_commit")
+            logger.error("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
+                         "sql_execute_commit")
             return
         with Connection() as connection:
             cursor = connection.cursor()
@@ -90,14 +93,14 @@ class Connection:
                 cursor.close()
 
     @staticmethod
-    def sql_execute_commit(sql: str) -> None:
+    def sql_execute_commit(sql: object) -> object:
         """to execute and commit an SQL query"""
-        print(f"SQL: {sql}")
+        logger.info(f"SQL: {sql}")
         with Connection() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
             connection.commit()
-            print(f"     Affected rows:{cursor.rowcount}")
+            logger.info(f"Affected rows:{cursor.rowcount}")
             cursor.close()
 
     @staticmethod
@@ -110,7 +113,7 @@ class Connection:
             sql += " " + value_tuples_sql + f" ON CONFLICT DO NOTHING" if ignore_duplicate else ""
             Connection.sql_execute_commit(sql)
         else:
-            print("[DATABASE] Nothing to commit")
+            logger.info("[DATABASE] Nothing to commit")
 
 
 if __name__ == '__main__':

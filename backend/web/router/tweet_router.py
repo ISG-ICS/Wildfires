@@ -107,3 +107,37 @@ def region_tweet():
             [a_row for a_row in cur.fetchall()]
         ))
     return resp
+
+
+@bp.route("/tweet-from-id", methods=['GET'])
+def tweet_from_id():
+    tweet_id = int(flask_request.args.get('tweet_id'))
+
+    query = '''
+    select records.id, create_at, text,user_name,profile_pic,image_url from
+    (
+        SELECT id, create_at, text,user_name,profile_pic   from records
+        WHERE id = %s
+    ) as records
+    LEFT JOIN
+    images
+    on records.id = images.id
+    LIMIT 1
+    '''
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query, (tweet_id,))
+        if cur.rowcount:
+            id_, create_at, text, user_name, profile_pic, image_url = cur.fetchone()
+            resp = make_response(jsonify({
+                'id': str(id_),  # Javascript cannot handle int8, sending as string
+                'create_at': create_at,
+                'text': text,
+                'user': user_name,
+                'profilePic': profile_pic,
+                'image': image_url
+            }))
+        else:
+            resp = ''
+
+    return resp

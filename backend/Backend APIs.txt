@@ -73,3 +73,16 @@ returns: json
     ...
 ]
 
+/tweet/tweet-from-id
+    GET
+    tweet_id=1074292053801140224
+
+returns: json
+{
+    'id': '1074292053801140224'  # Javascript cannot handle int8, sending as string
+    'create_at':
+    'text':
+    'user':
+    'profilePic':
+    'image':
+}

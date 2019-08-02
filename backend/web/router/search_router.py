@@ -14,6 +14,30 @@ bp = Blueprint('search', __name__, url_prefix='/search')
 def search_administrative_boundaries():
     keyword = flask_request.args.get('keyword')
 
+    # if kw is an id, get geometry directly
+    try:
+        region_id = int(keyword)
+    except ValueError:
+        pass
+    else:
+        # is a region_id
+        query = f'''
+        SELECT st_asgeojson(t.geom) as geojson from us_states t where state_id = {region_id}
+        union
+        SELECT st_asgeojson(t.geom) as geojson from us_counties2 t where geoid = {region_id}
+        union
+        SELECT st_asgeojson(t.geom) as geojson from us_cities t where city_id = {region_id}
+        '''
+
+        with Connection() as conn:
+            cur = conn.cursor()
+            cur.execute(query)
+            resp = make_response(jsonify(
+                [json.loads(geom) for geom, in cur.fetchall()]
+            ))
+            cur.close()
+        return resp
+
     # load abbreviation
     keyword = us_states_abbr.get(keyword, keyword)
 

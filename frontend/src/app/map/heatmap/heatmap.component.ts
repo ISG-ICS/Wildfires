@@ -68,6 +68,7 @@ export class HeatmapComponent implements OnInit {
     private mouseOverPointI = 0;
 
     private tempData = [];
+    private tempDataWithID = [];
 
 
     constructor(private mapService: MapService, private searchService: SearchService) {
@@ -141,6 +142,26 @@ export class HeatmapComponent implements OnInit {
 
     }
 
+    tweetDataHandler = (data) => {
+        this.tweetLayer = L.TileLayer.maskCanvas({
+            radius: 30,
+            useAbsoluteRadius: true,
+            color: '#000',
+            opacity: 1,
+            noMask: true,
+            lineColor: '#e25822'
+        });
+        const tempData = [];
+        this.tweetData = data.tweetData;
+        data.tweetData.forEach(x => {
+            tempData.push([x[0], x[1]]);   ////, x[3]
+        });
+
+        this.mainControl.addOverlay(this.geojsonLayer, 'Boundary');
+        this.map.addLayer(this.geojsonLayer);
+    }
+
+
     getBoundary = () => {
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
         const zoom = this.map.getZoom();
@@ -190,12 +211,13 @@ export class HeatmapComponent implements OnInit {
         this.map.addLayer(this.geojsonLayer);
     }
 
-
     timeRangeChangeHandler = (event, data) => {
         this.tempData = [];
+        this.tempDataWithID = [];
         this.tweetData.forEach(entry => {
             if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
                 this.tempData.push([entry[0], entry[1]]);
+                this.tempDataWithID.push([entry[0], entry[1], entry[3]]);
             }
         });
         this.tweetLayer.setData(this.tempData);
@@ -209,7 +231,7 @@ export class HeatmapComponent implements OnInit {
 
         // If user hang the mouse cursor for 300ms, fire a "mouseintent" event.
         function onMapMouseMove(e) {
-            const duration = 300;
+            const duration = 150;
             if (timer !== null) {
                 clearTimeout(timer);
                 timer = null;
@@ -227,34 +249,6 @@ export class HeatmapComponent implements OnInit {
         this.map.on('mouseintent', onMapMouseIntent);
 
         function onMapMouseIntent(e) {
-            console.log(that.tempData);
-            //
-            // for (const point of that.tempData) {
-            //     if ((e.latlng.lat - point[0] <= 0.0001) && (e.latlng.lng - point[1] <= 0.0001)) {
-            //             console.log('Hi');
-            //             that.current_point.lat = point[0];
-            //             that.current_point.lng = point[1];
-            //             break;
-            //         }
-            // };
-            //
-            // //(1) If previous Marker is not null, destroy it.
-            // if (that.currentMarker != null) {
-            //   that.map.removeLayer(that.currentMarker);
-            // }
-            // //(2)
-            // that.currentMarker = L.circleMarker(that.current_point, {
-            //     radius: 6,
-            //     color: "#0d3e99",
-            //     weight: 3,
-            //     fillColor: "#b8e3ff",
-            //     fillOpacity: 1.0
-            // }).addTo(that.map);
-            // const pop = L.popup()
-            //                 .setLatLng(that.current_point)
-            //                 .setContent('<p>Hello world!<br />This is a nice popup.</p>')
-            //                 .openOn(that.map);
-
 
             // make sure the scale metrics are updated
             if (that.currentBounds === null || that.scale_x === 0 || that.scale_y === 0) {
@@ -265,7 +259,8 @@ export class HeatmapComponent implements OnInit {
                     - that.currentBounds.getSouth());
             }
 
-            let i = isMouseOverAPoint(e.latlng.lat, e.latlng.lng);
+            let iandID = isMouseOverAPoint(e.latlng.lat, e.latlng.lng);
+            let i = iandID[0];
 
             //if mouse over a new point, show the Popup Tweet!
             if (i >= 0 && that.mouseOverPointI != i) {
@@ -276,31 +271,129 @@ export class HeatmapComponent implements OnInit {
                 }
                 // (2) Create a new Marker to highlight the point.
                 that.currentMarker = L.circleMarker(e.latlng, {
-                    radius: 6,
-                    color: "#0d3e99",
+                    radius: 5,
+                    color: "#fa4c3c",
                     weight: 3,
-                    fillColor: "#b8e3ff",
+                    fillColor: "#f7ada6",
                     fillOpacity: 1.0
-                }).addTo(that.map);
-                // send the query to cloudberry using string format.
-                // I will sent corrodinate and time range to backend, to get a random tweet setisfy the requirement of this coord and range
-                let passID = "" + that.pointIDs[i];
-                // cloudberry.pinMapOneTweetLookUpQuery(passID);
+                }).bindPopup(that.mocktranslateTweetDataToShow()).addTo(that.map);
+
+                let passID = "" + iandID[1];
+                console.log(iandID[1]);
+
+                //emit tweetID
+                this.mapService.getIntentTweetData(iandID[1]);
             }
         }
 
         function isMouseOverAPoint(x, y) {
-            for (var i = 0; i < that.tempData.length; i += 1) {
-                var dist_x = Math.abs((that.tempData[i][0] - x) / that.scale_x);
-                var dist_y = Math.abs((that.tempData[i][1] - y) / that.scale_y);
+            for (var i = 0; i < that.tempDataWithID.length; i += 1) {
+                var dist_x = Math.abs((that.tempDataWithID[i][0] - x) / that.scale_x);
+                var dist_y = Math.abs((that.tempDataWithID[i][1] - y) / that.scale_y);
                 if (dist_x <= 0.001 && dist_y <= 0.001) {
-                    return i;
+                    //console.log(that.tempDataWithID[i][2]);
+                    return [i, that.tempDataWithID[i][2]];
                 }
             }
             return -1;
         }
 
 
+    }
+
+    mocktranslateTweetDataToShow() {
+        // still need username, userPhotoUrl,imageurl from database
+        let tweetid = '';
+        try {
+            tweetid = '1234567';
+        } catch (e) {
+            // tweetid missing in this Tweet.
+        }
+
+        let userName = '';
+        try {
+            userName = 'Caitlin Harvey';//tweetJSON[5];
+        } catch (e) {
+            // userName missing in this Tweet.
+        }
+
+        let userPhotoUrl = '';
+        try {
+            //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
+            userPhotoUrl = 'http://pbs.twimg.com/profile_images/1140343878010019840/CkH7wJdg_normal.jpg';//tweetJSON[6];
+        } catch (e) {
+            // user.profile_image_url missing in this Tweet.
+        }
+
+
+        let tweetText = '';
+        try {
+            tweetText = 'Crews are battling a 150-acre wildfire near Prospect. Here are a few of the viewer photos we’ve received. We’ll have more details coming up on a special edition of NewsWatch 12 at 8 PM. https://t.co/WA6oLBHee4';
+        } catch (e) {
+            //Text missing in this Tweet.
+        }
+
+        let tweetTime = '';
+        try {
+            let createdAt = new Date('2019-05-05 00:00:00.000000');
+            tweetTime = createdAt.toISOString();
+        } catch (e) {
+            //Time missing in this Tweet.
+        }
+
+        let tweetLink = '';
+        try {
+            tweetLink = 'https://twitter.com/' + userName + '/status/' + tweetid;
+        } catch (e) {
+            //tweetLink missing in this Tweet.
+        }
+
+        let imageUrl = '';
+        try {
+            imageUrl = 'https://pbs.twimg.com/media/DE6orpqVYAAeCYz.jpg';
+        } catch (e) {
+            //imageLink missing in this Tweet.
+        }
+
+        let tweetTemplate;
+
+        //handles exceptions:
+        if (tweetText === '' || null || undefined) {
+            tweetTemplate = "\n"
+                + "<div>"
+                + "Fail to get Tweets data."
+                + "</div>\n";
+        } else {
+            //presents all the information.
+            tweetTemplate = "\n"
+                + "<div class=\"tweet\">\n "
+                + "  <div class=\"tweet-body\">"
+                + "    <div class=\"user-info\"> "
+                + "      <img src=\""
+                + userPhotoUrl
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRJIsOFUYD9y2r12OzjDoEe5I1uhhF-gfVj5WGIqg8MzNBVzSogRw'\" style=\"width: 32px; display: inline; \">\n"
+                + "      <span class=\"name\" style='color: #0e90d2; font-weight: bold'> "
+                + userName
+                + "      </span> "
+                + "    </div>\n	"
+                + "    <span class=\"tweet-time\" style='color: darkgray'>"
+                + tweetTime
+                + "    <br></span>\n	 "
+                + "    <span class=\"tweet-text\" style='color: #0f0f0f'>"
+                + tweetText
+                + "    </span><br>\n	 "
+                + "\n <a href=\""
+                + tweetLink
+                + "\"> "
+                + tweetLink
+                + "</a>"
+                + "  </div>\n	"
+                + "      <img src=\""
+                + imageUrl
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"width: 180px; \">\n"
+                + "</div>\n";
+        }
+        return tweetTemplate;
     }
 
 

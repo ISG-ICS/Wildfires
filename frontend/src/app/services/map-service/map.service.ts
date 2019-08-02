@@ -108,5 +108,16 @@ export class MapService {
         }).done(data => {
             this.ClickPointLoaded.emit(JSON.parse(data));
         });
-    };
+    }
+
+    getIntentTweetData(id): void {
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/tweet/tweet-from-id',
+            dataType: 'text',
+            data: {tweet_id: id}
+        }).done(data => {
+            this.ClickPointLoaded.emit(JSON.parse(data));
+        });
+    }
 }

@@ -8,7 +8,7 @@ import datetime
 import shutil
 rootpath.append()
 
-from paths import FIRE_DATA_DIR, FIRE_PROGRESS_DIR
+from paths import FIRE_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 
 

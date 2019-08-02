@@ -20,20 +20,22 @@ def aggregation():
     lat = float(request_json['lat'])
     lng = float(request_json['lng'])
     radius = float(request_json['radius'])
+    timestamp_str = request_json['timestamp']
+    days = request_json.get('days', 7)
 
-    query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s)'
-    query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s)'
-    query3_mois = 'SELECT * from aggregate_moisture(%s, %s, %s)'
+    query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
+    query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s, TIMESTAMP %s, %s)'
+    query3_mois = 'SELECT * from aggregate_moisture(%s, %s, %s, TIMESTAMP %s, %s)'
     with Connection() as conn:
         cur = conn.cursor()
 
-        cur.execute(query_tweet, (lng, lat, radius))  # lng lat
-        tweet = cur.fetchone()
-        cur.execute(query2_temp, (lng, lat, radius))
-        temp = cur.fetchone()
-        cur.execute(query3_mois, (lng, lat, radius))
-        mois = cur.fetchone()
-        resp = make_response(jsonify({'tmp': temp[0] - 273.15, 'soilw': mois[0], 'cnt_tweet': tweet[0]}))
+        cur.execute(query_tweet, (lng, lat, radius, timestamp_str, days))  # lng lat +-180
+        tweet = cur.fetchall()
+        cur.execute(query2_temp, (lng, lat, radius, timestamp_str, days))
+        temp = cur.fetchall()
+        cur.execute(query3_mois, (lng, lat, radius, timestamp_str, days))
+        mois = cur.fetchall()
+        resp = make_response(jsonify({'tmp': temp, 'soilw': mois, 'cnt_tweet': tweet}))
 
         cur.close()
     return resp

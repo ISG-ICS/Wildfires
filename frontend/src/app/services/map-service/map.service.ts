@@ -117,7 +117,7 @@ export class MapService {
             dataType: 'text',
             data: {tweet_id: id}
         }).done(data => {
-            this.ClickPointLoaded.emit(JSON.parse(data));
+            this.IntentPointLoaded.emit(JSON.parse(data));
         });
     }
 }

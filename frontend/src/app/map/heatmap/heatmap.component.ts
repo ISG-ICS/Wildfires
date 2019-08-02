@@ -129,6 +129,7 @@ export class HeatmapComponent implements OnInit {
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
         $(window).on('timeRangeChange', this.IntentOnMap);
+        this.mapService.IntentPointLoaded.subscribe(this.IntentTweetPopup);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -220,6 +221,7 @@ export class HeatmapComponent implements OnInit {
                 this.tempDataWithID.push([entry[0], entry[1], entry[3]]);
             }
         });
+        console.log(this.tempDataWithID);
         this.tweetLayer.setData(this.tempData);
     };
 
@@ -231,7 +233,7 @@ export class HeatmapComponent implements OnInit {
 
         // If user hang the mouse cursor for 300ms, fire a "mouseintent" event.
         function onMapMouseMove(e) {
-            const duration = 150;
+            const duration = 250;
             if (timer !== null) {
                 clearTimeout(timer);
                 timer = null;
@@ -282,7 +284,8 @@ export class HeatmapComponent implements OnInit {
                 console.log(iandID[1]);
 
                 //emit tweetID
-                this.mapService.getIntentTweetData(iandID[1]);
+                console.log(that.tempDataWithID[i]);
+                that.mapService.getIntentTweetData(iandID[1]);
             }
         }
 
@@ -299,6 +302,11 @@ export class HeatmapComponent implements OnInit {
         }
 
 
+    }
+
+    IntentTweetPopup = (data) => {
+        console.log(data);
+        this.currentMarker.bindPopup(this.translateTweetDataToShow(data))
     }
 
     mocktranslateTweetDataToShow() {
@@ -408,7 +416,7 @@ export class HeatmapComponent implements OnInit {
 
         let userName = '';
         try {
-            userName = tweetJSON.user;//tweetJSON[5];
+            userName = tweetJSON.user;
         } catch (e) {
             // userName missing in this Tweet.
         }
@@ -416,7 +424,7 @@ export class HeatmapComponent implements OnInit {
         let userPhotoUrl = '';
         try {
             //'http://p1.qhimg.com/t015b79f2dd6a285745.jpg'
-            userPhotoUrl = tweetJSON.profilePic;//tweetJSON[6];
+            userPhotoUrl = tweetJSON.profilePic;
         } catch (e) {
             // user.profile_image_url missing in this Tweet.
         }
@@ -488,6 +496,7 @@ export class HeatmapComponent implements OnInit {
                 + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"width: 180px; \">\n"
                 + "</div>\n";
         }
+
         return tweetTemplate;
     }
 

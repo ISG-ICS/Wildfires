@@ -1,10 +1,14 @@
+import logging
 import psycopg2
+import traceback
 
 import rootpath
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.dumper.dumperbase import DumperBase
+
+logger = logging.getLogger('TastManager')
 
 
 class Event2MindDumper(DumperBase):
@@ -39,11 +43,7 @@ class Event2MindDumper(DumperBase):
     BATCH_INSRT_Y_SQL = "INSERT INTO reaction_y_in_records(record_id,reaction_y_id,probability) values %s"
     BATCH_INSRT_I_SQL = "INSERT INTO intent_in_records(record_id,intent_id,probability) values %s"
 
-    def __init__(self):
-
-        super().__init__()
-
-    def insert(self, data: dict, record_id: int):
+    def insert(self,data: dict, record_id: int):
         """insert data and corresponding record_id into database, data is a dictionary"""
         if Event2MindDumper.INTENT_TOKENS in data.keys():
             self.traverse_tokens(Event2MindDumper.INTENT_TOKENS,
@@ -63,62 +63,59 @@ class Event2MindDumper(DumperBase):
                                  Event2MindDumper.TABLE_Y_IN_RCD,
                                  data, record_id)
 
-    def insert_into_tokens(self, token: str, token_type: str):
+    def insert_into_tokens(self, token: str, token_type: str, conn):
         """insert token into table: reactions or intents"""
-        with Connection() as conn:
-            cur = conn.cursor()
+        cur = conn.cursor()
+        if token_type == Event2MindDumper.INTENT_TOKENS:
+            slct_id_sql = Event2MindDumper.SLCT_ID_INTENT_SQL
+            slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_INTENT_SQL
+            insert_sql = Event2MindDumper.INSRT_INTENT_SQL
+        else:
+            slct_id_sql = Event2MindDumper.SLCT_ID_REACTION_SQL
+            slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_REACTION_SQL
+            insert_sql = Event2MindDumper.INSRT_REACTION_SQL
 
-            if token_type == Event2MindDumper.INTENT_TOKENS:
-                slct_id_sql = Event2MindDumper.SLCT_ID_INTENT_SQL
-                slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_INTENT_SQL
-                insert_sql = Event2MindDumper.INSRT_INTENT_SQL
+        try:
+            # get id for token
+            cur.execute(slct_id_sql, (token,))
+            a = cur.fetchone()
+            if a:
+                return a[0]
             else:
-                slct_id_sql = Event2MindDumper.SLCT_ID_REACTION_SQL
-                slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_REACTION_SQL
-                insert_sql = Event2MindDumper.INSRT_REACTION_SQL
-
-            try:
-                # get id for token
-                cur.execute(slct_id_sql, (token,))
-                a = cur.fetchone()
-                if a:
-                    return a[0]
+                cur.execute(slct_max_id_sql)
+                eid = cur.fetchone()[0]
+                if eid:
+                    eid += 1
                 else:
-                    cur.execute(slct_max_id_sql)
-                    eid = cur.fetchone()[0]
-                    if eid:
-                        eid += 1
-                    else:
-                        eid = 1
-                    cur.execute(insert_sql, (eid, token,))
-            except Exception as err:
-                print("error", err)
+                    eid = 1
+                cur.execute(insert_sql, (eid, token,))
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
 
-            conn.commit()
-            cur.close()
+        conn.commit()
+        cur.close()
         return eid
 
-    def insert_into_pairs(self, rid, eid: int, probability, tablename: str):
+    def insert_into_pairs(self, rid, eid: int, probability, tablename: str, conn):
         """insert record id(rid), token id(eid) and probability into database"""
-        with Connection() as conn:
-            cur = conn.cursor()
-            try:
-                if tablename == Event2MindDumper.TABLE_X_IN_RCD:
-                    cur.execute(
-                        Event2MindDumper.INSRT_X_SQL,
-                        (rid, eid, probability))
-                elif tablename == Event2MindDumper.TABLE_Y_IN_RCD:
-                    cur.execute(
-                        Event2MindDumper.INSRT_Y_SQL,
-                        (rid, eid, probability))
-                elif tablename == Event2MindDumper.TABLE_INTENT_IN_RCD:
-                    cur.execute(
-                        Event2MindDumper.INSRT_I_SQL,
-                        (rid, eid, probability))
-            except Exception as err:
-                print("error", err)
-            conn.commit()
-            cur.close()
+        cur = conn.cursor()
+        try:
+            if tablename == Event2MindDumper.TABLE_X_IN_RCD:
+                cur.execute(
+                    Event2MindDumper.INSRT_X_SQL,
+                    (rid, eid, probability))
+            elif tablename == Event2MindDumper.TABLE_Y_IN_RCD:
+                cur.execute(
+                    Event2MindDumper.INSRT_Y_SQL,
+                    (rid, eid, probability))
+            elif tablename == Event2MindDumper.TABLE_INTENT_IN_RCD:
+                cur.execute(
+                    Event2MindDumper.INSRT_I_SQL,
+                    (rid, eid, probability))
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
+        conn.commit()
+        cur.close()
 
     def traverse_tokens(self, token_type: str, probability_type: str, table_name: str, data: dict, record_id):
         """traverse each token in data dictionary, and insert them into database"""
@@ -126,8 +123,9 @@ class Event2MindDumper(DumperBase):
         probabilities = data[probability_type]
         for i in range(len(all_tokens)):
             token = ' '.join(all_tokens[i])
-            eid = self.insert_into_tokens(token, token_type)
-            self.insert_into_pairs(record_id, eid, probabilities[i], table_name)
+            with Connection() as conn:
+                eid = self.insert_into_tokens(token, token_type, conn)
+                self.insert_into_pairs(record_id, eid, probabilities[i], table_name, conn)
 
     def batch_insert(self, data_list: list, record_id_list: list, page_size: int):
         """
@@ -155,79 +153,78 @@ class Event2MindDumper(DumperBase):
                                        Event2MindDumper.TABLE_Y_IN_RCD,
                                        data_list, record_id_list, page_size)
 
-    def batch_insert_into_tokens(self, tokens: list, token_type: str, page_size: int) -> list:
+    def batch_insert_into_tokens(self, tokens: list, token_type: str, page_size: int, conn) -> list:
         """batch insert tokens into table: reactions or intents"""
-        with Connection() as conn:
-            cur = conn.cursor()
+        cur = conn.cursor()
 
-            eids = []
+        eids = []
 
-            if token_type == Event2MindDumper.INTENT_TOKENS:
-                slct_id_sql = Event2MindDumper.SLCT_ID_INTENT_SQL
-                slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_INTENT_SQL
-                batch_insert_sql = Event2MindDumper.BATCH_INSRT_INTENT_SQL
-            else:
-                slct_id_sql = Event2MindDumper.SLCT_ID_REACTION_SQL
-                slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_REACTION_SQL
-                batch_insert_sql = Event2MindDumper.BATCH_INSRT_REACTION_SQL
+        if token_type == Event2MindDumper.INTENT_TOKENS:
+            slct_id_sql = Event2MindDumper.SLCT_ID_INTENT_SQL
+            slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_INTENT_SQL
+            batch_insert_sql = Event2MindDumper.BATCH_INSRT_INTENT_SQL
+        else:
+            slct_id_sql = Event2MindDumper.SLCT_ID_REACTION_SQL
+            slct_max_id_sql = Event2MindDumper.SLCT_MAX_ID_REACTION_SQL
+            batch_insert_sql = Event2MindDumper.BATCH_INSRT_REACTION_SQL
 
-            for token in tokens:
-                # get id for each token and list of all token ids
-                try:
-                    cur.execute(slct_id_sql, (token,))
-                    a = cur.fetchone()
-                    if a:
-                        eids.append(a[0])
-                    else:
-                        cur.execute(slct_max_id_sql)
-                        eid = cur.fetchone()[0]
-                        if eid:
-                            eid += 1
-                        else:
-                            eid = 1
-                        eids.append(eid)
-                except Exception as err:
-                    print("error", err)
-                    return eids
-
-            # combine two list into one for batch insertion
-            eid_token_pairs = []
-            eid_token_pairs.append(eids)
-            eid_token_pairs.append(tokens)
-            eid_token_pairs = list(zip(*eid_token_pairs))
+        for token in tokens:
+            # get id for each token and list of all token ids
             try:
-                psycopg2.extras.execute_values(cur, batch_insert_sql, eid_token_pairs, template=None, page_size=page_size)
-            except Exception as err:
-                print("error", err)
+                cur.execute(slct_id_sql, (token,))
+                a = cur.fetchone()
+                if a:
+                    eids.append(a[0])
+                else:
+                    cur.execute(slct_max_id_sql)
+                    eid = cur.fetchone()[0]
+                    if eid:
+                        eid += 1
+                    else:
+                        eid = 1
+                    eids.append(eid)
+            except Exception:
+                logger.error('error: ' + traceback.format_exc())
                 return eids
-            conn.commit()
-            cur.close()
+
+        # combine two list into one for batch insertion
+        eid_token_pairs = []
+        eid_token_pairs.append(eids)
+        eid_token_pairs.append(tokens)
+        eid_token_pairs = list(zip(*eid_token_pairs))
+        try:
+            psycopg2.extras.execute_values(cur, batch_insert_sql, eid_token_pairs, template=None, page_size=page_size)
+        except Exception:
+            logger.error('error: ' + traceback.format_exc())
+            return eids
+        conn.commit()
+        cur.close()
         return eids
 
-    def batch_insert_into_pairs(self, rids: list, eids: list, probabilities, tablename, page_size):
+    def batch_insert_into_pairs(self, rids: list, eids: list, probabilities, tablename, page_size, conn):
         """batch insert record ids(rids), token ids(eids) and probabilities into database"""
-        with Connection() as conn:
-            cur = conn.cursor()
-            # combine three list into one for batch insertion
-            rid_eid_prob_pairs = []
-            rid_eid_prob_pairs.append(rids)
-            rid_eid_prob_pairs.append(eids)
-            rid_eid_prob_pairs.append(probabilities)
-            rid_eid_prob_pairs = list(zip(*rid_eid_prob_pairs))
 
-            if tablename == Event2MindDumper.TABLE_X_IN_RCD:
-                batch_insert_sql = Event2MindDumper.BATCH_INSRT_X_SQL
-            elif tablename == Event2MindDumper.TABLE_Y_IN_RCD:
-                batch_insert_sql = Event2MindDumper.BATCH_INSRT_Y_SQL
-            elif tablename == Event2MindDumper.TABLE_INTENT_IN_RCD:
-                batch_insert_sql = Event2MindDumper.BATCH_INSRT_I_SQL
-            try:
-                psycopg2.extras.execute_values(cur, batch_insert_sql, rid_eid_prob_pairs, template=None,
+        cur = conn.cursor()
+        # combine three list into one for batch insertion
+        rid_eid_prob_pairs = []
+        rid_eid_prob_pairs.append(rids)
+        rid_eid_prob_pairs.append(eids)
+        rid_eid_prob_pairs.append(probabilities)
+        rid_eid_prob_pairs = list(zip(*rid_eid_prob_pairs))
+
+        if tablename == Event2MindDumper.TABLE_X_IN_RCD:
+            batch_insert_sql = Event2MindDumper.BATCH_INSRT_X_SQL
+        elif tablename == Event2MindDumper.TABLE_Y_IN_RCD:
+            batch_insert_sql = Event2MindDumper.BATCH_INSRT_Y_SQL
+        elif tablename == Event2MindDumper.TABLE_INTENT_IN_RCD:
+            batch_insert_sql = Event2MindDumper.BATCH_INSRT_I_SQL
+        try:
+            psycopg2.extras.execute_values(cur, batch_insert_sql, rid_eid_prob_pairs, template=None,
                                                page_size=page_size)
-            except Exception as err:
-                print("error", err)
-            conn.commit()
-            cur.close()
+        except Exception as err:
+            logger.error('error: ' + traceback.format_exc())
+        conn.commit()
+        cur.close()
 
     def batch_traverse_tokens(self, token_type: str, probability_type: str, table_name: str, data_list: list,
                               record_id_list: list, page_size: int):
@@ -247,6 +244,7 @@ class Event2MindDumper(DumperBase):
                 all_tokens.append(' '.join(tokens[i]))
                 all_probabilities.append(probabilities[i])
                 rids.append(record_id_list[j])
-        # eids is a list containing ids of all the tokens
-        eids = self.batch_insert_into_tokens(all_tokens, token_type, page_size)
-        self.batch_insert_into_pairs(rids, eids, all_probabilities, table_name, page_size)
+        with Connection() as conn:
+            # eids is a list containing ids of all the tokens
+            eids = self.batch_insert_into_tokens(all_tokens, token_type, page_size, conn)
+            self.batch_insert_into_pairs(rids, eids, all_probabilities, table_name, page_size, conn)

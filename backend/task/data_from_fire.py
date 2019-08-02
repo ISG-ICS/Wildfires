@@ -63,14 +63,14 @@ class DataFromFire(Runnable):
             # whether a record belongs to a sequence of fire is important
             # set up a bool value of this purpose
             year = 0
-            name = ""
+            name = url.split("/")[-1]
             if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
             for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]:
                 # for a single fire, there can be multiple stages, which shows how this fire develops and dies out.
                 # each stage should be treated as a separate record
                 absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
                 single_record = self.extractor.extract(absolute_path_folder, record, if_sequence)
-                year, name = self.dumper.insert(single_record)
+                year = self.dumper.insert(single_record)
             self.dumper.insert_history(year, name)
             self.crawler.cleanup()
 

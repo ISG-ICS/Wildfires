@@ -6,7 +6,9 @@ from paths import FIRE_DATA_DIR
 from typing import Dict
 import shapefile
 import datetime
-
+from shapely.geometry import shape
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely import wkt
 class FireExtractor(ExtractorBase):
     def __init__(self):
         super().__init__()
@@ -33,7 +35,10 @@ class FireExtractor(ExtractorBase):
         #                 2018:("fireName", "perDatTime", "agency"),
         #                 2019:("FIRENAME", "DATECRNT","AGENCY")}
         # extract the year number from record and convert it to an int
-        year = int(re.search(r"\d{8}",record).group()[:4])
+        try:
+            year = int(re.search(r"\d{8}",record).group()[:4])
+        except AttributeError:
+            year = int(re.search(r"\d{7}",record).group()[:4])
 
         # defining fields each year in dict is not proper since
         # before 2016 there are 4 fields needed. But after 2016 there are only 3
@@ -48,7 +53,7 @@ class FireExtractor(ExtractorBase):
         # read the shp
         #!!!!record need to be fixed since some files are not the same name as their folders
         shp = shapefile.Reader(path + "/" + record)
-        print(shp.record(0))
+        # print(shp.record(0))
         # fill result dict based on the format for this year
         if year < 2016:
             # FIRE_NAME, DATE_:  datetime.date(2014, 9, 11), TIME_: 0129, AGENCY: USFS or NULL
@@ -74,54 +79,76 @@ class FireExtractor(ExtractorBase):
                     result["agency"] = shp.record(0)["agency"] if shp.record(0)["agency"] != "" else "Unknown"
                     result["datetime"] = datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y %I:%M:%S %p') if \
                         len(shp.record(0)['perDatTime']) > 11 else datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y')
-                except KeyError:
+                except IndexError:
                     result["firename"] = shp.record(0)["FIRENAME"].capitalize()
                     result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
                     result["datetime"] = datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y %I:%M:%S %p') if \
                         len(shp.record(0)['PERDATTIME']) > 11 else datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y')
-
-        result["geopolygon"] = self.generate_geom_script(self.separate_multipart_shape(shp.shapeRecord(0).shape.points))
-        # result["geopolygon"] = shp.shapeRecord(0).shape.points
+        geom = self.extract_full_geom(shp)
+        result["geopolygon_full"] = str(geom)
+        result["geopolygon_large"] = str(self.simplify_multipolygon(geom,1.e-04))
+        result["geopolygon_medium"] = str(self.simplify_multipolygon(geom,1.e-03))
+        result["geopolygon_small"] = str(self.simplify_multipolygon(geom,1.e-02))
         result["year"] = year
         result["if_sequence"] = if_sequence
-        print(result)
+        # print(result)
         return result
 
-    def separate_multipart_shape(self, multipartshape):
-        result = []
-        current_shape = []
-        active_flag = True
-        start_point = multipartshape[0]
-        current_shape.append(multipartshape[0])
-        for p in multipartshape[1:]:
-            current_shape.append(p)
-            if active_flag:
-                if p == start_point:
-                    result.append(current_shape)
-                    current_shape = []
-                    active_flag = False
-            else:
-                start_point = p
-                active_flag = True
-        return result
+    def extract_full_geom(self, shp: shapefile.Reader):
+        """
+        Extract a full geom from a shp reader
+        :param shp: shapefile.Reader
+        :return: Multipolygon
+        """
+        fire = shp.shapeRecord(0).shape.__geo_interface__
+        geom = shape(fire)
+        return geom
 
-    def generate_geom_script(self, separated_shapes):
-        result = "MULTIPOLYGON("
-        for shape in separated_shapes:
-            result += "(("
-            for point in shape:
-                result += "{} {}, ".format(point[0],point[1])
-            result = result[:-2] + ")),"
-        print(result[:-1] + ")")
-        return result[:-1] + ")"
+    def simplify_multipolygon(self, multipolygon, threshold: float):
+        """
+        Simplify all components of a multipolygon
+        :param multipolygon:shapely.geometry.Multipolygon
+        :param threshold:float
+        :return:shapely.geometry.Multipolygon
+        """
+        try:
+            polygons = list(multipolygon)
+        except TypeError:
+            polygons = [multipolygon]
+        for i in range(len(polygons)):
+            polygons[i] = polygons[i].simplify(threshold)
+        return MultiPolygon(polygons)
+
+    # def separate_multipart_shape(self, multipartshape):
+    #     result = []
+    #     current_shape = []
+    #     active_flag = True
+    #     start_point = multipartshape[0]
+    #     current_shape.append(multipartshape[0])
+    #     for p in multipartshape[1:]:
+    #         current_shape.append(p)
+    #         if active_flag:
+    #             if p == start_point:
+    #                 result.append(current_shape)
+    #                 current_shape = []
+    #                 active_flag = False
+    #         else:
+    #             start_point = p
+    #             active_flag = True
+    #     return result
+    #
+    # def generate_geom_script(self, separated_shapes):
+    #     result = "MULTIPOLYGON("
+    #     for shape in separated_shapes:
+    #         result += "(("
+    #         for point in shape:
+    #             result += "{} {}, ".format(point[0],point[1])
+    #         result = result[:-2] + ")),"
+    #     # print(result[:-1] + ")")
+    #     return result[:-1] + ")"
 
     def export(self, file_type: str, file_name: str):
         return
-
-
-
-
-
 
 
 

@@ -273,6 +273,10 @@ class ImageClassifier(ClassifierBase):
         result[idx[1]] = prob[1]
         return result
 
+    # TODO
+    def train_with_colab(self):
+        pass
+
 
 if __name__ == '__main__':
     image_classifier = ImageClassifier(ImageClassifier.RESNET_MODEL)

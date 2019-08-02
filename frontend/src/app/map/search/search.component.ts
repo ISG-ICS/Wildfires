@@ -2,7 +2,6 @@ import {Component, OnInit} from '@angular/core';
 import {MapService} from '../../services/map-service/map.service';
 
 import 'leaflet/dist/leaflet.css';
-
 import 'leaflet-maskcanvas';
 
 declare let L;
@@ -31,7 +30,6 @@ export class SearchComponent implements OnInit {
     }
 
     ngOnInit() {
-        this.mapService.boundaryDataLoaded.subscribe(this.getBoundaryScreenDataHandler);
         this.mapService.mapLoaded.subscribe(([map, mainControl]) => {
             this.map = map;
             this.mainControl = mainControl; // get map and mainControl when heatmap.component loaded
@@ -48,17 +46,16 @@ export class SearchComponent implements OnInit {
         // takes user input and requests data from server
         if (event.key === 'Enter') {
             this.userInput = event.target.value;
-            this.mapService.getSearch(this.userInput);
-            this.mapService.searchDataLoaded.subscribe(this.boundaryDataHandler);
+            this.mapService.getSearch(this.userInput).subscribe(this.boundaryDataHandler);
 
         }
         // TODO: auto-completion
-    }
+    };
 
     boundaryDataHandler = (data) => {
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
         const listWithFixedLL = [];
-        if (data !== null) {
+        if (data !== []) {
             // list will be converted because of the lat and lon are misplaced
             for (const item of data.coordinates[0]) {
                 listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
@@ -88,7 +85,7 @@ export class SearchComponent implements OnInit {
             (document.getElementById('searchBox') as HTMLInputElement).placeholder = 'Invalid input, please try again';
         }
 
-    }
+    };
 
     getBoundary = () => {
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
@@ -115,8 +112,8 @@ export class SearchComponent implements OnInit {
         }
 
 
-        this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW);
-    }
+        this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW).subscribe(this.getBoundaryScreenDataHandler);
+    };
 
     getBoundaryScreenDataHandler = (data) => {
 
@@ -137,7 +134,7 @@ export class SearchComponent implements OnInit {
 
         this.mainControl.addOverlay(this.geojson, 'Boundary');
         this.map.addLayer(this.geojson);
-    }
+    };
 
 
     setLabelStyle = (marker) => {
@@ -147,7 +144,7 @@ export class SearchComponent implements OnInit {
         marker.getElement().style.fontFamily = 'monospace';
         marker.getElement().style.webkitTextStroke = '#ffe710';
         marker.getElement().style.webkitTextStrokeWidth = '0.5px';
-    }
+    };
 
 
     getPolygonCenter = (coordinateArr) => {
@@ -160,7 +157,7 @@ export class SearchComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    }
+    };
 
 
     onEachFeature = (feature, layer) => {
@@ -170,7 +167,7 @@ export class SearchComponent implements OnInit {
             mouseout: this.resetHighlight,
             click: this.zoomToFeature
         });
-    }
+    };
 
 
     getColor = (density) => {
@@ -195,7 +192,7 @@ export class SearchComponent implements OnInit {
                 return '#FFEDA0';
         }
 
-    }
+    };
 
     style = (feature) => {
         // style for the boundary layers
@@ -207,7 +204,7 @@ export class SearchComponent implements OnInit {
             dashArray: '3',
             fillOpacity: 0.7
         };
-    }
+    };
 
 
     highlightFeature = (event) => {
@@ -237,7 +234,7 @@ export class SearchComponent implements OnInit {
             ._northEast.lat - 15, this.map.getBounds()._northEast.lng - 60]), {icon: divIcon}).addTo(this.map);
         this.setLabelStyle(this.theHighlightMarker);
         this.setLabelStyle(this.theSearchMarker);
-    }
+    };
 
     resetHighlight = (event) => {
         // gets rid of the highlight when the mouse moves out of the region
@@ -248,7 +245,7 @@ export class SearchComponent implements OnInit {
             this.map.removeControl(this.theSearchMarker);
         }
         this.geojson.resetStyle(event.target);
-    }
+    };
 
     zoomToFeature = (event) => {
         // zooms to a region when the region is clicked

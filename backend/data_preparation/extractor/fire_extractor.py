@@ -2,13 +2,10 @@ import rootpath
 rootpath.append()
 import re
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
-from paths import FIRE_DATA_DIR
-from typing import Dict
 import shapefile
 import datetime
 from shapely.geometry import shape
 from shapely.geometry.multipolygon import MultiPolygon
-from shapely import wkt
 class FireExtractor(ExtractorBase):
     def __init__(self):
         super().__init__()
@@ -91,7 +88,6 @@ class FireExtractor(ExtractorBase):
         result["geopolygon_small"] = str(self.simplify_multipolygon(geom,1.e-02))
         result["year"] = year
         result["if_sequence"] = if_sequence
-        # print(result)
         return result
 
     def extract_full_geom(self, shp: shapefile.Reader):
@@ -119,33 +115,6 @@ class FireExtractor(ExtractorBase):
             polygons[i] = polygons[i].simplify(threshold)
         return MultiPolygon(polygons)
 
-    # def separate_multipart_shape(self, multipartshape):
-    #     result = []
-    #     current_shape = []
-    #     active_flag = True
-    #     start_point = multipartshape[0]
-    #     current_shape.append(multipartshape[0])
-    #     for p in multipartshape[1:]:
-    #         current_shape.append(p)
-    #         if active_flag:
-    #             if p == start_point:
-    #                 result.append(current_shape)
-    #                 current_shape = []
-    #                 active_flag = False
-    #         else:
-    #             start_point = p
-    #             active_flag = True
-    #     return result
-    #
-    # def generate_geom_script(self, separated_shapes):
-    #     result = "MULTIPOLYGON("
-    #     for shape in separated_shapes:
-    #         result += "(("
-    #         for point in shape:
-    #             result += "{} {}, ".format(point[0],point[1])
-    #         result = result[:-2] + ")),"
-    #     # print(result[:-1] + ")")
-    #     return result[:-1] + ")"
 
     def export(self, file_type: str, file_name: str):
         return

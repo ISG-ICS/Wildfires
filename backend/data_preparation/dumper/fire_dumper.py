@@ -15,9 +15,9 @@ class FireDumper(DumperBase):
     sql_create_history_table = 'CREATE TABLE IF NOT EXISTS fire_crawl_history (year int4, name VARCHAR (40), PRIMARY KEY (year, name))'
     sql_retrieve_all_fires = 'SELECT * FROM fire_crawl_history'
     sql_check_if_fire_info_table_exists = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_info\''
-    sql_create_fire_info_table = 'CREATE TABLE IF NOT EXISTS fire_info (name VARCHAR (40), if_sequence boolean, agency VARCHAR (20), time timestamp, geom_full geometry, geom_large geometry, geom_medium geometry, geom_small geometry, PRIMARY KEY (name, time))'
+    sql_create_fire_info_table = 'CREATE TABLE IF NOT EXISTS fire_info (name VARCHAR (40), if_sequence boolean, agency VARCHAR (20), time timestamp, geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, PRIMARY KEY (name, time))'
     sql_insert_fire_into_history = 'INSERT INTO "fire_crawl_history" (year, name) VALUES (%(year)s, %(firename)s) ON CONFLICT DO NOTHING'
-    sql_insert_fire_into_info = 'INSERT INTO "fire_info" (name, if_sequence, agency, time, geom_full, geom_large, geom_medium, geom_small) VALUES (%(firename)s,%(if_sequence)s,%(agency)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,%(geopolygon_medium)s,%(geopolygon_small)s) ON CONFLICT DO NOTHING'
+    sql_insert_fire_into_info = 'INSERT INTO "fire_info" (name, if_sequence, agency, time, geom_full, geom_1e4, geom_1e3, geom_1e2) VALUES (%(firename)s,%(if_sequence)s,%(agency)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,%(geopolygon_medium)s,%(geopolygon_small)s) ON CONFLICT DO NOTHING'
     sql_count_records = 'SELECT COUNT(*) FROM fire_info'
 
     def __init__(self):

@@ -55,7 +55,7 @@ class DataFromFire(Runnable):
         print("Num of new links:", len(to_crawl))
 
         # generate the final list of urls to crawl
-        url_to_crawl = self.crawler.generate_url_from_tuple(to_crawl,current_year)
+        url_to_crawl = sorted(self.crawler.generate_url_from_tuple(to_crawl,current_year))
 
         # start to crawl
         for url in url_to_crawl:
@@ -70,6 +70,8 @@ class DataFromFire(Runnable):
                 # each stage should be treated as a separate record
                 absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
                 single_record = self.extractor.extract(absolute_path_folder, record, if_sequence)
+                if single_record == dict():
+                    continue
                 year = self.dumper.insert(single_record)
             self.dumper.insert_history(year, name)
             self.crawler.cleanup()

@@ -75,6 +75,8 @@ class FireCrawler(CrawlerBase):
         :param url_to_crawl: str
         :return: none
         """
+        if "ActivePerim" in url_to_crawl:
+            return
         used_folder_names = set()
         # grab all firenames in the page
         fire_page = requests.get(url=url_to_crawl).content.decode("utf-8")

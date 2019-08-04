@@ -47,9 +47,10 @@ class FireExtractor(ExtractorBase):
         # result to return -- a dict
         result = dict()
 
-        # read the shp
-        #!!!!record need to be fixed since some files are not the same name as their folders
-        shp = shapefile.Reader(path + "/" + record)
+        try:
+            shp = shapefile.Reader(path + "/" + record)
+        except shapefile.ShapefileException:
+            return result
         # print(shp.record(0))
         # fill result dict based on the format for this year
         if year < 2016:
@@ -63,24 +64,16 @@ class FireExtractor(ExtractorBase):
                 result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"] + datetime.timedelta(days=1)) + \
                                                                 "0000", '%m%d%Y%H%M')
         else:
-            if year < datetime.datetime.now().date().year:
-                # fireName, perDatTime(maybe just date but no time), agency(might be null)
+            try:
                 result["firename"] = shp.record(0)["fireName"].capitalize()
                 result["agency"] = shp.record(0)["agency"] if shp.record(0)["agency"] != "" else "Unknown"
                 result["datetime"] = datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y %I:%M:%S %p') if \
                     len(shp.record(0)['perDatTime']) > 11 else datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y')
-            else:
-                # FIRENAME, PERDATTIME, AGENCY or fireName, perDatTime, agency
-                try:
-                    result["firename"] = shp.record(0)["fireName"].capitalize()
-                    result["agency"] = shp.record(0)["agency"] if shp.record(0)["agency"] != "" else "Unknown"
-                    result["datetime"] = datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y %I:%M:%S %p') if \
-                        len(shp.record(0)['perDatTime']) > 11 else datetime.datetime.strptime(shp.record(0)['perDatTime'], '%m/%d/%Y')
-                except IndexError:
-                    result["firename"] = shp.record(0)["FIRENAME"].capitalize()
-                    result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
-                    result["datetime"] = datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y %I:%M:%S %p') if \
-                        len(shp.record(0)['PERDATTIME']) > 11 else datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y')
+            except IndexError:
+                result["firename"] = shp.record(0)["FIRENAME"].capitalize()
+                result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
+                result["datetime"] = datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y %I:%M:%S %p') if \
+                    len(shp.record(0)['PERDATTIME']) > 11 else datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y')
         geom = self.extract_full_geom(shp)
         result["geopolygon_full"] = str(geom)
         result["geopolygon_large"] = str(self.simplify_multipolygon(geom,1.e-04))

@@ -266,13 +266,16 @@ class TaskManager:
 
     def run_a_task(self, task_prompt):
         while True:
-            loop_prompt = self.lower_case_prompt("Would you like to run task in a loop? yes/no ([y]/[n])\n")
+            loop_prompt = self.lower_case_prompt(
+                "Would you like to run task in a loop? yes/no ([y]/[n])  ([r] for selecting another task)\n")
             if loop_prompt == 'y':
                 task_loop = True
                 interval_prompt = self.lower_case_prompt("Interval between each run enter a NUMBER of seconds:\n")
             elif loop_prompt == 'n':
                 task_loop = False
                 interval_prompt = 0
+            elif loop_prompt == 'r':
+                break
             else:
                 continue
             try:
@@ -306,7 +309,7 @@ class TaskManager:
         except:
             print("Skipped, no task been terminated\n ")
 
-    def task_selection(self) -> int:
+    def task_selection(self) -> (int, int):
         selected_task = None
         while not selected_task:
             print("You have following task running: ")
@@ -315,18 +318,15 @@ class TaskManager:
             self.kill_thread_flag = False  # flag to kill thread
             self.quit_flag = False  # flag to terminate the TaskManager
             try:
-                task_prompt = input(
+                task_prompt = self.lower_case_prompt(
                     "\nWhich task would you like to run:\n" + self.task_option_to_string()
                     + " [k]: kill a running thread\n [q]: QUIT\n")
-                task_prompt = self.lower_case_prompt(task_prompt)
                 if task_prompt == 'k':
                     return None, TaskManager.KILL_MODE
-                    break
                 elif task_prompt == 'q':
                     if self.lower_case_prompt("Are you sure you want to quit? [Y/N]") not in ['y', 'yes']:
                         continue
                     return None, TaskManager.QUIT_MODE
-                    break
                 else:
                     selected_task = int(task_prompt)
                     # to test whether this is a legal task

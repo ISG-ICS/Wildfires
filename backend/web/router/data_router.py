@@ -255,3 +255,26 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
                     or main_land_poly.contains_point([pnt['long'] % -360, pnt['lat']], radius=-accuracy):
                 result.append(pnt)
         return result
+
+
+@bp.route("/fire", methods=['POST'])
+def fire():
+    # return a json of all firename, firetime, and fire geometry inside the bounding box
+    request_json = flask_request.get_json(force=True)
+    north = request_json['northEast']['lat']
+    east = request_json['northEast']['lon']
+    south = request_json['southWest']['lat']
+    west = request_json['southWest']['lon']
+    size = request_json['size']
+    size_dict = {0: "get_fire_geom_full", 1: "get_fire_geom_1e4", 2: "get_fire_geom_1e3", 3: "get_fire_geom_1e2"}
+    poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(north, west, east, south)
+    size = size_dict[size]
+    query = "SELECT * from {}(%s)".format(size)
+    with Connection() as conn:
+        cur = conn.cursor()
+        cur.execute(query, poly)
+        resp = make_response(
+            jsonify([{"name": name, "agency": agency, "datetime": dt, "geom":geom} for name, agency, dt, geom in cur.fetchall()]))
+        cur.close()
+    return resp
+

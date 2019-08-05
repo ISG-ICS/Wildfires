@@ -6,6 +6,8 @@ import {HttpClientModule} from '@angular/common/http';
 
 import {MapModule} from './map/map.module';
 import {AppComponent} from './app.component';
+import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+
 
 @NgModule({
     declarations: [
@@ -15,7 +17,8 @@ import {AppComponent} from './app.component';
         BrowserModule,
         AppRoutingModule,
         MapModule,
-        HttpClientModule
+        HttpClientModule,
+        BrowserAnimationsModule
 
     ],
     providers: [],

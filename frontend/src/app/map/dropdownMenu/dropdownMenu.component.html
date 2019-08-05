@@ -1,0 +1,12 @@
+<form class="example-form" ngFormOptions="">
+    <mat-form-field class="example-full-width">
+        <input (keyup)="dropDownHandler($event)" [formControl]="myControl" [matAutocomplete]="auto" aria-label="Number"
+               matInput placeholder="Enter the location here"
+               type="text">
+        <mat-autocomplete #auto="matAutocomplete" (optionSelected)='selected($event.option.id,$event.option.value)'><br>
+            <mat-option *ngFor="let state of dataToDropDownMenu" [id]="state.id" [value]="state.value">
+                {{state.display}}
+            </mat-option>
+        </mat-autocomplete>
+    </mat-form-field>
+</form>

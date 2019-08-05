@@ -11,6 +11,9 @@ export class MapService {
     // Declare data events for components to action
     mapLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
+    dropDownMenueDataToSearch = new EventEmitter();
+    dropDownMenuDataLoaded = new EventEmitter();
+    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
 
     constructor(private http: HttpClient) {
@@ -116,6 +119,23 @@ export class MapService {
             return {type: 'FeatureCollection', features: data};
         }));
     }
+
+    getDropBox(userInput): void {
+        // gets auto-completion suggestions
+        $.ajax({
+            type: 'GET',
+            url: 'http://127.0.0.1:5000/dropdownMenu',
+            data: {userInput: userInput},
+        }).done((data) => {
+            this.dropDownMenuDataLoaded.emit(data);
+        });
+    }
+
+    dropBoxToSearch(id, value): void {
+        // sends id and value from the user input selected in the drop down menu to search component
+        this.dropDownMenueDataToSearch.emit([id, value]);
+    }
+
 
     stopLiveTweet(): void {
         window.clearInterval(this.liveTweetCycle);

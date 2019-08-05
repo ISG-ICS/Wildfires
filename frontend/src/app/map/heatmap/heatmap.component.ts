@@ -5,6 +5,7 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import {SearchService} from "../../services/search/search.service";
 import {Subject} from 'rxjs';
 
 
@@ -43,7 +44,7 @@ export class HeatmapComponent implements OnInit {
     private tempMin = 0;
 
 
-    constructor(private mapService: MapService) {
+    constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
     ngOnInit() {

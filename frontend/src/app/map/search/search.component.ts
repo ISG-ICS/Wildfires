@@ -3,6 +3,7 @@ import {MapService} from '../../services/map-service/map.service';
 
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-maskcanvas';
+import {SearchService} from "../../services/search/search.service";
 
 declare let L;
 
@@ -26,10 +27,12 @@ export class SearchComponent implements OnInit {
     private theSearchMarker;
 
 
-    constructor(private mapService: MapService) {
+    constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
     ngOnInit() {
+        this.mapService.boundaryDataLoaded.subscribe(this.getBoundaryScreenDataHandler);
+        this.mapService.dropDownMenueDataToSearch.subscribe(this.searchEventHandler);
         this.mapService.mapLoaded.subscribe(([map, mainControl]) => {
             this.map = map;
             this.mainControl = mainControl; // get map and mainControl when heatmap.component loaded
@@ -38,17 +41,22 @@ export class SearchComponent implements OnInit {
             this.map.on('zoomend, moveend', () => {
                 this.getBoundary();
 
+
             });
         });
     }
 
-    searchEventHandler = (event) => {
+    searchEventHandler = (data) => {
         // takes user input and requests data from server
-        if (event.key === 'Enter') {
-            this.userInput = event.target.value;
-            this.mapService.getSearch(this.userInput).subscribe(this.boundaryDataHandler);
+        // if (event.key === 'Enter') {
+        //     this.userInput = event.target.value;
+        this.userInput = data[1];
+        let userInputID = data[0];
+        console.log(this.userInput, userInputID);
+        this.searchService.getSearch(userInputID);
+        this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
 
-        }
+        // }
         // TODO: auto-completion
     };
 
@@ -116,7 +124,7 @@ export class SearchComponent implements OnInit {
     };
 
     getBoundaryScreenDataHandler = (data) => {
-
+        // console.log('fire data',data)
         // do nothing if checkbox is not checked
         if (!this.map.hasLayer(this.geojson) && this.geojson) {
             return;
@@ -199,10 +207,10 @@ export class SearchComponent implements OnInit {
         return {
             fillColor: this.getColor(feature.properties.density),
             weight: 2,
-            opacity: 1,
+            opacity: 0.1,
             color: 'white',
             dashArray: '3',
-            fillOpacity: 0.7
+            fillOpacity: 0.3
         };
     };
 
@@ -251,7 +259,7 @@ export class SearchComponent implements OnInit {
         // zooms to a region when the region is clicked
         this.map.fitBounds(event.target.getBounds());
 
-    }
+    };
 
 }
 

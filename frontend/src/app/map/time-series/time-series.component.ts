@@ -1,8 +1,8 @@
-import {Component, OnInit, EventEmitter, Output} from '@angular/core';
+import {Component, EventEmitter, OnInit, Output} from '@angular/core';
 import * as $ from 'jquery';
 import {MapService} from '../../services/map-service/map.service';
+
 declare var require: any;
-const Highcharts = require('highcharts');
 
 @Component({
   selector: 'app-time-series',
@@ -16,14 +16,13 @@ export class TimeSeriesComponent implements OnInit {
   constructor(private mapService: MapService) { }
 
   ngOnInit() {
-    this.mapService.timeseriesDataLoaded.subscribe(this.drawTimeSeries);
+      this.mapService.getFireTweetData().subscribe(this.drawTimeSeries);
   }
 
   // Draw time series
   drawTimeSeries = (data) => {
     const chartData = data.chartData;
-    const that = this;
-    const timeseries = Highcharts.chart('timebar-container', {
+      require('highcharts').chart('timebar-container', {
       chart: {
         type: 'line',
         zoomType: 'x',

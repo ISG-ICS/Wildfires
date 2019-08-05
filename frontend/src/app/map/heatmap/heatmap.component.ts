@@ -5,6 +5,8 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import {Subject} from 'rxjs';
+
 
 declare let L;
 
@@ -40,11 +42,11 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
+
     constructor(private mapService: MapService) {
     }
 
     ngOnInit() {
-        // A hacky way to declare that
         // Initialize map and 3 base layers
         const mapBoxUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiY' +
             'SI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
@@ -76,29 +78,35 @@ export class HeatmapComponent implements OnInit {
         });
 
         // Get temperature data from service
-        this.mapService.getTemperatureData();
-        this.mapService.temperatureDataLoaded.subscribe(this.dotMapDataHandler);
-        this.mapService.temperatureDataLoaded.subscribe(this.heatmapDataHandler);
-
-        // Send temp range selected from service
-        this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
+        const tempSubject = new Subject();
+        tempSubject.subscribe(this.dotMapDataHandler);
+        tempSubject.subscribe(this.heatmapDataHandler);
+        this.mapService.getTemperatureData().subscribe(tempSubject);
 
         // Get tweets data from service
-        this.mapService.getFireTweetData();
-        this.mapService.fireTweetDataLoaded.subscribe(this.tweetDataHandler);
+        this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
+
 
         // Get fire events data from service
-        this.mapService.getWildfirePredictionData();
-        this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
+        this.mapService.getWildfirePredictionData().subscribe(this.fireEventHandler);
+        // this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
+
+        // Get wind events data from service
+        this.mapService.getWindData().subscribe(this.windDataHandler);
+
 
         // Add event Listener to live tweet switch
         $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
 
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
+
+        // Send temp range selected from service
+        this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
     }
 
     tweetDataHandler = (data) => {
+
         this.tweetLayer = L.TileLayer.maskCanvas({
             radius: 10,
             useAbsoluteRadius: true,
@@ -120,14 +128,13 @@ export class HeatmapComponent implements OnInit {
 
 
     liveTweetSwitchHandler = () => {
-        if (this.switchStatus === true) {
+        if (this.switchStatus) {
             this.liveTweetLayer.clearLayers();
             this.mapService.stopLiveTweet();
             this.switchStatus = false;
             return;
         }
-        this.mapService.getLiveTweetData();
-        this.mapService.liveTweetLoaded.subscribe(this.liveTweetDataHandler);
+        this.mapService.getLiveTweetData().subscribe(this.liveTweetDataHandler);
         this.switchStatus = true;
     };
 
@@ -188,26 +195,28 @@ export class HeatmapComponent implements OnInit {
         this.tweetLayer.setData(tempData);
     };
 
-    fireEventHandler = (data) => {
-
+    fireEventHandler = (fireEvents) => {
+        // OPTIMIZE: move this to backend
+        fireEvents.filter(entry => entry.nlp === true);
         const fireEventList = [];
 
-        for (const ev of data.fireEvents) {
+        for (const ev of fireEvents) {
             const point = [ev.lat, ev.long];
             const size = 40;
             const fireIcon = L.icon({
                 iconUrl: 'assets/image/pixelfire.gif',
                 iconSize: [size, size],
             });
-            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%)');
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire');
             fireEventList.push(marker);
 
         }
-        const fireEvents = L.layerGroup(fireEventList);
-        this.mainControl.addOverlay(fireEvents, 'Fire event');
+
+        this.mainControl.addOverlay(L.layerGroup(fireEventList), 'Fire event');
     };
 
     windDataHandler = (wind) => {
+
         // there's not much document about leaflet-velocity.
         // all we got is an example usage from
         // github.com/0nza1101/leaflet-velocity-ts
@@ -222,7 +231,7 @@ export class HeatmapComponent implements OnInit {
                 displayEmptyString: 'No wind data',
                 speedUnit: 'm/s'
             },
-            data: wind.data,
+            data: wind,
             maxVelocity: 12 // affect color and animation speed of wind
         });
         this.mainControl.addOverlay(velocityLayer, 'Global wind');
@@ -278,7 +287,6 @@ export class HeatmapComponent implements OnInit {
             }
             latLongBins.push(points);
         }
-        console.log(latLongBins);
         // Assign a different color and a layer for each small temperature interval
         for (let i = 0; i < this.colorList.length; i++) {
             this.tempLayer = L.TileLayer.maskCanvas({
@@ -312,7 +320,7 @@ export class HeatmapComponent implements OnInit {
             this.tempRegionsMax = [];
             let startSelecting = false;
             // Push layers in selected range into list tempRegionsMax
-            for (let i = 0; i < this.tempBreaks.length; i++) {
+            for (let i = 0; i < this.tempBreaks.length - 1; i++) {
                 const rangeMin = this.tempBreaks[i];
                 const rangeMax = this.tempBreaks[i + 1];
                 if (inRange(rangeMin, rangeMax, this.tempMin)) {
@@ -326,15 +334,15 @@ export class HeatmapComponent implements OnInit {
                     break;
                 }
             }
-            // Remove previous canvas layers
-            for (const layer of this.tempLayers) {
-                this.map.removeLayer(layer);
-            }
-            // Add new canvas layers in the updated list tempRegionsMax to Map
-            for (const region of this.tempRegionsMax) {
-                region.addTo(this.map);
-            }
-            console.log(this.tempRegionsMax);
+
+        }
+        // Remove previous canvas layers
+        for (const layer of this.tempLayers) {
+            this.map.removeLayer(layer);
+        }
+        // Add new canvas layers in the updated list tempRegionsMax to Map
+        for (const region of this.tempRegionsMax) {
+            region.addTo(this.map);
         }
     }
 }

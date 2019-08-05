@@ -1,5 +1,7 @@
 import {EventEmitter, Injectable} from '@angular/core';
-import * as $ from 'jquery';
+import {interval, Observable} from 'rxjs';
+import {HttpClient, HttpParams} from '@angular/common/http';
+import {map, switchMap} from 'rxjs/operators';
 
 @Injectable({
     providedIn: 'root'
@@ -7,20 +9,12 @@ import * as $ from 'jquery';
 export class MapService {
 
     // Declare data events for components to action
-    fireTweetDataLoaded = new EventEmitter();
-    heatmapDataLoaded = new EventEmitter();
-    timeseriesDataLoaded = new EventEmitter();
-    fireEventDataLoaded = new EventEmitter();
-    liveTweetLoaded = new EventEmitter();
     mapLoaded = new EventEmitter();
-    temperatureDataLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
-    windDataLoaded = new EventEmitter();
-    searchDataLoaded = new EventEmitter();
-    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
 
-    constructor() {
+    constructor(private http: HttpClient) {
+
     }
 
     // TODO: to be removed
@@ -41,36 +35,32 @@ export class MapService {
         return matrix;
     }
 
+    // FIXME: this is not being used, and not matching the backend API
+    getHeatmapData(): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/data/temp').pipe(map(data => {
 
-    getHeatmapData(): void {
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/data/temp',
-            dataType: 'text',
-        }).done(data => {
-            const dataList = JSON.parse(data);
-            console.log(dataList);
-            const testData = {
-                max: 8,
-                data: dataList
-            };
-            this.heatmapDataLoaded.emit({heatmapData: testData});
-        });
-
+                console.log(data);
+                const testData = {
+                    max: 8,
+                    data
+                };
+                return {heatmapData: testData};
+            }
+        ));
     }
 
-    getFireTweetData(): void {
-        const chartData = [];
-        const dailyCount = {};
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/tweet/fire-tweet',
-            dataType: 'text',
-        }).done(data => {
+    getFireTweetData(): Observable<any> {
+        interface Tweet {
+            create_at: string;
+            lat: number;
+            long: number;
+        }
 
-            const tempData = JSON.parse(data);
+        return this.http.get('http://127.0.0.1:5000/tweet/fire-tweet').pipe(map((data: Tweet[]) => {
+            const chartData = [];
+            const dailyCount = {};
             const dataArray = [];
-            tempData.forEach(entry => {
+            for (const entry of data) {
                 const createAt = entry.create_at.split('T')[0];
 
                 if (dailyCount.hasOwnProperty(createAt)) {
@@ -81,96 +71,57 @@ export class MapService {
 
                 const leftTop = [entry.lat, entry.long];
                 dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
-            });
+            }
 
             // time bar
             Object.keys(dailyCount).sort().forEach(key => {
                 chartData.push([new Date(key).getTime(), dailyCount[key]]);
             });
-
-            this.fireTweetDataLoaded.emit({tweetData: dataArray});
-            this.timeseriesDataLoaded.emit({chartData});
-        });
+            return {tweetData: dataArray, chartData};
+        }));
     }
 
-    getWildfirePredictionData(): void {
-
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/wildfire-prediction',
-            dataType: 'text'
-        }).done((data) => {
-            const wildfire = JSON.parse(data).filter(entry => entry.nlp === true);
-            this.fireEventDataLoaded.emit({fireEvents: wildfire});
-        });
+    getWildfirePredictionData(): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/wildfire-prediction');
     }
 
-    getLiveTweetData(): void {
-        const that = this;
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/tweet/live-tweet'
-        }).done((data) => {
-            that.liveTweetLoaded.emit({data});
-        });
-        this.liveTweetCycle = setInterval(() => {
-            $.ajax({
-                type: 'GET',
-                url: 'http://127.0.0.1:5000/tweet/live-tweet'
-            }).done((data) => {
-                that.liveTweetLoaded.emit({data});
-            });
-        }, 20000);
+    getLiveTweetData(): Observable<any> {
+
+        return interval(20000).pipe(
+            switchMap(() => {
+                console.log('requesting');
+                return this.http.get('http://127.0.0.1:5000/tweet/live-tweet');
+            }));
     }
 
-    getWindData(): void {
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/data/wind'
-        }).done((data) => {
-            this.windDataLoaded.emit({data});
-
-        });
+    getWindData(): Observable<any> {
+        return this.http.get<any>('http://127.0.0.1:5000/data/wind');
     }
 
-    getSearch(userInput): void {
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/search',
-            data: {keyword: userInput},
-        }).done((data) => {
-            console.log('data', data);
-            this.searchDataLoaded.emit(data[0]);
-        });
+    getSearch(userInput): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/search',
+            {params: new HttpParams().set('keyword', userInput)}).pipe(map(data => data[0]));
     }
 
     // get administrative boundaries within screen
-    getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): void {
-        $.ajax({
-            type: 'POST',
-            url: 'http://127.0.0.1:5000/search/boundaries',
-            data: JSON.stringify({
-                states: stateLevel,
-                cities: cityLevel,
-                counties: countyLevel,
-                northEast: northEastBoundaries,
-                southWest: southWestBoundaries,
-            })
-        }).done((data) => {
+    getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): Observable<any> {
 
-            this.boundaryDataLoaded.emit({type: 'FeatureCollection', features: data});
-        });
+        return this.http.post('http://127.0.0.1:5000/search/boundaries', JSON.stringify({
+            states: stateLevel,
+            cities: cityLevel,
+            counties: countyLevel,
+            northEast: northEastBoundaries,
+            southWest: southWestBoundaries,
+        })).pipe(map(data => {
+            return {type: 'FeatureCollection', features: data};
+        }));
     }
 
     stopLiveTweet(): void {
         window.clearInterval(this.liveTweetCycle);
     }
 
-    getTemperatureData(): void {
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/data/recent-temp',
-            dataType: 'text',
-        }).done(data => this.temperatureDataLoaded.emit(JSON.parse(data)));
+    getTemperatureData(): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/data/recent-temp');
     }
 }

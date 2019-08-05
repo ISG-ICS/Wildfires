@@ -85,7 +85,7 @@ def soil_moisture_in_screen():
 @bp.route("/wind")
 def wind():
     # TODO: replace source of wind data to db
-    resp = make_response(send_from_directory('data', 'latest-wind.json'))
+    resp = make_response(send_from_directory('static/data', 'latest.json'))
     return resp
 
 

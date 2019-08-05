@@ -1,12 +1,12 @@
 import {Component, OnInit} from '@angular/core';
-import {MapService} from "../../services/map-service/map.service";
+import {MapService} from '../../services/map-service/map.service';
 
 import 'leaflet/dist/leaflet.css';
 
 import 'leaflet-maskcanvas';
-import {FormControl} from "@angular/forms";
-import "@angular/cdk";
-import {SearchService} from "../../services/search/search.service";
+import {FormControl} from '@angular/forms';
+import '@angular/cdk';
+import {SearchService} from '../../services/search/search.service';
 
 
 @Component({
@@ -91,7 +91,9 @@ export class SearchComponent implements OnInit {
             console.log('data', data);
         } else {
             console.log('here, no data');
-            (<HTMLInputElement>document.getElementById("search-input-id")).value = "";
+            (document.getElementById('search-input-id') as HTMLInputElement).value = '';
+
+            (document.getElementById('placeholder') as HTMLInputElement).innerHTML = 'Invalid input, please enter again';
 
         }
     };

@@ -6,49 +6,45 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-maskcanvas';
 import {FormControl} from "@angular/forms";
 import "@angular/cdk";
+import {SearchService} from "../../services/search/search.service";
 
 
 @Component({
-    selector: 'app-dropdownMenu',
-    templateUrl: './dropdownMenu.component.html',
-    styleUrls: ['./dropdownMenu.component.css']
+    selector: 'search-bar',
+    templateUrl: './search.component.html',
+    styleUrls: ['./search.component.css']
 })
 
 
-export class DropdownMenuComponent implements OnInit {
+export class SearchComponent implements OnInit {
 
     public dataToDropDownMenu;
     myControl = new FormControl();
-    private map;
 
-    constructor(private mapService: MapService) {
+    constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
     ngOnInit() {
-        this.mapService.mapLoaded.subscribe((map) => {
-            this.map = map;
-        });
+        this.searchService.searchDataLoaded.subscribe(this.userInputCheckHandler);
+
     }
 
     dropDownHandler = (event) => {
-        // takes in the user input from the search box
+        // clears any possible existing value from search box
+
         if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter') {
             if (event.target.value !== "") {
-                this.mapService.getDropBox(event.target.value);
-                // provides real time user input to get auto-completion suggestion
-
-                this.mapService.dropDownMenuDataLoaded.subscribe(this.getSearchInputDataHandler);
+                this.mapService.getDropBox(event.target.value).subscribe(this.getSearchInputDataHandler);
                 // gets auto-completion suggestion from the database
             }
+        } else if (event.key === 'Enter') {
+            this.selected(null, event.target.value);
+            console.log('here in enter directly')
         }
+
     };
 
     getSearchInputDataHandler = (data) => {
-        // gets data from database, process data
-        this.processData(data);
-    };
-
-    processData = (data) => {
         // process the data, make the display look more aesthetic
         let i;
         let cityString, countyString, stateString, city, county, state;
@@ -59,7 +55,7 @@ export class DropdownMenuComponent implements OnInit {
         for (i = 0; i < data.length; i++) {
             // if the level data exists, add to the dictionary arr, then add arr to list dataToDropDownMen
             if (data[i][0]) {
-                cityString = data[i][0] + " (city)  ";
+                cityString = data[i][0] + " (city) ";
                 city = data[i][0]
             }
             if (data[i][1]) {
@@ -88,10 +84,36 @@ export class DropdownMenuComponent implements OnInit {
         }
     };
 
+    userInputCheckHandler = ([[data], value]) => {
+        console.log(data);
+        // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
+        if (data) {
+            console.log('data', data);
+        } else {
+            console.log('here, no data');
+            (<HTMLInputElement>document.getElementById("search-input-id")).value = "";
+
+        }
+    };
+
 
     selected = (id, value) => {
+        // FIXME: county id are all set to 6 due to the lack of county id data
         // passes the id and location name to search component
-        this.mapService.dropBoxToSearch(id, value);
+        if (id) {
+            console.log('here in selected with id')
+            this.searchService.getSearch(id).subscribe((data) => {
+                this.searchService.searchDataLoaded.emit([data, value])
+            })
+        } else {
+            console.log('here in selected with value');
+            console.log('id', id);
+            console.log('value', value);
+
+            this.searchService.getSearch(value).subscribe((data) => {
+                this.searchService.searchDataLoaded.emit([data, value])
+            })
+        }
 
     }
 

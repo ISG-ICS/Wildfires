@@ -11,45 +11,12 @@ export class MapService {
     // Declare data events for components to action
     mapLoaded = new EventEmitter();
     temperatureChangeEvent = new EventEmitter();
-    dropDownMenueDataToSearch = new EventEmitter();
-    dropDownMenuDataLoaded = new EventEmitter();
-    boundaryDataLoaded = new EventEmitter();
     liveTweetCycle: any;
+
 
     constructor(private http: HttpClient) {
 
-    }
 
-    // TODO: to be removed
-    static processCSVData(allText, limit, delim = ',') {
-        const allTextLines = allText.split(/\r\n|\n/);
-        const matrix = [];
-        for (let i = 1; i < allTextLines.length && i <= limit; i++) {
-            const s = allTextLines[i];
-            const tempEntry = s.split(delim);
-            const entries = [];
-            for (const entry of tempEntry) {
-                if (entry !== '') {
-                    entries.push(entry);
-                }
-            }
-            matrix.push(entries);
-        }
-        return matrix;
-    }
-
-    // FIXME: this is not being used, and not matching the backend API
-    getHeatmapData(): Observable<any> {
-        return this.http.get('http://127.0.0.1:5000/data/temp').pipe(map(data => {
-
-                console.log(data);
-                const testData = {
-                    max: 8,
-                    data
-                };
-                return {heatmapData: testData};
-            }
-        ));
     }
 
     getFireTweetData(): Observable<any> {
@@ -120,20 +87,10 @@ export class MapService {
         }));
     }
 
-    getDropBox(userInput): void {
+    getDropBox(userInput): Observable<any> {
         // gets auto-completion suggestions
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/dropdownMenu',
-            data: {userInput: userInput},
-        }).done((data) => {
-            this.dropDownMenuDataLoaded.emit(data);
-        });
-    }
 
-    dropBoxToSearch(id, value): void {
-        // sends id and value from the user input selected in the drop down menu to search component
-        this.dropDownMenueDataToSearch.emit([id, value]);
+        return this.http.get('http://127.0.0.1:5000/dropdownMenu', {params: new HttpParams().set('userInput', userInput)})
     }
 
 

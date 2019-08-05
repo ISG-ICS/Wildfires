@@ -59,6 +59,10 @@ class TaskManager:
         task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run, 1)
     task_option_id = 1
 
+    TASK_MODE = 0
+    KILL_MODE = 1
+    QUIT_MODE = 2
+
     def __init__(self):
         self.quit_flag: bool = False
         self.kill_thread_flag: bool = False
@@ -248,13 +252,13 @@ class TaskManager:
         print("#" + "".center(78, " ") + "#")
         print("#" * 80)
 
-        while not self.quit_flag:
+        while True:
             # Clear finished thread
             self.free_dead()
-            selected_task = self.task_selection()
-            if self.kill_thread_flag:
+            selected_task, task_mode = self.task_selection()
+            if task_mode == TaskManager.KILL_MODE:
                 self.kill_a_thread()
-            elif self.quit_flag:
+            elif task_mode == TaskManager.QUIT_MODE:
                 print("bye bye")
                 break
             else:
@@ -314,21 +318,20 @@ class TaskManager:
                 task_prompt = input(
                     "\nWhich task would you like to run:\n" + self.task_option_to_string()
                     + " [k]: kill a running thread\n [q]: QUIT\n")
-                task_prompt = task_prompt.strip().lower()
+                task_prompt = self.lower_case_prompt(task_prompt)
                 if task_prompt == 'k':
-                    self.kill_thread_flag = True
+                    return None, TaskManager.KILL_MODE
                     break
                 elif task_prompt == 'q':
                     if self.lower_case_prompt("Are you sure you want to quit? [Y/N]") not in ['y', 'yes']:
                         continue
-                    self.kill_thread_flag = False
-                    self.quit_flag = True
+                    return None, TaskManager.QUIT_MODE
                     break
                 else:
                     selected_task = int(task_prompt)
                     # to test whether this is a legal task
                     inspect.getfullargspec(self.task_options[selected_task][1])
-                    return selected_task
+                    return selected_task, TaskManager.TASK_MODE
             except:
                 continue
 

@@ -1,11 +1,15 @@
 import json
 import re
 import string
+from datetime import timedelta
 
 import requests
 import rootpath
 import twitter
+from dateutil import parser
 from flask import Blueprint, make_response, jsonify, request as flask_request
+
+from router.data_router import fill_series
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
@@ -77,6 +81,11 @@ def region_tweet():
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
 
+    # generate date series. values are set to None/null
+    date_series = [[parser.parse(timestamp_str).date(), None]]
+    for d in range(days - 1):
+        date_series.append([date_series[d][0] - timedelta(days=1), None])
+
     query = '''
     select date(rft.create_at), count(rft."id") from
     (
@@ -104,7 +113,7 @@ def region_tweet():
         cur = conn.cursor()
         cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
         resp = make_response(jsonify(
-            [a_row for a_row in cur.fetchall()]
+            fill_series(date_series, cur.fetchall())
         ))
     return resp
 

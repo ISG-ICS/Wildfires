@@ -1,10 +1,13 @@
 import json
 import os
+from copy import deepcopy
+from datetime import timedelta
 from typing import List, Dict
 
 import matplotlib.path as mplPath
 import numpy as np
 import rootpath
+from dateutil import parser
 from flask import Blueprint, make_response, jsonify, send_from_directory, request as flask_request
 
 rootpath.append()
@@ -21,7 +24,12 @@ def aggregation():
     lng = float(request_json['lng'])
     radius = float(request_json['radius'])
     timestamp_str = request_json['timestamp']
-    days = request_json.get('days', 7)
+    days = int(request_json.get('days', 7))
+
+    # generate date series. values are set to None/null
+    date_series = [[parser.parse(timestamp_str).date(), None]]
+    for d in range(days - 1):
+        date_series.append([date_series[d][0] - timedelta(days=1), None])
 
     query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
     query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s, TIMESTAMP %s, %s)'
@@ -31,14 +39,29 @@ def aggregation():
 
         cur.execute(query_tweet, (lng, lat, radius, timestamp_str, days))  # lng lat +-180
         tweet = cur.fetchall()
+        tweet_series = fill_series(date_series, tweet)
         cur.execute(query2_temp, (lng, lat, radius, timestamp_str, days))
         temp = cur.fetchall()
+        temp_series = fill_series(date_series, temp)
         cur.execute(query3_mois, (lng, lat, radius, timestamp_str, days))
         mois = cur.fetchall()
-        resp = make_response(jsonify({'tmp': temp, 'soilw': mois, 'cnt_tweet': tweet}))
+        mois_series = fill_series(date_series, mois)
+        resp = make_response(jsonify({'tmp': temp_series, 'soilw': mois_series, 'cnt_tweet': tweet_series}))
 
         cur.close()
     return resp
+
+
+def fill_series(date_series, fill):
+    tweet_series = deepcopy(date_series)
+    for i in fill:
+        try:
+            idx = tweet_series.index([i[0], None])  # find index by date
+        except ValueError:
+            pass
+        else:
+            tweet_series[idx][1] = i[1]  # set value
+    return tweet_series
 
 
 @bp.route('region-temp', methods=['GET'])
@@ -47,8 +70,13 @@ def region_temp():
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
 
+    # generate date series. values are set to None/null
+    date_series = [[parser.parse(timestamp_str).date(), None]]
+    for d in range(days - 1):
+        date_series.append([date_series[d][0] - timedelta(days=1), None])
+
     query = '''
-    select rft.reftime, avg(tmp) from noaa0p25 noaa,
+    select date(rft.reftime), avg(tmp) from noaa0p25 noaa,
     (
         SELECT reftime, tid from noaa0p25_reftime rft
         where rft.reftime < TIMESTAMP '{timestamp}'
@@ -67,14 +95,14 @@ def region_temp():
     ) as gids
     where noaa.gid=gids.gid
     and noaa.tid = rft.tid
-    GROUP BY rft.reftime
+    GROUP BY date(rft.reftime)
     '''
 
     with Connection() as conn:
         cur = conn.cursor()
         cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
         resp = make_response(jsonify(
-            [a_row for a_row in cur.fetchall()]
+            fill_series(date_series, cur.fetchall())
         ))
     return resp
 
@@ -85,8 +113,13 @@ def region_moisture():
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
 
+    # generate date series. values are set to None/null
+    date_series = [[parser.parse(timestamp_str).date(), None]]
+    for d in range(days - 1):
+        date_series.append([date_series[d][0] - timedelta(days=1), None])
+
     query = '''
-    select rft.reftime, avg(soilw) from noaa0p25 noaa,
+    select date(rft.reftime), avg(soilw) from noaa0p25 noaa,
     (
         SELECT reftime, tid from noaa0p25_reftime rft
         where rft.reftime < TIMESTAMP '{timestamp}'
@@ -105,14 +138,14 @@ def region_moisture():
     ) as gids
     where noaa.gid=gids.gid
     and noaa.tid = rft.tid
-    GROUP BY rft.reftime
+    GROUP BY date(rft.reftime)
     '''
 
     with Connection() as conn:
         cur = conn.cursor()
         cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
         resp = make_response(jsonify(
-            [a_row for a_row in cur.fetchall()]
+            fill_series(date_series, cur.fetchall())
         ))
     return resp
 

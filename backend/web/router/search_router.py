@@ -41,10 +41,10 @@ def search_administrative_boundaries():
     # load abbreviation
     keyword = us_states_abbr.get(keyword, keyword)
 
-    search_state = "SELECT st_asgeojson(t.geom) from us_states t where state_name=%s"
+    search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"
 
     # TODO: implement autocomplete in keyword selection, replace LIMIT 1
-    search_city = "SELECT st_asgeojson(t.geom) from us_cities t where city_name=%s limit 1"
+    search_city = "SELECT st_asgeojson(t.geom) from us_cities t where lower(city_name)=lower(%s) limit 1"
 
     with Connection() as conn:
         cur = conn.cursor()

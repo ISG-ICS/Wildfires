@@ -6,6 +6,8 @@ import os
 import threading
 import time
 import traceback
+from logging import Logger
+from typing import Callable, List
 
 import rootpath
 
@@ -14,6 +16,23 @@ from paths import LOG_DIR, LOG_CONFIG_PATH
 
 # don't delete these imports because they're called implicitly
 exec("from backend.task import *")
+
+
+class Task:
+    def __init__(self, task_name: str, task_func: Callable, task_number: int):
+        self.task_name = task_name
+        self.task_func = task_func
+        self.task_number = task_number
+
+    def __getitem__(self, item):
+        return {0: self.task_name, 1: self.task_func, 2: self.task_number}[item]
+
+
+class RunningThread:
+    def __init__(self, th, th_name, loop):
+        self.th = th
+        self.th_name = th_name
+        self.loop = loop
 
 
 class TaskManager:
@@ -33,17 +52,20 @@ class TaskManager:
     and may cause unexpected behaviour if used!
      """
     exec("from backend.task.runnable import Runnable")
-    running_threads = []
-    task_options = {}
+    running_threads: List[RunningThread] = list()
+    task_options = dict()
     # use 'Runnable' as parent class' name and get all the subclasses' names
     for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
-        task_options[i + 1] = [sub_cls.__name__, sub_cls().run, 1]
+        task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run, 1)
     task_option_id = 1
 
-    @staticmethod
-    def initialize_logger():
-        with open(LOG_CONFIG_PATH, 'r') as file:
+    def __init__(self):
+        self.quit_flag: bool = False
+        self.kill_thread_flag: bool = False
 
+    @staticmethod
+    def initialize_logger() -> Logger:
+        with open(LOG_CONFIG_PATH, 'r') as file:
             # create path to save logs
             if not os.path.exists(LOG_DIR):
                 os.makedirs(LOG_DIR)
@@ -51,10 +73,11 @@ class TaskManager:
             # use json file to config the logger
             logging.config.dictConfig(config)
             logger = logging.getLogger('TaskManager')
-            info_format = '[%(asctime)s] [%(levelname)5s] [%(threadName)21s] [%(module)25s] [%(funcName)21s]: %(message)s'
+            info_format = '[%(asctime)s] [%(levelname)s] [%(threadName)s] [%(module)s] ' \
+                          '[%(funcName)s]: %(message)s'
             date_format = '%m/%d/%Y-%H:%M:%S'
             formatter = logging.Formatter(fmt=info_format, datefmt=date_format)
-            handler_names = ['taskManager_info.log', 'taskManager_error.log']
+            handler_names = ['info.log', 'error.log']
             current_time = time.strftime('%m%d%Y_%H:%M:%S_', time.localtime(time.time()))
             for handler_name in handler_names:
                 file_name = os.path.join(LOG_DIR, current_time + handler_name)
@@ -63,42 +86,41 @@ class TaskManager:
                     os.system(r"touch {}".format(file_name))
                 file_handler = logging.FileHandler(file_name, mode='a', encoding=None, delay=False)
                 file_handler.setLevel(
-                    logging.DEBUG if handler_name.split('.')[0].split('_')[-1] == 'info' else logging.ERROR)
+                    logging.DEBUG if 'info' in handler_name else logging.ERROR)
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
         return logger
 
     @classmethod
-    def add_task_option(cls, task_name, task_func, task_number):
+    def add_task_option(cls, task_name: str, task_func: Callable, task_number: int) -> None:
         """
         :param task_name: name of this task option
         :param task_func: the runnable of this task
         :param task_number: id of this next task eg. let's say we had a wind_crawler-1 is running, to make our second
                             wind crawler's name unique
-        we increment this number, so next wind crawler task will be called wind_crawler-2
+                            we increment this number, so next wind crawler task will be called wind_crawler-2
         :return: None
         """
-        cls.task_options.__setitem__(cls.task_option_id, [task_name, task_func, task_number])
+        cls.task_options[cls.task_option_id] = Task(task_name, task_func, task_number)
         cls.task_option_id += 1
 
     @classmethod
-    def delete_task_option(cls, task_option_id):
+    def delete_task_option(cls, task_option_id: int) -> None:
         """
         :param task_option_id: id of task option you want to delete
-        :return: None
         """
         cls.task_options.pop(task_option_id)
 
     @classmethod
-    def task_option_to_string(cls):
+    def task_option_to_string(cls) -> str:
         """
         :return: formated tasks in the current task option dictionary
         """
         to_return = ""
         task_template = " [%d]: %s-%d \n"
         for option in cls.task_options:
-            to_return += task_template % (option, cls.task_options[option][0], cls.task_options[option][2])
-
+            to_return += task_template % (
+                option, cls.task_options[option].task_name, cls.task_options[option].task_number)
         return to_return
 
     @classmethod
@@ -113,53 +135,47 @@ class TaskManager:
 
         if args is None:
             args = []
-        target_func = cls.task_options[task_option_id][1]
-        th_name = cls.task_options[task_option_id][0] + str(cls.task_options[task_option_id][2])
-        th = threading.Thread(target=cls._thread_runner_, args=(target_func, th_name, interval, args))
+        th_name = cls.task_options[task_option_id].task_name + str(cls.task_options[task_option_id].task_number)
+        th = threading.Thread(target=cls._thread_runner_,
+                              args=(cls.task_options[task_option_id].task_func, th_name, interval, args),
+                              name=th_name)
         logger.info('A new task will be running!')
         th.setDaemon(True)
-        cls.running_threads.append([th, th_name, loop])
+        cls.running_threads.append(RunningThread(th, th_name, loop))
         th.start()
 
     @classmethod
     def free_dead(cls):
         """Removes all threads that return FALSE on isAlive() from the running_threads list """
-        for th in cls.running_threads[:]:
-            if not th[0].isAlive():
-                cls.running_threads.remove(th)
+        for running_th in cls.running_threads[:]:
+            if not running_th.th.isAlive():
+                cls.running_threads.remove(running_th)
 
     @classmethod
     def stop_thread(cls, thread_name):
         """Stops a looping function that was started with ThM.run(...)"""
         for i, thlis in enumerate(cls.running_threads):
-            if thlis[1] == thread_name:
-                cls.running_threads[i][2] = False
+            if thlis.th_name == thread_name:
+                cls.running_threads[i].loop = False
                 cls.running_threads.remove(thlis)
                 exc = ctypes.py_object(SystemExit)
                 res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
-                    ctypes.c_long(cls.running_threads[i][0].ident), exc)
+                    ctypes.c_long(cls.running_threads[i].th.ident), exc)
                 if res == 0:
                     raise ValueError("nonexistent thread id")
                 elif res > 1:
-                    ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i][0].ident, None)
+                    ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i].th.ident, None)
                     raise SystemError("PyThreadState_SetAsyncExc failed")
-                logger.info('TASK ' + cls.running_threads[i][1] + ' KILLED!')
+                logger.info('TASK ' + cls.running_threads[i].th_name + ' KILLED!')
                 break
 
     @classmethod
     def join_all(cls):
         """Joins all the threads together into the calling thread."""
-        for th in cls.running_threads[:]:
-            while th[0].isAlive():
+        for running_th in cls.running_threads[:]:
+            while running_th.th.isAlive():
                 time.sleep(0.1)
-            th[0].join()
-        #   print "Thread:",th[1],"joined","isalive:",th[0].isAlive() --- Debug stuff
-
-    @classmethod
-    def get_all_params(cls):
-        """Returns parameters from the running_threads list for external manipulation"""
-        for th_list in cls.running_threads:
-            yield (th_list[0], th_list[1], th_list[2])
+            running_th.th.join()
 
     # This method is only intended for threads started with ThM !
     @classmethod
@@ -169,9 +185,7 @@ class TaskManager:
         other thread managing objects (semaphores, locks, etc.)"""
         try:
             index_ = 0
-            for thread_ in cls.running_threads[:]:
-                if th_name == thread_[1]:
-                    break
+            if th_name in [thread_.th_name for thread_ in cls.running_threads]:
                 index_ += 1
 
             while True:
@@ -186,7 +200,7 @@ class TaskManager:
                 # 'END' means returned or crashed
                 logger.info('TASK ' + th_name + ' END!')
                 # whether a loop work?
-                if not cls.running_threads[index_][2]:
+                if not cls.running_threads[index_].loop:
                     break
                 if interval != 0:
                     time.sleep(interval)
@@ -197,9 +211,10 @@ class TaskManager:
     def pass_arguments(self, task_prompt):
         """get function run()'s arguments and let user to enter the arguments, then return the argument list args"""
         args = []
-        arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
-        arg_types = inspect.getfullargspec(self.task_options[task_prompt][1]).annotations
-        arg_default = inspect.getfullargspec(self.task_options[task_prompt][1]).defaults
+        arg_spec = inspect.getfullargspec(self.task_options[task_prompt].task_func)
+        arguments = arg_spec.args
+        arg_types = arg_spec.annotations
+        arg_default = arg_spec.defaults
         if arg_types != {}:
             for i, arg in enumerate(arguments):
                 if arg == 'self':
@@ -222,7 +237,6 @@ class TaskManager:
         return args
 
     def main_loop(self):
-        task_loop = False
         print("#" * 80)
         print("#" + "".center(78, " ") + "#")
         print("#" + "".center(78, " ") + "#")
@@ -234,78 +248,89 @@ class TaskManager:
         print("#" + "".center(78, " ") + "#")
         print("#" * 80)
 
-        while True:
-            while True:
-                # Clear finished thread
-                self.free_dead()
-                print("You have following task running: ")
-                for i, thread in enumerate(self.running_threads):
-                    # if thread[2]:
-                    print("[%d]: %s" % (i, thread[1]))
-                kill_thread_flag = False  # flag to kill thread
-                quit_flag = False  # flag to terminate the TaskManager
-                try:
-                    task_prompt = input(
-                        "\nWhich task would you like to run:\n" + self.task_option_to_string()
-                        + " [k]: kill running threads\n [q]: quit\n")
-                    task_prompt = task_prompt.strip()
-                    task_prompt = task_prompt.lower()
-                    if task_prompt == 'k':
-                        kill_thread_flag = True
-                        break
-                    elif task_prompt == 'q':
-                        quit_flag = True
-                        break
-                    else:
-                        task_prompt = int(task_prompt)
-                        # to test whether this is a legal task
-                        arguments = inspect.getfullargspec(self.task_options[task_prompt][1]).args
-                        break
-                except:
-                    continue
-
-            if quit_flag:
+        while not self.quit_flag:
+            # Clear finished thread
+            self.free_dead()
+            selected_task = self.task_selection()
+            if self.kill_thread_flag:
+                self.kill_a_thread()
+            elif self.quit_flag:
+                print("bye bye")
                 break
-
-            if not kill_thread_flag:
-                while True:
-                    loop_prompt = input(
-                        "Would you like to run task in a loop? yes/no ([y]/[n])\n").strip().lower()
-                    if loop_prompt == 'y':
-                        task_loop = True
-                        interval_prompt = input("Interval between each run enter a NUMBER of seconds:\n")
-                    elif loop_prompt == 'n':
-                        interval_prompt = 0
-                    else:
-                        continue
-                    try:
-                        interval_prompt = int(interval_prompt)
-                        args = self.pass_arguments(task_prompt)
-                        self.run(task_option_id=task_prompt, loop=task_loop, interval=interval_prompt, args=args)
-                        # Increment number of user specified task
-                        self.task_options[task_prompt][2] += 1
-                        print("Task " + str(self.task_options[task_prompt][0]) + " has been started!\n")
-                        break
-                    except:
-                        print("Your input is not all correct, the task has not started, please try again")
-                        continue
-
             else:
-                print("You have following tasks running: ")
-                for i, thread in enumerate(self.running_threads):
-                    # if thread[2]:
-                    print("[%d]: %s" % (i, thread[1]))
-                print("\nEnter the task Number to stop the task:")
-                try:
-                    stop_task_prompt = input(
-                        "(if you don't want to kill any thread, enter anything else to continue)\n")
-                    stop_task_prompt = int(stop_task_prompt)
-                    self.stop_thread(self.running_threads[stop_task_prompt][1])
-                    print("Task " + str(self.running_threads[stop_task_prompt][1]) + " has been stopped!\n")
-                except SystemExit:
-                    pass
-                except:
-                    print("Skipped, no task been terminated\n ")
+                self.run_a_task(selected_task)
+
+    def run_a_task(self, task_prompt):
+        while True:
+            loop_prompt = self.lower_case_prompt("Would you like to run task in a loop? yes/no ([y]/[n])\n")
+            if loop_prompt == 'y':
+                task_loop = True
+                interval_prompt = self.lower_case_prompt("Interval between each run enter a NUMBER of seconds:\n")
+            elif loop_prompt == 'n':
+                task_loop = False
+                interval_prompt = 0
+            else:
+                continue
+            try:
+                args = self.pass_arguments(task_prompt)
+                self.run(task_option_id=task_prompt, loop=task_loop, interval=int(interval_prompt), args=args)
+                # Increment number of user specified task
+                self.task_options[task_prompt].task_number += 1
+                print("Task " + str(self.task_options[task_prompt].task_name) + " has been started!\n")
+                break
+            except:
+                print("Your input is not all correct, the task has not started, please try again")
+                continue
+
+    @staticmethod
+    def lower_case_prompt(message: str) -> str:
+        return input(message).strip().lower()
+
+    def kill_a_thread(self):
+        print("You have following tasks running: ")
+        for i, thread in enumerate(self.running_threads):
+            print(f"{i}: {thread.th_name}")
+        print("\nEnter the task Number to stop the task:")
+        try:
+            stop_task_prompt = self.lower_case_prompt(
+                "(if you don't want to kill any thread, enter anything else to continue)\n")
+            running_thread = self.running_threads[int(stop_task_prompt)]
+            self.stop_thread(running_thread.th_name)
+            print("Task " + str(running_thread.th_name) + " has been stopped!\n")
+        except SystemExit:
+            pass
+        except:
+            print("Skipped, no task been terminated\n ")
+
+    def task_selection(self) -> int:
+        selected_task = None
+        while not selected_task:
+            print("You have following task running: ")
+            for i, thread in enumerate(self.running_threads):
+                print(f"{i}: {thread.th_name}")
+            self.kill_thread_flag = False  # flag to kill thread
+            self.quit_flag = False  # flag to terminate the TaskManager
+            try:
+                task_prompt = input(
+                    "\nWhich task would you like to run:\n" + self.task_option_to_string()
+                    + " [k]: kill a running thread\n [q]: QUIT\n")
+                task_prompt = task_prompt.strip().lower()
+                if task_prompt == 'k':
+                    self.kill_thread_flag = True
+                    break
+                elif task_prompt == 'q':
+                    if self.lower_case_prompt("Are you sure you want to quit? [Y/N]") not in ['y', 'yes']:
+                        continue
+                    self.kill_thread_flag = False
+                    self.quit_flag = True
+                    break
+                else:
+                    selected_task = int(task_prompt)
+                    # to test whether this is a legal task
+                    inspect.getfullargspec(self.task_options[selected_task][1])
+                    return selected_task
+            except:
+                continue
 
 
 if __name__ == "__main__":

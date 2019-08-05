@@ -273,7 +273,7 @@ export class HeatmapComponent implements OnInit {
                 }
                 // (2) Create a new Marker to highlight the point.
                 that.currentMarker = L.circleMarker(e.latlng, {
-                    radius: 5,
+                    radius: 7,
                     color: "#fa4c3c",
                     weight: 3,
                     fillColor: "#f7ada6",
@@ -397,7 +397,7 @@ export class HeatmapComponent implements OnInit {
                 + "  </div>\n	"
                 + "      <img src=\""
                 + imageUrl
-                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"height: 150px; \">\n"
+                + "\" onerror=\" this.src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1oYihdIC_G2vCN1dr3B6t5Y1EVKRLmD5qCrrtV_1eE3aJXpYv'\" style=\"height: 100px; \">\n"
                 + "</div>\n";
         }
 
@@ -516,7 +516,7 @@ export class HeatmapComponent implements OnInit {
         let pinRadius = 40000;
 
         function onMapClick(e) {
-            that.mapService.getClickData(e.latlng.lat, e.latlng.lng, pinRadius / 111000);
+            that.mapService.getClickData(e.latlng.lat, e.latlng.lng, pinRadius / 111000, '2019-07-30T15:37:27Z', 7);
             const clickIcon = L.icon({
                 iconUrl: 'assets/image/pin6.gif',
                 iconSize: [26, 30],

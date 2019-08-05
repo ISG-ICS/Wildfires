@@ -68,10 +68,6 @@ class FireDumper(DumperBase):
 
     def insert(self, info: dict):
         print("Inserting fire:",info["firename"],info["datetime"])
-        # s = "("
-        # for t in info["geopolygon"]:
-        #     s += "({},{}),".format(t[0], t[1])
-        # info["geopolygon"] = s[:-1] + ")"
         with Connection() as connect:
             self.check_info(connect)
             cur = connect.cursor()

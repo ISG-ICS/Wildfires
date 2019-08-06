@@ -8,7 +8,6 @@ class CNN_Text(nn.Module):
     def __init__(self, args, vocab_len, weights):
         super(CNN_Text, self).__init__()
         self.args = args
-
         # parameters
         V = vocab_len
         D = args.embed_dim
@@ -33,9 +32,9 @@ class CNN_Text(nn.Module):
         self.dropout = nn.Dropout(args.dropout)
         self.fc1 = nn.Linear(len(Ks) * Co, C)
 
-    def forward(self, input):
+    def forward(self, input, probs):
         x = self.embed(input)
-
+        x = x * torch.Tensor(probs).unsqueeze(3)
         # if self.args.multichannel:
         # x1 = self.embed1(input)
         # x1 = x1.unsqueeze(1)

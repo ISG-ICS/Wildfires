@@ -107,6 +107,7 @@ def text_feature_padding(texts_set, vocab):
         for j in range(3):
             features = [vocab[w].index for w in texts_set[i][j].split() if w in vocab]
             single_line.append(features)
+
         single_line = pad_sequences(single_line, maxlen=32, padding='post')
         text_feature.append(single_line)
     return np.array(text_feature)
@@ -116,23 +117,27 @@ def get_dataset_loader(feature_padding_train, labels_Train,
                        feature_padding_validate, labels_Validate,
                        feature_padding_test, labels_Test):
     train_dataset = TensorDataset(torch.LongTensor(feature_padding_train), torch.LongTensor(labels_Train))
-    train_loader = DataLoader(dataset=train_dataset, batch_size=8, shuffle=True,
-                              num_workers=1)
+    train_loader = DataLoader(dataset=train_dataset, batch_size=64, shuffle=False,
+                              num_workers=2)
 
     validate_dataset = TensorDataset(torch.LongTensor(feature_padding_validate),
                                      torch.LongTensor(labels_Validate))
-    validate_loader = DataLoader(dataset=validate_dataset, batch_size=8, shuffle=False,
-                                 num_workers=1)
+    validate_loader = DataLoader(dataset=validate_dataset, batch_size=64, shuffle=False,
+                                 num_workers=2)
 
     test_dataset = TensorDataset(torch.LongTensor(feature_padding_test),
                                  torch.LongTensor(labels_Test))
-    test_loader = DataLoader(dataset=test_dataset, batch_size=8, shuffle=False,
-                             num_workers=1)
+    test_loader = DataLoader(dataset=test_dataset, batch_size=64, shuffle=False,
+                             num_workers=2)
 
     return train_loader, validate_loader, test_loader
 
 
-def get_dataset_from_sql(cur, label_sql):
+def get_dataset_from_sql(cur, label_sql, select_reaction_x_sql, select_reaction_y_sql, select_reaction_text_sql,
+                         select_intent_sql, select_intent_text_sql):
+    gensim_model = KeyedVectors.load_word2vec_format('./dataset/GoogleNews-vectors-negative300.bin',
+                                                     binary=True, limit=300000, unicode_errors='ignore')
+    vocab = gensim_model.vocab
     reactions_x = []
     reactions_x_prob = []
     reactions_y = []
@@ -141,19 +146,31 @@ def get_dataset_from_sql(cur, label_sql):
     intents_prob = []
     cur.execute(label_sql)
     labeled_id = cur.fetchall()
-
+    print('label done')
     labels = []
     for cur_id, cur_label in labeled_id:
         x_text, x_prob = get_sql_results(cur, select_reaction_x_sql, select_reaction_text_sql, cur_id)
         reactions_x.append(x_text)
+        for i, item in enumerate(x_text):
+            x_prob[i] = np.repeat(x_prob[i], len([w for w in x_text[i].split() if w in vocab]))
+        x_prob = [y for x in x_prob for y in x if x.size != 0]
+        x_prob = np.pad(x_prob, (0, 32 - len(x_prob)), 'constant', constant_values=0)
         reactions_x_prob.append(x_prob)
 
         y_text, y_prob = get_sql_results(cur, select_reaction_y_sql, select_reaction_text_sql, cur_id)
         reactions_y.append(y_text)
+        for i, item in enumerate(y_text):
+            y_prob[i] = np.repeat(y_prob[i], len([w for w in y_text[i].split() if w in vocab]))
+        y_prob = [y for x in y_prob for y in x if x.size != 0]
+        y_prob = np.pad(y_prob, (0, 32 - len(y_prob)), 'constant', constant_values=0)
         reactions_y_prob.append(y_prob)
 
         intent_text, intent_prob = get_sql_results(cur, select_intent_sql, select_intent_text_sql, cur_id)
         intents.append(intent_text)
+        for i, item in enumerate(intent_text):
+            intent_prob[i] = np.repeat(intent_prob[i], len([w for w in intent_text[i].split() if w in vocab]))
+        intent_prob = [y for x in intent_prob for y in x if x.size != 0]
+        intent_prob = np.pad(intent_prob, (0, 32 - len(intent_prob)), 'constant', constant_values=0)
         intents_prob.append(intent_prob)
 
         labels.append(cur_label)
@@ -164,6 +181,16 @@ def get_dataset_from_sql(cur, label_sql):
         for j, ch in enumerate(stacked_text_data[i]):
             stacked_text_data[i][j] = ' '.join(stacked_text_data[i][j])
     return stacked_text_data, stacked_prob_data, labels
+
+
+def make_batch(arr, batch_size):
+    res = []
+    count = 0
+    while count + batch_size < len(arr):
+        res.append(arr[count:count + batch_size])
+        count += batch_size
+    res.append(arr[count:])
+    return np.array(res)
 
 
 if __name__ == "__main__":
@@ -182,16 +209,33 @@ if __name__ == "__main__":
         select_reaction_text_sql = "SELECT reaction FROM reactions WHERE id=%s"
         select_intent_text_sql = "SELECT intent FROM intents WHERE id=%s"
 
-        stacked_train_data, stacked_train_prob, train_labels = get_dataset_from_sql(cur, select_labeled_train_sql)
-        stacked_test_data, stacked_test_prob, test_labels = get_dataset_from_sql(cur, select_labeled_test_sql)
+        stacked_train_data, stacked_train_prob, train_labels = get_dataset_from_sql(cur, select_labeled_train_sql,
+                                                                                    select_reaction_x_sql,
+                                                                                    select_reaction_y_sql,
+                                                                                    select_reaction_text_sql,
+                                                                                    select_intent_sql,
+                                                                                    select_intent_text_sql)
+        stacked_test_data, stacked_test_prob, test_labels = get_dataset_from_sql(cur, select_labeled_test_sql,
+                                                                                 select_reaction_x_sql,
+                                                                                 select_reaction_y_sql,
+                                                                                 select_reaction_text_sql,
+                                                                                 select_intent_sql,
+                                                                                 select_intent_text_sql)
 
         cur.close()
 
     texts_Train = stacked_train_data[0:int(0.9 * len(stacked_train_data))]
+    prob_Train = stacked_train_prob[0:int(0.9 * len(stacked_train_data))]
+    prob_Train = make_batch(prob_Train, 64)
     labels_Train = train_labels[0:int(0.9 * len(train_labels))]
+
     texts_Validate = stacked_train_data[int(0.9 * len(stacked_train_data)):]
+    prob_Validate = stacked_train_prob[int(0.9 * len(stacked_train_data)):]
+    prob_Validate = make_batch(prob_Validate, 64)
     labels_Validate = train_labels[int(0.9 * len(train_labels)):]
+
     texts_Test = stacked_test_data
+    prob_Test = make_batch(stacked_test_prob, 64)
     labels_Test = test_labels
 
     vocab_len, weights, feature_padding_train, feature_padding_validate, feature_padding_test \
@@ -211,4 +255,5 @@ if __name__ == "__main__":
 
     weight = torch.Tensor([0.5, 0.5])  # .cuda()
 
-    train.train(train_loader, validate_loader, test_loader, model, my_loss, weight, args)
+    train.train(train_loader, validate_loader, test_loader, model, my_loss, weight, args, prob_Train, prob_Validate,
+                prob_Test)

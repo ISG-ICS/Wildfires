@@ -24,7 +24,7 @@ def search_administrative_boundaries():
         query = f'''
         SELECT st_asgeojson(t.geom) as geojson from us_states t where state_id = {region_id}
         union
-        SELECT st_asgeojson(t.geom) as geojson from us_counties2 t where geoid = {region_id}
+        SELECT st_asgeojson(t.geom) as geojson from us_counties t where county_id = {region_id}
         union
         SELECT st_asgeojson(t.geom) as geojson from us_cities t where city_id = {region_id}
         '''
@@ -41,15 +41,20 @@ def search_administrative_boundaries():
     # load abbreviation
     keyword = us_states_abbr.get(keyword, keyword)
 
-    search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"
-
     # TODO: implement autocomplete in keyword selection, replace LIMIT 1
+    search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"
+    search_county = "SELECT st_asgeojson(t.geom) from us_counties t where lower(county_name)=lower(%s) limit 1"
     search_city = "SELECT st_asgeojson(t.geom) from us_cities t where lower(city_name)=lower(%s) limit 1"
 
     with Connection() as conn:
         cur = conn.cursor()
-        cur.execute(search_state, (keyword,))
-        results = [json.loads(geom) for geom, in cur.fetchall()]
+        results = None
+        if not results:
+            cur.execute(search_state, (keyword,))
+            results = [json.loads(geom) for geom, in cur.fetchall()]
+        if not results:
+            cur.execute(search_county, (keyword,))
+            results = [json.loads(geom) for geom, in cur.fetchall()]
         if not results:
             cur.execute(search_city, (keyword,))
             results = [json.loads(geom) for geom, in cur.fetchall()]
@@ -96,7 +101,7 @@ def _get_geometry(cur, sql, poly) -> list:
     cur.execute(sql, (poly,))
     return [{"type": "Feature", "id": _id,
              "properties": {"name": name, "density": random.random() * 1200},
-             "geometry": json.loads(geojson)} for _id, name, geojson, _ in cur.fetchall()]
+             "geometry": json.loads(geojson)} for _id, name, geojson in cur.fetchall()]
 
 
 # abbreviation of states

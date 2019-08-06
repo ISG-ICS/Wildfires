@@ -99,7 +99,7 @@ def region_tweet():
         (
             SELECT geom from us_states WHERE state_id={region_id}
             union
-                SELECT geom from us_counties2 WHERE geoid={region_id}
+                SELECT geom from us_counties WHERE county_id={region_id}
                 union
                 SELECT geom from us_cities WHERE city_id={region_id}
         ) as region

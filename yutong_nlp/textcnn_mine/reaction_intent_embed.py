@@ -6,8 +6,6 @@ import torch
 from gensim.models.keyedvectors import KeyedVectors
 from keras.preprocessing.sequence import pad_sequences
 from torch.utils.data import DataLoader, TensorDataset
-from torchtext import data
-from tqdm import tqdm
 
 import yutong_nlp.textcnn_mine.train as train
 from yutong_nlp.textcnn_mine.CNN_text1 import CNN_Text
@@ -86,26 +84,6 @@ def get_sql_results(cur, id_sql, text_sql, cur_id):
             texts.append(cur.fetchone()[0])
             probs.append(cur_pair[1])
     return texts, probs
-
-
-# get_dataset构造并返回Dataset所需的examples和fields
-def get_dataset(text_data, label_data, text_field, label_field, test=False):
-    fields = [("text", text_field), ("label", label_field)]
-    examples = []
-
-    if test:
-        for text in tqdm(text_data):
-            for i in range(3):
-                text[i] = np.array(text[i].split())
-            examples.append(data.Example.fromlist([text, None], fields))
-    else:
-        for text, label in tqdm(zip(text_data, label_data)):
-            if text[0] == '':
-                continue
-            for i in range(3):
-                text[i] = text[i].split()
-            examples.append(data.Example.fromlist([text, label], fields))
-    return examples, fields
 
 
 def data_processing(texts_Train, texts_Validate, texts_Test):
@@ -195,8 +173,8 @@ if __name__ == "__main__":
     with Connection() as conn:
         cur = conn.cursor()
         # select_labeled_sql = "SELECT id,label1 FROM records WHERE (label1=0 or label1=1)"
-        select_labeled_train_sql = "SELECT id,label1 FROM records WHERE (label1=0)"
-        select_labeled_test_sql = "SELECT id,label2 FROM records WHERE (label2=0)"
+        select_labeled_train_sql = "SELECT id,label1 FROM records WHERE (label1=0 or label1=1)"
+        select_labeled_test_sql = "SELECT id,label2 FROM records WHERE (label2=0 or label2=1)"
         select_reaction_x_sql = "SELECT reaction_x_id, probability FROM reaction_x_in_records WHERE record_id=%s"
         select_reaction_y_sql = "SELECT reaction_y_id, probability FROM reaction_y_in_records WHERE record_id=%s"
         select_intent_sql = "SELECT intent_id, probability FROM intent_in_records WHERE record_id=%s"
@@ -231,6 +209,6 @@ if __name__ == "__main__":
 
     my_loss = train.My_loss()
 
-    weight = torch.Tensor(feature_padding_train.shape)  # .cuda()
+    weight = torch.Tensor([0.5, 0.5])  # .cuda()
 
     train.train(train_loader, validate_loader, test_loader, model, my_loss, weight, args)

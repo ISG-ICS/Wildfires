@@ -26,7 +26,7 @@ class CNN_Text(nn.Module):
         if args.multichannel:
             # self.embed1 = nn.Embedding(V, D)
             # self.embed1.weight = nn.Parameter(torch.FloatTensor(weights), requires_grad=False)
-            Ci = 2
+            Ci = 3
 
         # self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (K, D)) for K in Ks])
         self.convs1 = nn.ModuleList([nn.Conv2d(Ci, Co, (1, 300)) for K in Ks])
@@ -35,13 +35,11 @@ class CNN_Text(nn.Module):
 
     def forward(self, input):
         x = self.embed(input)
-        print(x.shape)
-        x = x.unsqueeze(1)
-        print(x.shape)
+
         # if self.args.multichannel:
-            # x1 = self.embed1(input)
-            # x1 = x1.unsqueeze(1)
-            # x = torch.cat((x, x1), 1)
+        # x1 = self.embed1(input)
+        # x1 = x1.unsqueeze(1)
+        # x = torch.cat((x, x1), 1)
 
         x = [F.relu(conv(x)).squeeze(3) for conv in self.convs1]
 

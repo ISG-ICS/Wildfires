@@ -1,6 +1,7 @@
 import argparse
-import torch
+
 import rootpath
+import torch
 
 rootpath.append()
 import yutong_nlp.textcnn_mine.mydatasets_embed as mydatasets_embed
@@ -27,8 +28,10 @@ def handle_args():
     parser.add_argument('-save-best', type=bool, default=True, help='whether to save when get best performance')
     # parser.add_argument('-shuffle', action='store_true', default=False, help='shuffle the data every epoch')
     parser.add_argument('-stride', type=int, default=1, help='stride for conv2d')
-    parser.add_argument('-glove-embed', type=bool, default=True, help='whether to use the glove twitter embedding or not')
-    parser.add_argument('-glove-embed-train', type=bool, default=True, help='whether to train the glove embedding or not')
+    parser.add_argument('-glove-embed', type=bool, default=True,
+                        help='whether to use the glove twitter embedding or not')
+    parser.add_argument('-glove-embed-train', type=bool, default=True,
+                        help='whether to train the glove embedding or not')
     parser.add_argument('-multichannel', type=bool, default=True, help='multiple channel of input')
 
     # model
@@ -64,9 +67,11 @@ def handle_args():
     args = parser.parse_args()
     return args
 
+
 if __name__ == "__main__":
     args = handle_args()
-    args.cuda = (not args.no_cuda) and torch.cuda.is_available(); del args.no_cuda
+    args.cuda = (not args.no_cuda) and torch.cuda.is_available();
+    del args.no_cuda
 
     print("\nParameters:")
     for attr, value in sorted(args.__dict__.items()):
@@ -83,6 +88,5 @@ if __name__ == "__main__":
 
     my_loss = train.My_loss()
 
-    weight = torch.Tensor([args.pos_num / 1000, args.neg_num / 1000 * args.pos_weight])  #.cuda()
-
+    weight = torch.Tensor([args.pos_num / 1000, args.neg_num / 1000 * args.pos_weight])  # .cuda()
     train.train(train_loader, validate_loader, test_loader, model, my_loss, weight, args)

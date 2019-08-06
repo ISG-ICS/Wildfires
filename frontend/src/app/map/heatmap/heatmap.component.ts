@@ -10,6 +10,7 @@ import {FireTweetLayer} from '../layers/FireTweetLayer';
 import {WindLayer} from '../layers/WindLayer';
 import {FireEventLayer} from '../layers/FireEventLayer';
 import {Subject} from 'rxjs';
+import {Boundary} from '../../models/boundary.model';
 
 
 declare let L;
@@ -26,12 +27,7 @@ export class HeatmapComponent implements OnInit {
     private mainControl;
     private tweetData;
     private tweetLayer;
-    private liveTweetLayer;
-    private liveTweetBird = [];
-    private liveTweetMarkers;
-    private liveTweetIdSet = new Set();
     private map;
-    private switchStatus = false;
     private theSearchMarker;
     private theHighlightMarker;
     private geojsonLayer;
@@ -111,9 +107,6 @@ export class HeatmapComponent implements OnInit {
         this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
 
 
-        // Add event Listener to live tweet switch
-        $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
-
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
 
@@ -152,7 +145,7 @@ export class HeatmapComponent implements OnInit {
             .subscribe(this.getBoundaryScreenDataHandler);
     }
 
-    getBoundaryScreenDataHandler = (data) => {
+    getBoundaryScreenDataHandler = (data: Boundary) => {
         // adds boundary layer onto the map
         if (!this.map.hasLayer(this.geojsonLayer) && this.geojsonLayer) {
             return;
@@ -172,64 +165,6 @@ export class HeatmapComponent implements OnInit {
         this.map.addLayer(this.geojsonLayer);
     }
 
-
-    liveTweetSwitchHandler = () => {
-        if (this.switchStatus) {
-            this.liveTweetLayer.clearLayers();
-            this.mapService.stopLiveTweet();
-            this.switchStatus = false;
-            return;
-        }
-        this.mapService.getLiveTweetData().subscribe(this.liveTweetDataHandler);
-        this.switchStatus = true;
-    }
-
-    liveTweetDataHandler = (data) => {
-        this.liveTweetMarkers = L.TileLayer.maskCanvas({
-            radius: 10,
-            useAbsoluteRadius: true,
-            color: '#000',
-            opacity: 1,
-            noMask: true,
-            lineColor: '#e25822'
-        });
-
-        // Mockup Data for liveTweetLayer
-        const birdIcon = L.icon({
-            iconUrl: 'assets/image/perfectBird.gif',
-            iconSize: [20, 20]
-        });
-
-        const birdCoordinates = [];
-
-        data.data.forEach((tweet) => {
-            if (!this.liveTweetIdSet.has(tweet.id)) {
-                const point = [tweet.lat, tweet.long];
-                birdCoordinates.push([tweet.lat, tweet.long]);
-                const marker = L.marker(point, {icon: birdIcon}).bindPopup('I am a live tweet');
-                this.liveTweetBird.push(marker);
-                this.liveTweetIdSet.add(tweet.id);
-            }
-        });
-
-        this.liveTweetLayer = L.layerGroup(this.liveTweetBird);
-        this.liveTweetLayer.addTo(this.map);
-
-
-        this.liveTweetMarkers.setData(birdCoordinates);
-        const birds = $('.leaflet-marker-icon');
-        window.setTimeout(() => {
-            this.liveTweetBird = [];
-            this.liveTweetLayer.clearLayers();
-            this.liveTweetLayer.addLayer(this.liveTweetMarkers);
-        }, 3200);
-        let bird: any = 0;
-        for (bird of birds) {
-            if (bird.src.indexOf('perfectBird') !== -1) {
-                $(bird).css('animation', 'fly 3s linear');
-            }
-        }
-    }
 
     timeRangeChangeHandler = (event, data) => {
         const tempData = [];
@@ -443,7 +378,7 @@ export class HeatmapComponent implements OnInit {
         return {
             fillColor: this.getColor(feature.properties.density),
             weight: 2,
-            opacity: 0.1,
+            opacity: 0.8,
             color: 'white',
             dashArray: '3',
             fillOpacity: 0.3

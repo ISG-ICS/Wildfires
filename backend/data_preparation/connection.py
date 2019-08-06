@@ -26,16 +26,18 @@ def synchronized(func):
 
 class Connection:
     _pool = None
+    _sem_remaining = None  # type: threading.Semaphore
 
     @synchronized
     def __init__(self):
         self.conn = None
         if not Connection._pool:
             Connection._pool = psycopg2.pool.ThreadedConnectionPool(**self.config())
+            Connection._sem_remaining = threading.Semaphore(int(self.config().get('maxconn', 4)))
 
     def __enter__(self, *args, **kwargs):
         """Context Manager enter point, returns an available connection from the _pool"""
-        # TODO: save the reference to thread-name or other identifiers (using getconn(key=Thread-name)
+        Connection._sem_remaining.acquire(blocking=True)
         self.conn = Connection._pool.getconn(*args, **kwargs)
         self.get_connection_status(self.conn)
         return self.conn
@@ -43,6 +45,7 @@ class Connection:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context Manager exit point, put the occupied connection back into the _pool"""
         Connection._pool.putconn(self.conn)
+        Connection._sem_remaining.release()
 
     @staticmethod
     @deprecated(reason="__call__ will no longer be provided in future, please always use context manager (with)")

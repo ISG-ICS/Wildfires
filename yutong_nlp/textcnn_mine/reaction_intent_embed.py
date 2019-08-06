@@ -108,64 +108,95 @@ def get_dataset(text_data, label_data, text_field, label_field, test=False):
     return examples, fields
 
 
-def data_processing(tweet_texts_Train, tweet_texts_Validate):
+def data_processing(texts_Train, texts_Validate, texts_Test):
     gensim_model = KeyedVectors.load_word2vec_format('./dataset/GoogleNews-vectors-negative300.bin',
                                                      binary=True, limit=300000, unicode_errors='ignore')
     vocab = gensim_model.vocab
     vocab_len = len(vocab)
     weights = gensim_model.vectors
 
-    feature_padding_train = []
-    feature_padding_validate = []
+    feature_padding_train = text_feature_padding(texts_Train, vocab)
+    feature_padding_validate = text_feature_padding(texts_Validate, vocab)
+    feature_padding_test = text_feature_padding(texts_Test, vocab)
 
-    feature_padding_train.append(text_feature_padding(tweet_texts_Train, vocab))
-    feature_padding_validate.append(text_feature_padding(tweet_texts_Validate, vocab))
-    feature_padding_train = np.array(feature_padding_train)
-
-    feature_padding_validate = np.array(feature_padding_validate)
-
-    return vocab_len, weights, feature_padding_train, feature_padding_validate
+    return vocab_len, weights, feature_padding_train, feature_padding_validate, feature_padding_test
 
 
 def text_feature_padding(texts_set, vocab):
-    single_line = []
     text_feature = []
     for i in range(len(texts_set)):
+        single_line = []
         for j in range(3):
             features = [vocab[w].index for w in texts_set[i][j].split() if w in vocab]
             single_line.append(features)
+        single_line = pad_sequences(single_line, maxlen=32, padding='post')
         text_feature.append(single_line)
-    text_feature_padding = pad_sequences(text_feature, maxlen=32, padding='post')
-    print(text_feature_padding)
-    return text_feature_padding
+    return np.array(text_feature)
 
 
-def get_dataset_loader(feature_padding_train, tweet_labels_Train,
-                       feature_padding_validate, tweet_labels_Validate):
-    train_dataset = TensorDataset(torch.LongTensor(feature_padding_train), torch.LongTensor(tweet_labels_Train))
+def get_dataset_loader(feature_padding_train, labels_Train,
+                       feature_padding_validate, labels_Validate,
+                       feature_padding_test, labels_Test):
+    train_dataset = TensorDataset(torch.LongTensor(feature_padding_train), torch.LongTensor(labels_Train))
     train_loader = DataLoader(dataset=train_dataset, batch_size=8, shuffle=True,
                               num_workers=1)
 
     validate_dataset = TensorDataset(torch.LongTensor(feature_padding_validate),
-                                     torch.LongTensor(tweet_labels_Validate))
+                                     torch.LongTensor(labels_Validate))
     validate_loader = DataLoader(dataset=validate_dataset, batch_size=8, shuffle=False,
                                  num_workers=1)
 
-    return train_loader, validate_loader
+    test_dataset = TensorDataset(torch.LongTensor(feature_padding_test),
+                                 torch.LongTensor(labels_Test))
+    test_loader = DataLoader(dataset=test_dataset, batch_size=8, shuffle=False,
+                             num_workers=1)
+
+    return train_loader, validate_loader, test_loader
 
 
-if __name__ == "__main__":
-    args = handle_args()
+def get_dataset_from_sql(cur, label_sql):
     reactions_x = []
     reactions_x_prob = []
     reactions_y = []
     reactions_y_prob = []
     intents = []
     intents_prob = []
+    cur.execute(label_sql)
+    labeled_id = cur.fetchall()
+
+    labels = []
+    for cur_id, cur_label in labeled_id:
+        x_text, x_prob = get_sql_results(cur, select_reaction_x_sql, select_reaction_text_sql, cur_id)
+        reactions_x.append(x_text)
+        reactions_x_prob.append(x_prob)
+
+        y_text, y_prob = get_sql_results(cur, select_reaction_y_sql, select_reaction_text_sql, cur_id)
+        reactions_y.append(y_text)
+        reactions_y_prob.append(y_prob)
+
+        intent_text, intent_prob = get_sql_results(cur, select_intent_sql, select_intent_text_sql, cur_id)
+        intents.append(intent_text)
+        intents_prob.append(intent_prob)
+
+        labels.append(cur_label)
+
+    stacked_text_data = np.stack((reactions_x, reactions_y, intents), axis=1)
+    stacked_prob_data = np.stack((reactions_x_prob, reactions_y_prob, intents_prob), axis=1)
+    for i, item in enumerate(stacked_text_data):
+        for j, ch in enumerate(stacked_text_data[i]):
+            stacked_text_data[i][j] = ' '.join(stacked_text_data[i][j])
+    return stacked_text_data, stacked_prob_data, labels
+
+
+if __name__ == "__main__":
+    args = handle_args()
+    args.cuda = (not args.no_cuda) and torch.cuda.is_available()
+    del args.no_cuda
     with Connection() as conn:
         cur = conn.cursor()
         # select_labeled_sql = "SELECT id,label1 FROM records WHERE (label1=0 or label1=1)"
-        select_labeled_sql = "SELECT id,label1 FROM records WHERE (label1=0)"
+        select_labeled_train_sql = "SELECT id,label1 FROM records WHERE (label1=0)"
+        select_labeled_test_sql = "SELECT id,label2 FROM records WHERE (label2=0)"
         select_reaction_x_sql = "SELECT reaction_x_id, probability FROM reaction_x_in_records WHERE record_id=%s"
         select_reaction_y_sql = "SELECT reaction_y_id, probability FROM reaction_y_in_records WHERE record_id=%s"
         select_intent_sql = "SELECT intent_id, probability FROM intent_in_records WHERE record_id=%s"
@@ -173,51 +204,33 @@ if __name__ == "__main__":
         select_reaction_text_sql = "SELECT reaction FROM reactions WHERE id=%s"
         select_intent_text_sql = "SELECT intent FROM intents WHERE id=%s"
 
-        cur.execute(select_labeled_sql)
-        labeled_id = cur.fetchall()
+        stacked_train_data, stacked_train_prob, train_labels = get_dataset_from_sql(cur, select_labeled_train_sql)
+        stacked_test_data, stacked_test_prob, test_labels = get_dataset_from_sql(cur, select_labeled_test_sql)
 
-        labels = []
-        for cur_id, cur_label in labeled_id:
-            x_text, x_prob = get_sql_results(cur, select_reaction_x_sql, select_reaction_text_sql, cur_id)
-            reactions_x.append(x_text)
-            reactions_x_prob.append(x_prob)
-
-            y_text, y_prob = get_sql_results(cur, select_reaction_y_sql, select_reaction_text_sql, cur_id)
-            reactions_y.append(y_text)
-            reactions_y_prob.append(y_prob)
-
-            intent_text, intent_prob = get_sql_results(cur, select_intent_sql, select_intent_text_sql, cur_id)
-            intents.append(intent_text)
-            intents_prob.append(intent_prob)
-
-            labels.append(cur_label)
         cur.close()
 
-    stacked_text_data = np.stack((reactions_x, reactions_y, intents), axis=1)
-    stacked_prob_data = np.stack((reactions_x_prob, reactions_y_prob, intents_prob), axis=1)
-    for i, item in enumerate(stacked_text_data):
-        for j, ch in enumerate(stacked_text_data[i]):
-            stacked_text_data[i][j] = ' '.join(stacked_text_data[i][j])
+    texts_Train = stacked_train_data[0:int(0.9 * len(stacked_train_data))]
+    labels_Train = train_labels[0:int(0.9 * len(train_labels))]
+    texts_Validate = stacked_train_data[int(0.9 * len(stacked_train_data)):]
+    labels_Validate = train_labels[int(0.9 * len(train_labels)):]
+    texts_Test = stacked_test_data
+    labels_Test = test_labels
 
-    tweet_texts_Train = stacked_text_data[0:int(0.9 * len(stacked_text_data))]
-    tweet_labels_Train = labels[0:int(0.9 * len(stacked_text_data))]
-    tweet_texts_Validate = stacked_text_data[int(0.9 * len(stacked_text_data)):]
-    tweet_labels_Validate = labels[int(0.9 * len(stacked_text_data)):]
+    vocab_len, weights, feature_padding_train, feature_padding_validate, feature_padding_test \
+        = data_processing(texts_Train, texts_Validate, texts_Test)
 
-    vocab_len, weights, feature_padding_train, feature_padding_validate \
-        = data_processing(tweet_texts_Train, tweet_texts_Validate)
-
-    train_loader, test_loader, validate_loader = get_dataset_loader(feature_padding_train, tweet_labels_Train,
-                                                                    feature_padding_validate, tweet_labels_Validate)
+    train_loader, validate_loader, test_loader = get_dataset_loader(feature_padding_train, labels_Train,
+                                                                    feature_padding_validate, labels_Validate,
+                                                                    feature_padding_test, labels_Test)
 
     # set the random seed
     torch.manual_seed(3)
     torch.cuda.manual_seed_all(3)
 
-model = CNN_Text(args, vocab_len, weights)
+    model = CNN_Text(args, vocab_len, weights)
 
-my_loss = train.My_loss()
+    my_loss = train.My_loss()
 
-# weight = torch.Tensor([args.pos_num / 1000, args.neg_num / 1000 * args.pos_weight])  # .cuda()
+    weight = torch.Tensor(feature_padding_train.shape)  # .cuda()
 
-train.train(train_loader, validate_loader, test_loader, model, my_loss, args)
+    train.train(train_loader, validate_loader, test_loader, model, my_loss, weight, args)

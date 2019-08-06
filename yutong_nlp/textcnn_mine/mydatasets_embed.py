@@ -118,7 +118,7 @@ class My_datasets:
 
     def data_processing(self, tweet_texts_Train, tweet_texts_Test, tweet_texts_Validate):
         gensim_model = KeyedVectors.load_word2vec_format(self.read_path + 'GoogleNews-vectors-negative300.bin',
-                                                         binary=True)
+                                                         binary=True, limit=30000)
         vocab = gensim_model.vocab
         vocab_len = len(vocab)
         weights = gensim_model.vectors
@@ -126,6 +126,7 @@ class My_datasets:
         feature_padding_train = self.text_feature_padding(tweet_texts_Train, vocab)
         feature_padding_test = self.text_feature_padding(tweet_texts_Test, vocab)
         feature_padding_validate = self.text_feature_padding(tweet_texts_Validate, vocab)
+
 
         return vocab_len, weights, feature_padding_train, feature_padding_test, feature_padding_validate
 
@@ -139,6 +140,7 @@ class My_datasets:
 
     def get_dataset_loader(self, feature_padding_train, tweet_labels_Train, feature_padding_test, tweet_labels_Test,
                            feature_padding_validate, tweet_labels_Validate):
+        print(feature_padding_train.shape)
         train_dataset = TensorDataset(torch.LongTensor(feature_padding_train), torch.LongTensor(tweet_labels_Train))
         train_loader = DataLoader(dataset=train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.worker_num)
 

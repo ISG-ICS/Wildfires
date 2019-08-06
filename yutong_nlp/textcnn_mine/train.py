@@ -1,7 +1,7 @@
 import numpy
 import torch
-import torch.nn.functional as F
 from torch.autograd import Variable
+import torch.nn.functional as F
 
 
 class My_loss(torch.nn.Module):
@@ -9,15 +9,16 @@ class My_loss(torch.nn.Module):
     def __init__(self):
         super(My_loss, self).__init__()
 
-    def forward(self, output, target):
-        loss1 = F.cross_entropy(output, target)
+    def forward(self, output, target, weight):
+        loss1 = F.cross_entropy(output, target, weight=weight)
         return loss1
 
 
-def train(train_loader, validate_loader, test_loader, model, my_loss, args):
+def train(train_loader, validate_loader, test_loader, model, my_loss, weight, args):
     if args.cuda:
         model.cuda()
         my_loss.cuda()
+        weight.cuda()  # 补充
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
     steps = 0
@@ -42,7 +43,7 @@ def train(train_loader, validate_loader, test_loader, model, my_loss, args):
 
             print("exit model...")
 
-            loss = F.cross_entropy(output, labels)
+            loss = F.cross_entropy(output, labels, weight=weight)
 
             loss.backward()
             optimizer.step()
@@ -52,24 +53,24 @@ def train(train_loader, validate_loader, test_loader, model, my_loss, args):
 
             avg_loss += loss.item() * len(texts)
             corrects += (torch.max(output, 1)[1].view(labels.size()).data == labels.data).sum()
-            if steps % 5 == 0:  ## 100 -> 5
-                eval(validate_loader, model, my_loss)
+            if steps % 5 == 0: ## 100 -> 5
+                eval(validate_loader, model, my_loss, weight)
         if epoch % 1 == 0:  ## epoch % 5 == 0
             torch.save(model.state_dict(), 'Checkpoint_{}.ckpt'.format(epoch))
-            test(validate_loader, test_loader, model, my_loss)
+            test(validate_loader, test_loader, model, my_loss, weight=weight)
         accuracy = 100.0 * corrects / size
         avg_loss /= size
         print('\tEpoch[{}]-loss:{:.6f} acc:{:.4f}%({}/{})'.format(epoch, avg_loss, accuracy, corrects, size))
 
 
-def eval(data_loader, model, my_loss):
+def eval(data_loader, model, my_loss, weight):
     model.eval()
     data_size, corrects, avg_loss = 0, 0, 0
     for i, batch in enumerate(data_loader, 0):
         texts, labels = batch
         texts, labels = Variable(texts), Variable(labels)  # .cuda() .cuda()
         logit = model(texts)
-        loss = my_loss(logit, labels)
+        loss = my_loss(logit, labels, weight)
         avg_loss += loss.item()
         corrects += (torch.max(logit, 1)[1].view(labels.size()).data == labels.data).sum()
         data_size += len(texts)
@@ -79,12 +80,13 @@ def eval(data_loader, model, my_loss):
     return accuracy
 
 
-def test(validate_loader, test_loader, model, my_loss):
-    validate_avg_loss, validate_acc, validate_probs, validate_labels = predict_prob(validate_loader, model, my_loss)
+def test(validate_loader, test_loader, model, my_loss, weight):
+    validate_avg_loss, validate_acc, validate_probs, validate_labels = predict_prob(validate_loader, model, my_loss,
+                                                                                    weight)
     pos_proba = validate_probs[validate_labels == 1][:, 1]
     pos_proba_sorted = -numpy.sort(-pos_proba)
     target_accuracy = [1.0, 0.98, 0.9]
-    test_avg_loss, test_acc, test_probs, test_labels = predict_prob(test_loader, model, my_loss)
+    test_avg_loss, test_acc, test_probs, test_labels = predict_prob(test_loader, model, my_loss, weight)
     denominator_accuracy = numpy.sum(test_labels == 1)
     final_accuracy = []
     reduction = []
@@ -107,7 +109,7 @@ def test(validate_loader, test_loader, model, my_loss):
     return validate_avg_loss, test_avg_loss, final_accuracy, reduction
 
 
-def predict_prob(data_loader, model, my_loss):
+def predict_prob(data_loader, model, my_loss, weight):
     model.eval()
     data_size, corrects, avg_loss = 0, 0, 0
     pred_probs, true_labels = None, None
@@ -116,7 +118,7 @@ def predict_prob(data_loader, model, my_loss):
         texts, labels = Variable(texts), Variable(labels)  # .cuda() .cuda()
         batch_probs = model(texts)
 
-        avg_loss += my_loss(batch_probs, labels).item()
+        avg_loss += my_loss(batch_probs, labels, weight).item()
         corrects += (torch.max(batch_probs, 1)[1].view(labels.size()).data == labels.data).sum()
         data_size += len(texts)
         if i == 0:

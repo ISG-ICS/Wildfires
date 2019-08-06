@@ -24,9 +24,6 @@ class Task:
         self.task_func = task_func
         self.task_number = task_number
 
-    def __getitem__(self, item):
-        return {0: self.task_name, 1: self.task_func, 2: self.task_number}[item]
-
 
 class RunningThread:
     def __init__(self, th, th_name, loop):
@@ -330,9 +327,10 @@ class TaskManager:
                 else:
                     selected_task = int(task_prompt)
                     # to test whether this is a legal task
-                    inspect.getfullargspec(self.task_options[selected_task][1])
+                    inspect.getfullargspec(self.task_options[selected_task].task_func)
                     return selected_task, TaskManager.TASK_MODE
             except:
+                selected_task = None
                 continue
 
 

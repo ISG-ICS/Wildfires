@@ -3,7 +3,7 @@ import os
 from copy import deepcopy
 from datetime import timedelta, date
 from typing import List, Dict, Union, Tuple
-import json
+
 import matplotlib.path as mplPath
 import numpy as np
 import rootpath
@@ -289,8 +289,8 @@ def fire():
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
     size = request_json['size']
-    startdate = request_json['startdate']
-    enddate = request_json['enddate']
+    startdate = request_json['startdate'][:10]
+    enddate = request_json['enddate'][:10]
     size_dict = {0: "get_fire_geom_full", 1: "get_fire_geom_1e4", 2: "get_fire_geom_1e3", 3: "get_fire_geom_1e2",
                  4: "get_center"}
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)

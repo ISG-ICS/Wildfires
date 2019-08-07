@@ -289,12 +289,14 @@ def fire():
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
     size = request_json['size']
-    date = request_json['date']
+    startdate = request_json['startdate']
+    enddate = request_json['enddate']
     size_dict = {0: "get_fire_geom_full", 1: "get_fire_geom_1e4", 2: "get_fire_geom_1e3", 3: "get_fire_geom_1e2",
                  4: "get_center"}
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
     size = size_dict[size]
-    query = "SELECT * from {}('{}') WHERE dt::date = '{}' ".format(size, poly, date)
+    query = f"SELECT * from {size}('{poly}','{startdate}','{enddate}') "
+    print(query)
     with Connection() as conn:
         cur = conn.cursor()
         cur.execute(query)

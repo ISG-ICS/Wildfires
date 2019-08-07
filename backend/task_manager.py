@@ -157,8 +157,6 @@ class TaskManager:
         """Stops a looping function that was started with ThM.run(...)"""
         for i, thlis in enumerate(cls.running_threads):
             if thlis.th_name == thread_name:
-                cls.running_threads[i].loop = False
-                cls.running_threads.remove(thlis)
                 exc = ctypes.py_object(SystemExit)
                 res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
                     ctypes.c_long(cls.running_threads[i].th.ident), exc)
@@ -167,7 +165,8 @@ class TaskManager:
                 elif res > 1:
                     ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i].th.ident, None)
                     raise SystemError("PyThreadState_SetAsyncExc failed")
-                logger.info('TASK ' + cls.running_threads[i].th_name + ' KILLED!')
+                logger.info('TASK ' + str(cls.running_threads[i].th_name) + ' KILLED!')
+                cls.running_threads.remove(cls.running_threads[i])
                 break
 
     @classmethod
@@ -185,9 +184,9 @@ class TaskManager:
         Note: threading.Event() has not been taken into consideration and neither the
         other thread managing objects (semaphores, locks, etc.)"""
         try:
-            index_ = 0
-            if th_name in [thread_.th_name for thread_ in cls.running_threads]:
-                index_ += 1
+            # index_ = 0
+            # if th_name in [thread_.th_name for thread_ in cls.running_threads]:
+            #     index_ += 1
 
             while True:
                 logger.info('TASK ' + th_name + ' START!')
@@ -201,10 +200,19 @@ class TaskManager:
                 # 'END' means returned or crashed
                 logger.info('TASK ' + th_name + ' END!')
                 # whether a loop work?
-                if not cls.running_threads[index_].loop:
+
+                index_ = None
+                for i, thread_ in enumerate(cls.running_threads):
+                    if cls.running_threads[i].th_name == th_name:
+                        index_ = i
+
+                if index_ is not None and index_ < len(cls.running_threads):
+                    if not cls.running_threads[index_].loop:
+                        break
+                    if interval != 0:
+                        time.sleep(interval)
+                else:
                     break
-                if interval != 0:
-                    time.sleep(interval)
 
         except:
             logger.error("error: " + traceback.format_exc())
@@ -301,8 +309,6 @@ class TaskManager:
             running_thread = self.running_threads[int(stop_task_prompt)]
             self.stop_thread(running_thread.th_name)
             print("Task " + str(running_thread.th_name) + " has been stopped!\n")
-        except SystemExit:
-            pass
         except:
             print("Skipped, no task been terminated\n ")
 

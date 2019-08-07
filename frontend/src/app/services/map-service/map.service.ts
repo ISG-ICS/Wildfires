@@ -60,62 +60,24 @@ export class MapService {
     }
 
 
-    getRecentTweetData(): void {
-        const chartData = [];
-        const dailyCount = {};
-        const that = this;
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/tweet/recent-tweet',
-            dataType: 'text',
+    getRecentTweetData(): Observable<any> {
 
-        }).done(data => {
-
-            /*          const tempData = JSON.parse(data);
-                        const dataArray = [];
-                        tempData.forEach(entry => {
-                            const createAt = entry.create_at.split('T')[0];
-
-                            if (dailyCount.hasOwnProperty(createAt)) {
-                                dailyCount[createAt]++;
-                            } else {
-                                dailyCount[createAt] = 1;
-                            }
-
-                            const leftTop = [entry.lat, entry.long];
-                            dataArray.push([leftTop[0], leftTop[1], entry.create_at, entry.id, entry.text,entry.image]);
-                        });
-
-                        this.RecentTweetLoaded.emit(dataArray);
-
-             */
-            this.RecentTweetLoaded.emit(JSON.parse(data));
-        });
+        return this.http.get('http://127.0.0.1:5000/tweet/recent-tweet');
     };
 
     getTemperatureData(): Observable<HeatMap[]> {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');
     }
 
-    getClickData(lat, lng, radius, timestamp, range): void {
-        $.ajax({
-            type: 'POST',
-            url: 'http://127.0.0.1:5000/data/aggregation',
-            dataType: 'text',
-            data: JSON.stringify({lat, lng, radius, timestamp, range})
-        }).done(data => {
-            this.ClickPointLoaded.emit(JSON.parse(data));
-        });
+    getClickData(lat, lng, radius, timestamp, range): Observable<any> {
+
+        return this.http.post('http://127.0.0.1:5000/data/aggregation', JSON.stringify({
+            lat, lng, radius, timestamp, range
+        }));
     }
 
-    getIntentTweetData(id): void {
-        $.ajax({
-            type: 'GET',
-            url: 'http://127.0.0.1:5000/tweet/tweet-from-id',
-            dataType: 'text',
-            data: {tweet_id: id}
-        }).done(data => {
-            this.IntentPointLoaded.emit(JSON.parse(data));
-        });
+    getIntentTweetData(id): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/tweet/tweet-from-id',
+            {params: new HttpParams().set('tweet_id', id)});
     }
 }

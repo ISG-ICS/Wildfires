@@ -1,12 +1,13 @@
 import logging
 import os
 import traceback
+from typing import Optional, Any
 from urllib.error import HTTPError
 
 import rootpath
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as functional
 import torch.optim as optim
 import torch.utils.data
 import torchvision
@@ -31,11 +32,11 @@ class ImageClassifier(ClassifierBase):
 
     N_CHANNELS = 3  # number of input channels (for VGG)
     N_CLASSES = 2  # number of classes of the classification problem (for VGG)
-    DROPSIZE = 512  # drop size of the image transformation (for VGG)
+    DROP_SIZE = 512  # drop size of the image transformation (for VGG)
 
     # parameters use for train process
     RESNET_MODEL_TYPE = torchvision.models.resnet.ResNet
-    DATALOADER_TYPE = torch.utils.data.dataloader.DataLoader
+    DATA_LOADER_TYPE = torch.utils.data.dataloader.DataLoader
     TRAIN_MODE = 0
     VAL_MODE = 1
     LEARNING_RATE = 1e-4
@@ -53,6 +54,7 @@ class ImageClassifier(ClassifierBase):
     RGB_CHANNELS = 3
 
     def __init__(self, model_type: str):
+        super().__init__()
         self.model_type = model_type
         if torch.cuda.is_available():
             self.dtype = torch.cuda.FloatTensor
@@ -74,7 +76,8 @@ class ImageClassifier(ClassifierBase):
             if model:
                 self.model.load_state_dict(torch.load(model)).type(self.dtype)
             else:
-                self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_RESNET_PATH, map_location='cpu')).type(self.dtype)
+                self.model.load_state_dict(torch.load(paths.IMAGE_CLASSIFIER_RESNET_PATH, map_location='cpu')).type(
+                    self.dtype)
 
     def predict(self, url: str) -> tuple:
         """predict classification result of the image from url"""
@@ -106,7 +109,7 @@ class ImageClassifier(ClassifierBase):
         os.remove(image_path)
 
         # use softmax layer to get percentage prediction result
-        percentages = F.softmax(outputs, dim=1)
+        percentages = functional.softmax(outputs, dim=1)
 
         # convert the percentage result from tensor type to list type, then return tuple
         if self.model_type == ImageClassifier.VGG_MODEL:
@@ -145,7 +148,7 @@ class ImageClassifier(ClassifierBase):
         return model
 
     @staticmethod
-    def load_dataloader(dataset_path: str, process_mode: int) -> DATALOADER_TYPE:
+    def load_dataloader(dataset_path: str, process_mode: int) -> DATA_LOADER_TYPE:
         """pre-process dataset as dataloader"""
         normalize = transforms.Normalize(mean=[ImageClassifier.NORMALIZE_PARAM_MEAN_0,
                                                ImageClassifier.NORMALIZE_PARAM_MEAN_1,
@@ -194,32 +197,33 @@ class ImageClassifier(ClassifierBase):
         acc = float(num_correct) / num_samples
         logger.info('Got %d / %d correct (%.2f)' % (num_correct, num_samples, 100 * acc))
 
-    def save_model(self, model: RESNET_MODEL_TYPE, modelname: str):
+    @staticmethod
+    def save_model(model: RESNET_MODEL_TYPE, modelname: str):
         """save the model locally"""
         torch.save(model.state_dict(), paths.MODELS_SAVE_PATH + modelname)
 
-    def download_image(self, url: str) -> str:
+    @staticmethod
+    def download_image(url: str) -> Optional[str]:
         """download image from url"""
         if not os.path.exists(paths.TWEET_IMAGES_DIR):
             os.makedirs(paths.TWEET_IMAGES_DIR)
         download_path = paths.TWEET_IMAGES_DIR + "/current.jpg"
         try:
             wget.download(url=url, out=download_path)
+            return download_path
         except HTTPError:
             logger.error("HTTP Error 404: Website url not found.")
-            return None
-        except Exception as err:
+        except Exception:
             logger.error("error: " + traceback.format_exc())
-            return None
-        return download_path
 
-    def vgg_transform_image(self, image_path: str):
+    @staticmethod
+    def vgg_transform_image(image_path: str) -> Optional[Any]:
         """under VGG model, image transformation to specific size"""
         if image_path is None:
             return None
         trans = transforms.Compose(
             [
-                transforms.CenterCrop(ImageClassifier.DROPSIZE),
+                transforms.CenterCrop(ImageClassifier.DROP_SIZE),
                 transforms.ToTensor(),
                 transforms.Normalize([ImageClassifier.NORMALIZE_PARAM_MEAN_0,
                                       ImageClassifier.NORMALIZE_PARAM_MEAN_1,
@@ -231,38 +235,31 @@ class ImageClassifier(ClassifierBase):
             ])
         try:
             img = Image.open(image_path)
-            transformed_img = trans(img)
-            transformed_img = transformed_img.view(1, ImageClassifier.RGB_CHANNELS, ImageClassifier.DROPSIZE,
-                                                   ImageClassifier.DROPSIZE)
+            return trans(img).view(1, ImageClassifier.RGB_CHANNELS, ImageClassifier.DROP_SIZE,
+                                   ImageClassifier.DROP_SIZE)
         except RuntimeError as err:
             logger.error("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
-            return None
-        except Exception as err:
+        except Exception:
             logger.error("error: " + traceback.format_exc())
-            return None
-        return transformed_img
 
-    def resnet_transform_image(self, image_path: str):
+    @staticmethod
+    def resnet_transform_image(image_path: str):
         """under RESNET model, image transformation to specific size"""
-        imsize = ImageClassifier.RESIZE_VALUE
-        loader = transforms.Compose([transforms.Resize(imsize), transforms.ToTensor()])
+        loader = transforms.Compose([transforms.Resize(ImageClassifier.RESIZE_VALUE), transforms.ToTensor()])
         try:
-            image = Image.open(image_path)
-            image = loader(image).float()
-            image = Variable(image, requires_grad=True)
-            image = image.unsqueeze(0)
+            image = Variable(loader(Image.open(image_path)).float(), requires_grad=True).unsqueeze(0)
             # check if channel is 3
             if image.shape[1] != ImageClassifier.RGB_CHANNELS:
                 return None
+            return image.cpu()
         except RuntimeError as err:
             logger.error("RuntimeError: Tensor size mismatches with the model." + f" Detail: {err}")
-            return None
-        except Exception as err:
-            logger.error("error: " + traceback.format_exc())
-            return None
-        return image.cpu()
 
-    def prettify(self, tensor_topk) -> list:
+        except Exception:
+            logger.error("error: " + traceback.format_exc())
+
+    @staticmethod
+    def prettify(tensor_topk) -> list:
         """transfer tensor object into list of confidence level"""
         result = [0, 0]
         idx = [0, 0]
@@ -295,9 +292,9 @@ if __name__ == '__main__':
     # train model, parameters are path of training dataset and validation dataset
 
     # Instructions on making image dataset:
-    #   To create training dataset and validation dataset for tweet images, first make a directory named image_dataset in ROOTDIR/data/ ,
-    #   within ROOTDIR/data/image_dataset, make 2 directories named train and val,
-    #   then in both train and val, make 2 directories called "wildfire" and "not-wildfire", put images into them respectively.
+    #   To create training dataset and validation dataset for tweet images, first make a directory named image_dataset
+    #   in ROOTDIR/data/ ,within ROOTDIR/data/image_dataset, make 2 directories named train and val, then in both train
+    #   and val, make 2 directories called "wildfire" and "not-wildfire", put images into them respectively.
     # Example(numbers below are for example, the more images the better):
     #   put 400 wildfire images into ROOTDIR/data/image_dataset/train/wildfire
     #   put 400 not wildfire images into ROOTDIR/data/image_dataset/train/not-wildfire

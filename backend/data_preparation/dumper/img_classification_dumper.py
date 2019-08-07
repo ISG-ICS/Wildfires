@@ -14,7 +14,7 @@ logger = logging.getLogger('TaskManager')
 
 class ImgClassificationDumper(DumperBase):
 
-    def insert(self, model_type: str, image_url: str, data: Tuple[float]):
+    def insert(self, model_type: str, image_url: str, data: Tuple[float, float]) -> None:
         """
         data: image prediction result -- probability of being wildfire and not wildfire
         insert image prediction result into images table
@@ -42,4 +42,5 @@ class ImgClassificationDumper(DumperBase):
 
 if __name__ == '__main__':
     # test case
-    ImgClassificationDumper().insert('https://pbs.twimg.com/media/Dd2c4mlUwAAolWC.jpg', [0.0, 1.0])
+    # FIXME missing an argument
+    ImgClassificationDumper().insert('https://pbs.twimg.com/media/Dd2c4mlUwAAolWC.jpg', data=(0.0, 1.0))

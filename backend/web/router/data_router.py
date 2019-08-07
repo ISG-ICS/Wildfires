@@ -301,7 +301,7 @@ def fire():
         cur = conn.cursor()
         cur.execute(query)
         resp = make_response(
-            jsonify([{"type": "Feature", "id": "01", "properties": {"name": name, "agency": agency, "datetime": dt},
+            jsonify([{"type": "Feature", "id": "01", "properties": {"name": name, "agency": agency, "datetime": dt, "density": 520},
                       "geometry": geom} for name, agency, dt, geom in cur.fetchall()])
         )
 

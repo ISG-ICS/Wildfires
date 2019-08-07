@@ -42,5 +42,5 @@ class ImgClassificationDumper(DumperBase):
 
 if __name__ == '__main__':
     # test case
-    # FIXME missing an argument
-    ImgClassificationDumper().insert('https://pbs.twimg.com/media/Dd2c4mlUwAAolWC.jpg', data=(0.0, 1.0))
+    ImgClassificationDumper().insert(model_type=ImageClassifier.VGG_MODEL,
+                                     image_url='https://pbs.twimg.com/media/Dd2c4mlUwAAolWC.jpg', data=[0.0, 1.0])

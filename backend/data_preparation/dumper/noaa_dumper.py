@@ -19,7 +19,9 @@ class NOAADumper(DumperBase):
     sql_check_geom2 = 'SELECT * FROM noaa0p25_geometry WHERE gid=0'
     sql_create_geom = 'CREATE TABLE IF NOT EXISTS noaa0p25_geometry (geom geometry, gid int4)'
     sql_insert_geom = 'INSERT INTO noaa0p25_geometry (geom, gid) VALUES %s'
-    sql_insert = 'INSERT INTO "noaa0p25" (tid, gid, ugnd, vgnd, tmp, soilw) VALUES %s'
+    sql_insert = 'INSERT INTO "noaa0p25" (tid, gid, ugnd, vgnd, tmp, soilw) VALUES %s ' \
+                 'ON CONFLICT (tid, gid) DO UPDATE SET ' \
+                 'ugnd = EXCLUDED.ugnd, vgnd = EXCLUDED.vgnd, tmp=EXCLUDED.tmp, soilw=EXCLUDED.soilw'
     sql_insert_time = 'INSERT INTO "noaa0p25_reftime" (reftime, tid) VALUES (%s, %s)'
 
     def __init__(self):

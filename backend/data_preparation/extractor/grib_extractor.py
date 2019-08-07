@@ -12,6 +12,8 @@ from paths import GRIB2_DATA_DIR
 
 
 class GRIBEnum(Enum):
+    NOAA_WIND_U_bak = auto()
+    NOAA_WIND_V_bak = auto()
     NOAA_WIND_U = auto()
     NOAA_WIND_V = auto()
     NOAA_TMP = auto()
@@ -23,10 +25,10 @@ class GRIBEnum(Enum):
 class GRIBExtractor(ExtractorBase):
     NAMES = {
         # original version of these two attributes' names, but didn't work on my computer
-        # GRIBEnum.NOAA_WIND_U: {'name': 'U component of wind'},
-        # GRIBEnum.NOAA_WIND_V: {'name': 'V component of wind'},
-        GRIBEnum.NOAA_WIND_U: {'name': '100 metre U wind component'},
-        GRIBEnum.NOAA_WIND_V: {'name': '100 metre V wind component'},
+        GRIBEnum.NOAA_WIND_U_bak: {'100 metre U wind component'},
+        GRIBEnum.NOAA_WIND_V_bak: {'100 metre V wind component'},
+        GRIBEnum.NOAA_WIND_U: {'name': 'U component of wind'},
+        GRIBEnum.NOAA_WIND_V: {'name': 'V component of wind'},
         GRIBEnum.NOAA_TMP: {'name': 'Temperature'},
         GRIBEnum.NOAA_SOILW: {'name': 'Volumetric soil moisture content'},
         GRIBEnum.TEMPERATURE_MODE: {'name': 'Temperature', 'typeOfLevel': 'surface'},
@@ -40,13 +42,30 @@ class GRIBExtractor(ExtractorBase):
         self.data: Dict
 
     def extract(self, mode: GRIBEnum) -> dict:
-        prop_msg, = self.file_handler.select(**GRIBExtractor.NAMES[mode])
         self.data = dict()  # creates a new dictionary to store data
-        prop_values = prop_msg.values  # values under the started property
-        lats, longs = prop_msg.latlons()
-        for row_cnt in range(0, len(prop_values)):
-            for col_cnt in range(0, len(prop_values[row_cnt])):
-                self.data[str((lats[row_cnt][col_cnt], longs[row_cnt][col_cnt]))] = prop_values[row_cnt][col_cnt]
+        go_on = False
+        try:
+            prop_msg, = self.file_handler.select(**GRIBExtractor.NAMES[mode])
+        except ValueError:
+            # second chance?
+            if mode == GRIBEnum.NOAA_WIND_U or mode == GRIBEnum.NOAA_WIND_V:
+                try:
+                    prop_msg, = self.file_handler.select(**GRIBExtractor.NAMES[mode.value - 2])
+                except ValueError:
+                    print('error: grib-no-matches-found')
+                else:
+                    go_on = True
+            else:
+                print('error: grib-no-matches-found')
+        else:
+            go_on = True
+        if go_on:
+            prop_values = prop_msg.values  # values under the started property
+            lats, longs = prop_msg.latlons()
+            for row_cnt in range(0, len(prop_values)):
+                for col_cnt in range(0, len(prop_values[row_cnt])):
+                    self.data[str((lats[row_cnt][col_cnt], longs[row_cnt][col_cnt]))] = prop_values[row_cnt][col_cnt]
+
         return self.data  # the location coordinates are different, don't need to worry about duplicated keys
 
     def export(self, file_type: str, file_name) -> None:  # json

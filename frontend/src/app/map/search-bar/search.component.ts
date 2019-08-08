@@ -7,10 +7,11 @@ import 'leaflet-maskcanvas';
 import {FormControl} from '@angular/forms';
 import '@angular/cdk';
 import {SearchService} from '../../services/search/search.service';
+import {SearchSuggestion} from "../../models/search.suggestion.model";
 
 
 @Component({
-    selector: 'search-bar',
+    selector: 'app-search-bar',
     templateUrl: './search.component.html',
     styleUrls: ['./search.component.css']
 })
@@ -18,8 +19,8 @@ import {SearchService} from '../../services/search/search.service';
 
 export class SearchComponent implements OnInit {
 
-    public dataToDropDownMenu;
-    myControl = new FormControl();
+    private dataToDropDownMenu;
+    private formControl = new FormControl();
 
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
@@ -31,7 +32,6 @@ export class SearchComponent implements OnInit {
 
     dropDownHandler = (event) => {
 
-        console.log('event', event);
         // clears any possible existing value from search box
         if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'Enter') {
             if (event.target.value !== '') {
@@ -41,17 +41,16 @@ export class SearchComponent implements OnInit {
         }
         if (event.key === 'Enter') {
             this.selected(null, event.target.value);
-            console.log('here in enter directly');
         }
     };
 
-
-    getSearchInputDataHandler = (data) => {
+    getSearchInputDataHandler = (data: SearchSuggestion[]) => {
         // process the data, make the display look more aesthetic
         let i;
-        let cityString, countyString, stateString;
-        cityString = countyString = stateString = '';
-        let arr = {};
+        let cityString = '';
+        let countyString = '';
+        let stateString = '';
+
         this.dataToDropDownMenu = [];
 
         for (i = 0; i < data.length; i++) {
@@ -65,15 +64,12 @@ export class SearchComponent implements OnInit {
             if (data[i][2]) {
                 stateString = data[i][2];
             }
-            arr['display'] = cityString + countyString + stateString;
 
-            arr['value'] = cityString + countyString + stateString;
             // 'value' is for showing on the search box
-
-            arr['id'] = data[i][3];
+            const value = cityString + countyString + stateString;
+            const id = data[i][3];
             // 'id' is for accurately locating the location
-            this.dataToDropDownMenu.push(arr);
-            arr = {};
+            this.dataToDropDownMenu.push({display: value, value, id});
         }
     };
 

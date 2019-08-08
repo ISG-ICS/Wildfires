@@ -5,7 +5,12 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import {SearchService} from '../../services/search/search.service';
+import {FireTweetLayer} from '../layers/FireTweetLayer';
+import {WindLayer} from '../layers/WindLayer';
+import {FireEventLayer} from '../layers/FireEventLayer';
 import {Subject} from 'rxjs';
+import {Boundary} from '../../models/boundary.model';
 
 
 declare let L;
@@ -16,15 +21,19 @@ declare let L;
     styleUrls: ['./heatmap.component.css']
 })
 export class HeatmapComponent implements OnInit {
+
+    private static STATE_LEVEL_ZOOM = 8;
+    private static COUNTY_LEVEL_ZOOM = 9;
     private mainControl;
     private tweetData;
     private tweetLayer;
-    private liveTweetLayer;
-    private liveTweetBird = [];
-    private liveTweetMarkers;
-    private liveTweetIdSet = new Set();
     private map;
-    private switchStatus = false;
+    private theSearchMarker;
+    private theHighlightMarker;
+    private geojsonLayer;
+    private fireTweetLayer;
+    private windLayer;
+    private fireEventLayer;
 
     // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
@@ -43,7 +52,7 @@ export class HeatmapComponent implements OnInit {
     private tempMin = 0;
 
 
-    constructor(private mapService: MapService) {
+    constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
     ngOnInit() {
@@ -69,13 +78,15 @@ export class HeatmapComponent implements OnInit {
 
         this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
-        this.mapService.mapLoaded.emit([this.map, this.mainControl]);
         // Generate coordinate in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;
             const lng = ev.latlng.lng;
             $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
         });
+
+        // get boundary on init
+        this.getBoundary();
 
         // Get temperature data from service
         const tempSubject = new Subject();
@@ -84,106 +95,76 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getTemperatureData().subscribe(tempSubject);
 
         // Get tweets data from service
-        this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
-
+        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService);
 
         // Get fire events data from service
-        this.mapService.getWildfirePredictionData().subscribe(this.fireEventHandler);
-        // this.mapService.fireEventDataLoaded.subscribe(this.fireEventHandler);
+        this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService);
 
         // Get wind events data from service
-        this.mapService.getWindData().subscribe(this.windDataHandler);
+        this.windLayer = new WindLayer(this.mainControl, this.mapService);
 
+        // Get boundary data from service to draw it on map
+        this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
 
-        // Add event Listener to live tweet switch
-        $('#liveTweetSwitch').on('click', this.liveTweetSwitchHandler);
 
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.timeRangeChangeHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
+        this.map.on('zoomend, moveend', this.getBoundary);
+
     }
 
-    tweetDataHandler = (data) => {
+    getBoundary = () => {
+        // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
+        const zoom = this.map.getZoom();
+        const bound = this.map.getBounds();
+        const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
+        const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
+        // tslint:disable-next-line:one-variable-per-declaration
+        let showCityLevel, showStateLevel, showCountyLevel;
 
-        this.tweetLayer = L.TileLayer.maskCanvas({
-            radius: 10,
-            useAbsoluteRadius: true,
-            color: '#000',
-            opacity: 1,
-            noMask: true,
-            lineColor: '#e25822'
-        });
-        const tempData = [];
-        this.tweetData = data.tweetData;
-        data.tweetData.forEach(x => {
-            tempData.push([x[0], x[1]]);
-        });
-
-        this.tweetLayer.setData(tempData);
-        this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
-
-    };
+        // the boundary display with zoom levels is defined arbitrarily
+        if (zoom < HeatmapComponent.STATE_LEVEL_ZOOM) {
+            showCityLevel = false;
+            showCountyLevel = false;
+            showStateLevel = true;
+        } else if (zoom < HeatmapComponent.COUNTY_LEVEL_ZOOM) {
+            showCityLevel = false;
+            showCountyLevel = true;
+            showStateLevel = true;
+        } else {
+            showCityLevel = true;
+            showCountyLevel = true;
+            showStateLevel = true;
+        }
 
 
-    liveTweetSwitchHandler = () => {
-        if (this.switchStatus) {
-            this.liveTweetLayer.clearLayers();
-            this.mapService.stopLiveTweet();
-            this.switchStatus = false;
+        this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW)
+            .subscribe(this.getBoundaryScreenDataHandler);
+    }
+
+    getBoundaryScreenDataHandler = (data: Boundary) => {
+        // adds boundary layer onto the map
+        if (!this.map.hasLayer(this.geojsonLayer) && this.geojsonLayer) {
             return;
         }
-        this.mapService.getLiveTweetData().subscribe(this.liveTweetDataHandler);
-        this.switchStatus = true;
-    };
 
-    liveTweetDataHandler = (data) => {
-        this.liveTweetMarkers = L.TileLayer.maskCanvas({
-            radius: 10,
-            useAbsoluteRadius: true,
-            color: '#000',
-            opacity: 1,
-            noMask: true,
-            lineColor: '#e25822'
-        });
-
-        // Mockup Data for liveTweetLayer
-        const birdIcon = L.icon({
-            iconUrl: 'assets/image/perfectBird.gif',
-            iconSize: [20, 20]
-        });
-
-        const birdCoordinates = [];
-
-        data.data.forEach((tweet) => {
-            if (!this.liveTweetIdSet.has(tweet.id)) {
-                const point = [tweet.lat, tweet.long];
-                birdCoordinates.push([tweet.lat, tweet.long]);
-                const marker = L.marker(point, {icon: birdIcon}).bindPopup('I am a live tweet');
-                this.liveTweetBird.push(marker);
-                this.liveTweetIdSet.add(tweet.id);
-            }
-        });
-
-        this.liveTweetLayer = L.layerGroup(this.liveTweetBird);
-        this.liveTweetLayer.addTo(this.map);
-
-
-        this.liveTweetMarkers.setData(birdCoordinates);
-        const birds = $('.leaflet-marker-icon');
-        window.setTimeout(() => {
-            this.liveTweetBird = [];
-            this.liveTweetLayer.clearLayers();
-            this.liveTweetLayer.addLayer(this.liveTweetMarkers);
-        }, 3200);
-        let bird: any = 0;
-        for (bird of birds) {
-            if (bird.src.indexOf('perfectBird') !== -1) {
-                $(bird).css('animation', 'fly 3s linear');
-            }
+        // remove previous overlay
+        if (this.geojsonLayer) {
+            this.map.removeLayer(this.geojsonLayer);
+            this.mainControl.removeLayer(this.geojsonLayer);
         }
-    };
+        this.geojsonLayer = L.geoJson(data, {
+            style: this.style,
+            onEachFeature: this.onEachFeature
+        });
+
+        this.mainControl.addOverlay(this.geojsonLayer, 'Boundary');
+        this.map.addLayer(this.geojsonLayer);
+    }
+
 
     timeRangeChangeHandler = (event, data) => {
         const tempData = [];
@@ -193,50 +174,7 @@ export class HeatmapComponent implements OnInit {
             }
         });
         this.tweetLayer.setData(tempData);
-    };
-
-    fireEventHandler = (fireEvents) => {
-        // OPTIMIZE: move this to backend
-        fireEvents.filter(entry => entry.nlp === true);
-        const fireEventList = [];
-
-        for (const ev of fireEvents) {
-            const point = [ev.lat, ev.long];
-            const size = 40;
-            const fireIcon = L.icon({
-                iconUrl: 'assets/image/pixelfire.gif',
-                iconSize: [size, size],
-            });
-            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire');
-            fireEventList.push(marker);
-
-        }
-
-        this.mainControl.addOverlay(L.layerGroup(fireEventList), 'Fire event');
-    };
-
-    windDataHandler = (wind) => {
-
-        // there's not much document about leaflet-velocity.
-        // all we got is an example usage from
-        // github.com/0nza1101/leaflet-velocity-ts
-        const velocityLayer = L.velocityLayer({
-            displayValues: true,
-            displayOptions: {
-                position: 'bottomleft', // REQUIRED !
-                emptyString: 'No velocity data', // REQUIRED !
-                angleConvention: 'bearingCW', // REQUIRED !
-                velocityType: 'Global Wind',
-                displayPosition: 'bottomleft',
-                displayEmptyString: 'No wind data',
-                speedUnit: 'm/s'
-            },
-            data: wind,
-            maxVelocity: 12 // affect color and animation speed of wind
-        });
-        this.mainControl.addOverlay(velocityLayer, 'Global wind');
-    };
-
+    }
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap
@@ -273,7 +211,7 @@ export class HeatmapComponent implements OnInit {
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    };
+    }
 
     dotMapDataHandler = (data) => {
         const latLongBins = [];
@@ -300,7 +238,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    };
+    }
 
 
     rangeSelectHandler = (event) => {
@@ -345,4 +283,144 @@ export class HeatmapComponent implements OnInit {
             region.addTo(this.map);
         }
     }
+
+    boundaryDataHandler = ([[data], value]) => {
+        console.log(data);
+        // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
+        const listWithFixedLL = [];
+        if (data) {
+            // list will be converted because of the lat and lon are misplaced
+            console.log(data.coordinates[0]);
+            for (const item of data.coordinates[0]) {
+                listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
+            }
+            this.map.fitBounds(listWithFixedLL); // fits map according to the given fixed boundary list
+
+            if (this.theSearchMarker) {
+                // removes previous marker
+                this.map.removeControl(this.theSearchMarker);
+            }
+
+            // TODO: separate a component for name label
+            // creates the name label
+            const divIcon = L.divIcon({
+                html: '<span style=\'color:#ffffff;font-size:18px;\' id=\'userInput\'>' + value + '</span>',
+                iconSize: [this.map.getZoom(), this.map.getZoom()],
+            });
+            const centerLatlng = this.getPolygonCenter(listWithFixedLL);
+            this.theSearchMarker = L.marker(new L.LatLng(centerLatlng[0], centerLatlng[1]), {icon: divIcon}).addTo(this.map);
+            this.setLabelStyle(this.theSearchMarker); // sets the label style
+
+        }
+    }
+    setLabelStyle = (marker) => {
+        // sets the name label style
+        marker.getElement().style.backgroundColor = 'transparent';
+        marker.getElement().style.border = 'transparent';
+        marker.getElement().style.fontFamily = 'monospace';
+        marker.getElement().style.webkitTextStroke = '#ffe710';
+        marker.getElement().style.webkitTextStrokeWidth = '0.5px';
+    }
+
+
+    resetHighlight = (event) => {
+        // gets rid of the highlight when the mouse moves out of the region
+        if (this.theHighlightMarker) {
+            this.map.removeControl(this.theHighlightMarker);
+        }
+        if (this.theSearchMarker) {
+            this.map.removeControl(this.theSearchMarker);
+        }
+        this.geojsonLayer.resetStyle(event.target);
+    }
+
+    zoomToFeature = (event) => {
+        // zooms to a region when the region is clicked
+        this.map.fitBounds(event.target.getBounds());
+
+    }
+    getPolygonCenter = (coordinateArr) => {
+        // gets the center point when given a coordinate array
+        // OPTIMIZE: the get polygon center function
+        const x = coordinateArr.map(a => a[0]);
+        const y = coordinateArr.map(a => a[1]);
+        const minX = Math.min.apply(null, x);
+        const maxX = Math.max.apply(null, x);
+        const minY = Math.min.apply(null, y);
+        const maxY = Math.max.apply(null, y);
+        return [(minX + maxX) / 2, (minY + maxY) / 2];
+    }
+    getColor = (density) => {
+        // color for the boundary layers
+        // TODO: remove this func
+        switch (true) {
+            case (density > 1000):
+                return '#802403';
+            case (density > 500):
+                return '#BD0026';
+            case (density > 200):
+                return '#E31A1C';
+            case (density > 100):
+                return '#FC4E2A';
+            case (density > 50):
+                return '#FD8D3C';
+            case (density > 20):
+                return '#FEB24C';
+            case (density > 10):
+                return '#FED976';
+            default:
+                return '#FFEDA0';
+        }
+
+    }
+    style = (feature) => {
+        // style for the boundary layers
+        return {
+            fillColor: this.getColor(feature.properties.density),
+            weight: 2,
+            opacity: 0.8,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.3
+        };
+    }
+
+    highlightFeature = (event) => {
+        // highlights the region when the mouse moves over the region
+        const layer = event.target;
+        layer.setStyle({
+            weight: 5,
+            color: '#e3d926',
+            dashArray: '',
+            fillOpacity: 0.7
+        });
+        // shows the name label when the area is highlighted
+        const divIcon = L.divIcon({
+            html: '<span style=\'color:#ffffff;font-size: 18px;\'>' + layer.feature.properties.name + '</span>',
+            iconSize: [this.map.getZoom(), this.map.getZoom()],
+        });
+        const centerLatLng = event.target.getCenter();
+        if (this.theSearchMarker) {
+            this.map.removeControl(this.theSearchMarker);
+        }
+        if (this.theHighlightMarker) {
+            this.map.removeControl(this.theHighlightMarker);
+        }
+        this.theHighlightMarker = L.marker(new L.LatLng(centerLatLng.lat, centerLatLng.lng), {icon: divIcon})
+            .addTo(this.map);
+        this.theSearchMarker = L.marker(new L.latLng([this.map.getBounds()
+            ._northEast.lat - 15, this.map.getBounds()._northEast.lng - 60]), {icon: divIcon}).addTo(this.map);
+        this.setLabelStyle(this.theHighlightMarker);
+        this.setLabelStyle(this.theSearchMarker);
+    }
+
+    onEachFeature = (feature, layer) => {
+        // controls the interaction between the mouse and the map
+        layer.on({
+            mouseover: this.highlightFeature,
+            mouseout: this.resetHighlight,
+            click: this.zoomToFeature
+        });
+    }
+
 }

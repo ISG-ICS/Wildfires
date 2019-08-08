@@ -14,27 +14,54 @@ bp = Blueprint('search', __name__, url_prefix='/search')
 def search_administrative_boundaries():
     keyword = flask_request.args.get('keyword')
 
-    # load abbreviation
-    keyword = us_states_abbr.get(keyword, keyword)
+    # if kw is an id, get geometry directly
 
-    search_state = "SELECT st_asgeojson(t.geom) from us_states t where state_name=%s"
+    if keyword.isdigit():
+        region_id = int(keyword)
+        # is a region_id
+        query = f'''
+        SELECT st_asgeojson(t.geom) as geojson from us_states t where state_id = {region_id}
+        union
+        SELECT st_asgeojson(t.geom) as geojson from us_counties t where county_id = {region_id}
+        union
+        SELECT st_asgeojson(t.geom) as geojson from us_cities t where city_id = {region_id}
+        '''
 
-    # TODO: implement autocomplete in keyword selection, replace LIMIT 1
-    search_city = "SELECT st_asgeojson(t.geom) from us_cities t where city_name=%s limit 1"
+        with Connection() as conn:
+            cur = conn.cursor()
+            cur.execute(query)
+            resp = make_response(jsonify(
+                [json.loads(geom) for geom, in cur.fetchall()]
+            ))
+            cur.close()
 
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(search_state, (keyword,))
-        results = [json.loads(geom) for geom, in cur.fetchall()]
-        if not results:
-            cur.execute(search_city, (keyword,))
-            results = [json.loads(geom) for geom, in cur.fetchall()]
-        resp = make_response(jsonify(results))
-        cur.close()
+    else:
+        # load abbreviation
+        keyword = us_states_abbr.get(keyword, keyword)
+
+        # TODO: implement autocomplete in keyword selection, replace LIMIT 1
+        search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"
+        search_county = "SELECT st_asgeojson(t.geom) from us_counties t where lower(county_name)=lower(%s) limit 1"
+        search_city = "SELECT st_asgeojson(t.geom) from us_cities t where lower(city_name)=lower(%s) limit 1"
+
+        with Connection() as conn:
+            cur = conn.cursor()
+            results = None
+            if not results:
+                cur.execute(search_state, (keyword,))
+                results = [json.loads(geom) for geom, in cur.fetchall()]
+            if not results:
+                cur.execute(search_county, (keyword,))
+                results = [json.loads(geom) for geom, in cur.fetchall()]
+            if not results:
+                cur.execute(search_city, (keyword,))
+                results = [json.loads(geom) for geom, in cur.fetchall()]
+            resp = make_response(jsonify(results))
+            cur.close()
     return resp
 
 
-@bp.route("/boundaries", methods=('POST',))
+@bp.route("/boundaries", methods=['POST'])
 def send_boundaries_data():
     request_json = flask_request.get_json(force=True)
     states = request_json['states']
@@ -45,9 +72,9 @@ def send_boundaries_data():
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
 
-    select_states = "SELECT * from select_states_intersects(%s)"
-    select_counties = "SELECT * from select_counties_intersects(%s)"
-    select_cities = "SELECT * from select_cities_intersects(%s)"
+    select_states = "SELECT * from boundaries_states(%s)"
+    select_counties = "SELECT * from boundaries_counties(%s)"
+    select_cities = "SELECT * from boundaries_cities(%s)"
     poly = 'polygon(({1} {0}, {2} {0}, {2} {3}, {1} {3}, {1} {0}))'.format(north, west, east, south)  # lon lat +-180
 
     with Connection() as conn:
@@ -70,9 +97,9 @@ def _get_geometry(cur, sql, poly) -> list:
     # FIXME: density is random...
 
     cur.execute(sql, (poly,))
-    return [{"type": "Feature",
+    return [{"type": "Feature", "id": _id,
              "properties": {"name": name, "density": random.random() * 1200},
-             "geometry": json.loads(geom)} for name, geom in cur.fetchall()]
+             "geometry": json.loads(geojson)} for _id, name, geojson in cur.fetchall()]
 
 
 # abbreviation of states

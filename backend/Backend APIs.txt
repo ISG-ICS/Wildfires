@@ -33,12 +33,14 @@ post, parameters: json
 	"lat":
 	"lon":
 	"radius":
+	"timestamp": '2019-07-30T15:37:27Z' (ISO timestamp, UTC)
+    "days": 7 (default=7)
 }
 returns: json
 {
-	"tmp": 0,
-	"soilw": 0,
-	"cnt_tweet":
+	"tmp": [ [timestamp, val], [timestamp, val], ... ],
+	"soilw": [ [timestamp, val], [timestamp, val], ... ],
+	"cnt_tweet": [ [timestamp, val], [timestamp, val], ... ]
 }
 
 /data/temp
@@ -56,3 +58,33 @@ returns: json
 {lat: 39.25, lng: 287.75, temperature: 299},
 {lat: 39.25, lng: 289, temperature: 299},
  ... ]
+
+
+/data/region-temp
+/data/region-moisture
+/tweet/region-tweet
+    GET
+    region_id=2699
+    timestamp='2019-07-30T15:37:27Z' (ISO timestamp, UTC)
+    days=7 (default=7)
+
+returns: json
+[
+    [timestamp, val],
+    [timestamp, val],
+    ...
+]
+
+/tweet/tweet-from-id
+    GET
+    tweet_id='1074292053801140224'
+
+returns: json
+{
+    'id': '1074292053801140224'  # Javascript cannot handle int8, sending as string
+    'create_at':
+    'text':
+    'user':
+    'profilePic':
+    'image':
+}

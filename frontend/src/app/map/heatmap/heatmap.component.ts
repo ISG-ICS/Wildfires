@@ -11,6 +11,7 @@ import {SearchService} from '../../services/search/search.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
+import {ClickboxLayer} from '../layers/clickbox.layer';
 import {Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
 
@@ -191,7 +192,10 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
 
-        this.map.on('click', e => this.onMapClick(e));
+        // this.map.on('click', event => {
+        //     this.marker = new ClickboxLayer(this.mainControl, this.mapService, this.map, event.latlng);
+        // });
+        this.map.on('click', this.onMapClick, this);
 
 
         this.mapService.getRecentTweetData().subscribe(this.fireTweetLayer.recentTweetLoadHandler);
@@ -330,34 +334,92 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    };
+    }
 
     onMapClick(e) {
-        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
-            .subscribe(this.clickPointHandler);
+        function mouseMoveChangeRadius(event) {
+            const newRadius = distance(circle._latlng, event.latlng);
+            localBound.setRadius(newRadius);
+            circle.setRadius(newRadius);
+        }
+
+        function distance(center, pt) {
+            return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
+        }
+
         const clickIcon = L.icon({
             iconUrl: 'assets/image/pin6.gif',
             iconSize: [26, 30],
         });
-        if (this.marker) { // check
-            this.map.removeLayer(this.marker); // remove
-        }
-        this.marker = L.marker(e.latlng, {draggable: false, icon: clickIcon}).addTo(this.map);
-
-        if (this.circle) { // check
-            this.map.removeLayer(this.circle); // remove
-        }
-        this.circle = L.circle(e.latlng, {
-            color: 'white',
+        const marker = L.marker(e.latlng, {draggable: false, icon: clickIcon});
+        marker.isSticky = false;
+        const circle = L.circle(e.latlng, {
+            stroke: false,
             fillColor: 'white',
             fillOpacity: 0.35,
-            radius: this.pinRadius
-        }).addTo(this.map);
-        this.marker.bindPopup('You clicked the map at ' + e.latlng.toString()).openPopup();
-        this.marker.getPopup().on('remove', () => {
-            this.map.removeLayer(this.marker);
-            this.map.removeLayer(this.circle);
+            radius: 40000,
         });
+        const localBound = L.circle(e.latlng, {
+            radius: 40000,
+            color: 'white',
+            weight: 5,
+            fill: false,
+            bubblingMouseEvents: false,
+        })
+            .on('mouseover', () => {
+                localBound.setStyle({color: '#919191'});
+            })
+            .on('mouseout', () => {
+                localBound.setStyle({color: 'white'});
+            })
+            .on('mousedown', () => {
+                this.map.removeEventListener('click');
+                this.map.dragging.disable();
+                this.map.on('mousemove', mouseMoveChangeRadius);
+
+                this.map.on('mouseup', (event) => {
+                    const newRadius = distance(circle._latlng, event.latlng);
+                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-07-30T15:37:27Z', 7)
+                        .subscribe(this.clickPointHandler);
+                    this.map.dragging.enable();
+                    this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
+                    setTimeout(() => {
+                        this.map.on('click', this.onMapClick, this);
+                        this.map.removeEventListener('mouseup');
+                    }, 500);
+                }, this);
+            });
+        const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
+
+
+        // Create Button To Set Sticky In Popup
+        const container = $('<div />');
+        container.html('<button href="#" class="leaflet-popup-sticky-button">S</button><br>')
+            .on('click', '.leaflet-popup-sticky-button', () => {
+                // Justify current sticky status
+                marker.isSticky = !marker.isSticky;
+                if (!marker.isSticky) {
+                    marker.getPopup().on('remove', () => {
+                        group.remove();
+                    });
+                } else {
+                    marker.getPopup().removeEventListener('remove');
+                }
+            });
+        container.append('You clicked the map at ' + e.latlng.toString());
+        marker.bindPopup(container[0], {
+            closeOnClick: false,
+            autoClose: true,
+        }).openPopup();
+
+        // Remove popup fire remove all (default is not sticky)
+        marker.getPopup().on('remove', () => {
+            group.remove();
+        });
+        // TODO: change marker from global var since it only specify one.
+        this.marker = marker;
+        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
+            .subscribe(this.clickPointHandler);
     }
 
     clickPointHandler = (data) => {

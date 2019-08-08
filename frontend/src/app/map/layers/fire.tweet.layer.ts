@@ -20,6 +20,7 @@ export class FireTweetLayer {
     private timer = null;
 
     constructor(private mainControl, private mapService: MapService, private map) {
+        console.log(this)
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
         this.map.on('mousemove', e => this.onMapMouseMove(e));
     }
@@ -209,7 +210,7 @@ export class FireTweetLayer {
                 fillColor: '#f7ada6',
                 fillOpacity: 1.0
             }).addTo(this.map);
-            this.mapService.getIntentTweetData(iandID[1]).subscribe(this.IntentTweetPopup);
+            this.mapService.getIntentTweetData(iandID[1]).subscribe(data => this.IntentTweetPopup(data));
         }
     }
 
@@ -218,7 +219,8 @@ export class FireTweetLayer {
     }
 
     recentTweetLoadHandler(data) {
-        console.log(data);
+        console.log(this)
+        // console.log(data);
         const fireEventList = [];
         for (const ev of  data.slice(0, 150)) {
             const point = [ev.lat, ev.long];

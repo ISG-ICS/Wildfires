@@ -2,6 +2,7 @@ import 'leaflet/dist/leaflet.css';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import {Tweet} from '../../models/tweet.model';
 
 declare let L;
 
@@ -14,7 +15,7 @@ export class FireTweetLayer {
     }
 
 
-    tweetDataHandler = (data) => {
+    tweetDataHandler = (tweets: Tweet[]) => {
         this.tweetLayer = L.TileLayer.maskCanvas({
             radius: 10,
             useAbsoluteRadius: true,
@@ -24,9 +25,9 @@ export class FireTweetLayer {
             lineColor: '#e25822'
         });
         const tempData = [];
-        this.tweetData = data.tweetData;
-        data.tweetData.forEach(x => {
-            tempData.push([x[0], x[1]]);
+        this.tweetData = tweets;
+        tweets.forEach(tweet => {
+            tempData.push([tweet.lat, tweet.long]);
         });
 
         this.tweetLayer.setData(tempData);

@@ -1,15 +1,13 @@
 import json
 import re
 import string
-from datetime import timedelta
 
 import requests
 import rootpath
 import twitter
-from dateutil import parser
 from flask import Blueprint, make_response, jsonify, request as flask_request
 
-from router.data_router import fill_series
+from router.data_router import fill_series, gen_date_series
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
@@ -82,9 +80,7 @@ def region_tweet():
     days = int(flask_request.args.get('days', 7))
 
     # generate date series. values are set to None/null
-    date_series = [[parser.parse(timestamp_str).date(), None]]
-    for d in range(days - 1):
-        date_series.append([date_series[d][0] - timedelta(days=1), None])
+    date_series = gen_date_series(days, timestamp_str)
 
     query = '''
     select date(rft.create_at), count(rft."id") from

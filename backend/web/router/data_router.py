@@ -1,8 +1,8 @@
 import json
 import os
 from copy import deepcopy
-from datetime import timedelta
-from typing import List, Dict
+from datetime import timedelta, date
+from typing import List, Dict, Union, Tuple
 
 import matplotlib.path as mplPath
 import numpy as np
@@ -17,6 +17,23 @@ from paths import BOUNDARY_PATH
 bp = Blueprint('data', __name__, url_prefix='/data')
 
 
+def gen_date_series(days: int, timestamp_str: str) -> List[Tuple[date, None]]:
+    _date = parser.parse(timestamp_str).date()
+    return [(_date - timedelta(days=i), None) for i in range(days)]
+
+
+def fill_series(date_series: List[Tuple[date, None]], fill: List[Tuple[date, Union[int, float, None]]]) \
+        -> List[Tuple[date, Union[int, float, None]]]:
+    # noinspection Mypy
+    result_series: List[Tuple[date, Union[int, float, None]]] = deepcopy(date_series)
+    for fill_date, value in fill:
+        for i, (tweet_date, _) in enumerate(result_series):
+            if tweet_date == fill_date:
+                result_series[i] = (tweet_date, value)
+                break
+    return result_series
+
+
 @bp.route("/aggregation", methods=['POST'])
 def aggregation():
     request_json = flask_request.get_json(force=True)
@@ -27,9 +44,7 @@ def aggregation():
     days = int(request_json.get('days', 7))
 
     # generate date series. values are set to None/null
-    date_series = [[parser.parse(timestamp_str).date(), None]]
-    for d in range(days - 1):
-        date_series.append([date_series[d][0] - timedelta(days=1), None])
+    date_series = gen_date_series(days, timestamp_str)
 
     query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
     query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s, TIMESTAMP %s, %s)'
@@ -52,18 +67,6 @@ def aggregation():
     return resp
 
 
-def fill_series(date_series, fill):
-    tweet_series = deepcopy(date_series)
-    for i in fill:
-        try:
-            idx = tweet_series.index([i[0], None])  # find index by date
-        except ValueError:
-            pass
-        else:
-            tweet_series[idx][1] = i[1]  # set value
-    return tweet_series
-
-
 @bp.route('region-temp', methods=['GET'])
 def region_temp():
     region_id = int(flask_request.args.get('region_id'))
@@ -71,9 +74,7 @@ def region_temp():
     days = int(flask_request.args.get('days', 7))
 
     # generate date series. values are set to None/null
-    date_series = [[parser.parse(timestamp_str).date(), None]]
-    for d in range(days - 1):
-        date_series.append([date_series[d][0] - timedelta(days=1), None])
+    date_series = gen_date_series(days, timestamp_str)
 
     query = '''
     select date(rft.reftime), avg(tmp) from noaa0p25 noaa,
@@ -114,9 +115,7 @@ def region_moisture():
     days = int(flask_request.args.get('days', 7))
 
     # generate date series. values are set to None/null
-    date_series = [[parser.parse(timestamp_str).date(), None]]
-    for d in range(days - 1):
-        date_series.append([date_series[d][0] - timedelta(days=1), None])
+    date_series = gen_date_series(days, timestamp_str)
 
     query = '''
     select date(rft.reftime), avg(soilw) from noaa0p25 noaa,

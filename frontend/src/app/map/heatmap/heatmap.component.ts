@@ -194,11 +194,12 @@ export class HeatmapComponent implements OnInit {
 
         // this.map.on('click', event => {
         //     this.marker = new ClickboxLayer(this.mainControl, this.mapService, this.map, event.latlng);
+        //     this.marker.addTo(this.map);
         // });
         this.map.on('click', this.onMapClick, this);
 
 
-        this.mapService.getRecentTweetData().subscribe(this.fireTweetLayer.recentTweetLoadHandler);
+        this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
 

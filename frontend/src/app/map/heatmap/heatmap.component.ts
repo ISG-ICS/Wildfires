@@ -13,6 +13,7 @@ import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
 import {of, Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
+import {FireRegionLayer} from "../layers/fire.region.layer";
 
 
 declare let L;
@@ -34,6 +35,7 @@ export class HeatmapComponent implements OnInit {
     private fireTweetLayer;
     private windLayer;
     private fireEventLayer;
+    private fireRegionLayer;
     private pinRadius = 40000;
     // For what to present when click event happens
     private marker = null;
@@ -178,6 +180,8 @@ export class HeatmapComponent implements OnInit {
         // Get fire events data from service
         this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService);
 
+        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map);
+
         // Get wind events data from service
         this.windLayer = new WindLayer(this.mainControl, this.mapService);
 
@@ -187,6 +191,7 @@ export class HeatmapComponent implements OnInit {
 
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
+        $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);

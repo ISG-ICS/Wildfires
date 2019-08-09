@@ -19,6 +19,6 @@ def send_wildfire():
         jsonify([{"long": lon, "lat": lat, "nlp": nl.predict(nlp_text), "text": text} for lon, lat, nlp_text, text in
                  Connection().sql_execute(
                      "select l.top_left_long, l.top_left_lat, r.text, r.text from locations l, images i, records r "
-                     "where l.id = i.id and r.id = l.id and i.wildfire > 40")]))
+                     "where l.id = i.id and r.id = l.id and i.wildfire_prob>0.9")]))
 
     return resp

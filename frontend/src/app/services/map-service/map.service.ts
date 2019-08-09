@@ -30,6 +30,20 @@ export class MapService {
         return this.http.get<FirePrediction[]>('http://127.0.0.1:5000/wildfire-prediction');
     }
 
+    getFirePolygonData(northEastBoundaries, southWestBoundaries, setSize, start, end): Observable<any> {
+        console.log('here in service');
+        return this.http.post('http://127.0.0.1:5000/data/fire-polygon', JSON.stringify({
+            northEast: northEastBoundaries,
+            southWest: southWestBoundaries,
+            size: setSize,
+            startDate: start,
+            endDate: end,
+        })).pipe(map(data => {
+            console.log('fire-polygon DATA ', data);
+            return {type: 'FeatureCollection', features: data};
+        }));
+    }
+
 
     getWindData(): Observable<Wind[]> {
         return this.http.get<Wind[]>('http://127.0.0.1:5000/data/wind');
@@ -44,6 +58,7 @@ export class MapService {
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
         })).pipe(map(data => {
+            console.log('boundary DATA ', {type: 'FeatureCollection', features: data});
             return {type: 'FeatureCollection', features: data};
         }));
     }

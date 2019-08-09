@@ -279,7 +279,7 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
         return result
 
 
-@bp.route("/fire", methods=['POST'])
+@bp.route("/fire-polygon", methods=['POST'])
 def fire():
     # return a json of all fire name, fire time, and fire geometry inside the bounding box
     request_json = flask_request.get_json(force=True)
@@ -298,7 +298,7 @@ def fire():
     resp = make_response(jsonify([{"type": "Feature",
                                    "id": "01",
                                    "properties": {"name": name, "agency": agency, "datetime": dt, "density": 520},
-                                   "geometry": geom}
+                                   "geometry": json.loads(geom)}
                                   for name, agency, dt, geom in Connection.sql_execute(query)]))
 
     return resp

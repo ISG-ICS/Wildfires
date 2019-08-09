@@ -5,10 +5,12 @@ import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
+import * as Highcharts from 'highcharts';
+
 import {SearchService} from '../../services/search/search.service';
-import {FireTweetLayer} from '../layers/FireTweetLayer';
-import {WindLayer} from '../layers/WindLayer';
-import {FireEventLayer} from '../layers/FireEventLayer';
+import {FireTweetLayer} from '../layers/fire.tweet.layer';
+import {WindLayer} from '../layers/wind.layer';
+import {FireEventLayer} from '../layers/fire.event.layer';
 import {Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
 
@@ -22,11 +24,11 @@ declare let L;
 })
 export class HeatmapComponent implements OnInit {
 
+    private circle;
+
     private static STATE_LEVEL_ZOOM = 8;
     private static COUNTY_LEVEL_ZOOM = 9;
     private mainControl;
-    private tweetData;
-    private tweetLayer;
     private map;
     private theSearchMarker;
     private theHighlightMarker;
@@ -34,6 +36,10 @@ export class HeatmapComponent implements OnInit {
     private fireTweetLayer;
     private windLayer;
     private fireEventLayer;
+    private pinRadius = 40000;
+    // For what to present when click event happens
+    private marker;
+
 
     // Set up for a range and each smaller interval of temp to give specific color layers
     private tempLayers = [];
@@ -51,8 +57,79 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
-
     constructor(private mapService: MapService, private searchService: SearchService) {
+    }
+
+    static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
+        Highcharts.chart(name, {
+            title: {
+                text: '',
+            },
+            chart: {
+                zoomType: 'x',
+                style: {
+                    fontSize: '10px',
+                },
+            },
+            xAxis: {
+                categories: xValue,
+                crosshair: true,
+            },
+            plotOptions: {
+                series: {
+                    allowPointSelect: true,
+                }
+            },
+            yAxis: [{ // Primary yAxis
+                labels: {
+                    format: '{value}' + y1Unit,
+                    style: {
+                        color: 'black',
+                        fontSize: '8px',
+                    }
+                },
+                title: {
+                    text: '',
+                }
+            }, { // Secondary yAxis
+                title: {
+                    text: '',
+                },
+                labels: {
+                    format: '{value} ' + y2Unit,
+                    style: {
+                        color: y2Color,
+                        fontSize: '8px',
+                    }
+                },
+                opposite: true
+            }],
+            tooltip: {
+                shared: true,
+            },
+            series: [{
+                name: y2Name,
+                type: 'spline',
+                color: y2Color,
+                yAxis: 1,
+                data: y2Value,
+                tooltip: {
+                    valueSuffix: ' ' + y2Unit,
+                },
+                showInLegend: false
+
+            }, {
+                name: y1Name,
+                type: 'spline',
+                color: 'black',
+                data: y1Value,
+                yAxis: 0,
+                tooltip: {
+                    valueSuffix: y1Unit,
+                },
+                showInLegend: false
+            }]
+        });
     }
 
     ngOnInit() {
@@ -95,7 +172,7 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getTemperatureData().subscribe(tempSubject);
 
         // Get tweets data from service
-        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService);
+        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map);
 
         // Get fire events data from service
         this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService);
@@ -108,11 +185,20 @@ export class HeatmapComponent implements OnInit {
 
 
         // Add event Listener when user specify a time range on time series
-        $(window).on('timeRangeChange', this.timeRangeChangeHandler);
+        $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
+
+        // this.map.on('click', event => {
+        //     this.marker = new ClickboxLayer(this.mainControl, this.mapService, this.map, event.latlng);
+        //     this.marker.addTo(this.map);
+        // });
+        this.map.on('click', this.onMapClick, this);
+
+
+        this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
 
@@ -143,7 +229,7 @@ export class HeatmapComponent implements OnInit {
 
         this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW)
             .subscribe(this.getBoundaryScreenDataHandler);
-    }
+    };
 
     getBoundaryScreenDataHandler = (data: Boundary) => {
         // adds boundary layer onto the map
@@ -163,18 +249,28 @@ export class HeatmapComponent implements OnInit {
 
         this.mainControl.addOverlay(this.geojsonLayer, 'Boundary');
         this.map.addLayer(this.geojsonLayer);
-    }
+    };
 
 
-    timeRangeChangeHandler = (event, data) => {
-        const tempData = [];
-        this.tweetData.forEach(entry => {
-            if (entry[2] > data.timebarStart && entry[2] < data.timebarEnd) {
-                tempData.push([entry[0], entry[1]]);
-            }
-        });
-        this.tweetLayer.setData(tempData);
-    }
+    fireEventHandler = (data) => {
+
+        const fireEventList = [];
+
+        for (const ev of data.fireEvents) {
+            const point = [ev.lat, ev.long];
+            const size = 40;
+            const fireIcon = L.icon({
+                iconUrl: 'assets/image/pixelfire.gif',
+                iconSize: [size, size],
+            });
+            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%). My evidence is:<br/>' + ev.text);
+            fireEventList.push(marker);
+
+        }
+        const fireEvents = L.layerGroup(fireEventList);
+        this.mainControl.addOverlay(fireEvents, 'Fire event');
+    };
+
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap
@@ -211,7 +307,7 @@ export class HeatmapComponent implements OnInit {
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    }
+    };
 
     dotMapDataHandler = (data) => {
         const latLongBins = [];
@@ -238,14 +334,150 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
+    };
+
+    onMapClick(e) {
+        function mouseMoveChangeRadius(event) {
+            const newRadius = distance(circle._latlng, event.latlng);
+            localBound.setRadius(newRadius);
+            circle.setRadius(newRadius);
+        }
+
+        function distance(center, pt) {
+            return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
+        }
+
+        const clickIcon = L.icon({
+            iconUrl: 'assets/image/pin6.gif',
+            iconSize: [26, 30],
+        });
+        const marker = L.marker(e.latlng, {draggable: false, icon: clickIcon});
+        marker.isSticky = false;
+        const circle = L.circle(e.latlng, {
+            stroke: false,
+            fillColor: 'white',
+            fillOpacity: 0.35,
+            radius: 40000,
+        });
+        const localBound = L.circle(e.latlng, {
+            radius: 40000,
+            color: 'white',
+            weight: 5,
+            fill: false,
+            bubblingMouseEvents: false,
+        })
+            .on('mouseover', () => {
+                localBound.setStyle({color: '#919191'});
+            })
+            .on('mouseout', () => {
+                localBound.setStyle({color: 'white'});
+            })
+            .on('mousedown', () => {
+                this.map.removeEventListener('click');
+                this.map.dragging.disable();
+                this.map.on('mousemove', mouseMoveChangeRadius);
+
+                this.map.on('mouseup', (event) => {
+                    const newRadius = distance(circle._latlng, event.latlng);
+                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-07-30T15:37:27Z', 7)
+                        .subscribe(this.clickPointHandler);
+                    this.map.dragging.enable();
+                    this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
+                    setTimeout(() => {
+                        this.map.on('click', this.onMapClick, this);
+                        this.map.removeEventListener('mouseup');
+                    }, 500);
+                }, this);
+            });
+        const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
+
+
+        // Create Button To Set Sticky In Popup
+        const container = $('<div />');
+        container.html('<button href="#" class="leaflet-popup-sticky-button">S</button><br>')
+            .on('click', '.leaflet-popup-sticky-button', () => {
+                // Justify current sticky status
+                marker.isSticky = !marker.isSticky;
+                if (!marker.isSticky) {
+                    marker.getPopup().on('remove', () => {
+                        group.remove();
+                    });
+                } else {
+                    marker.getPopup().removeEventListener('remove');
+                }
+            });
+        container.append('You clicked the map at ' + e.latlng.toString());
+        marker.bindPopup(container[0], {
+            closeOnClick: false,
+            autoClose: true,
+        }).openPopup();
+
+        // Remove popup fire remove all (default is not sticky)
+        marker.getPopup().on('remove', () => {
+            group.remove();
+        });
+        // TODO: change marker from global var since it only specify one.
+        this.marker = marker;
+        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
+            .subscribe((data) => this.clickPointHandler(data));
     }
+
+    clickPointHandler = (data) => {
+        console.log(data);
+
+        const cntTime = [];
+        const cntValue = [];
+        for (const i of data.cnt_tweet) {
+            cntTime.push(i[0]);
+            if (i[1] === null) {
+                cntValue.push(0);
+            } else {
+                cntValue.push(i[1]);
+            }
+        }
+        const tmpTime = [];
+        const tmpValue = [];
+        for (const i of data.tmp) {
+            tmpTime.push(i[0]);
+            tmpValue.push(i[1] - 273.15);
+            // tmpValue.push(Number(i[1] - 273.15).toFixed(2));
+        }
+
+        const soilwTime = [];
+        const soilwValue = [];
+        for (const j of data.soilw) {
+            soilwTime.push(j[0]);
+            soilwValue.push(j[1]);
+            // soilwValue.push(j[1].toFixed(3));
+        }
+
+
+        const chartContents = '<div id="containers" style="width: 600px; height: 300px;">\n' +
+            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
+            '</div>';
+
+        this.marker.bindPopup(chartContents).openPopup();
+        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
+            'Moisture', soilwValue, 'mm', 'green');
+        // this.drawChart('container2',tmpTime, [1,2,3,4,5,6,7], 'fire',tmpValue, 'Cesius');
+        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
+            'Temperature', tmpValue, 'Cesius', 'red');
+        // this.drawChart('container4',tmpTime, [1,2,3,4,5,6,7], 'fire',soilwValue, 'mm');
+
+        // drawChart([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7]);
+        this.marker.getPopup().on('remove', () => {
+            this.map.removeLayer(this.marker);
+        });
+    };
 
 
     rangeSelectHandler = (event) => {
         const inRange = (min: number, max: number, target: number) => {
             return target < max && target >= min;
         };
-
         // Respond to the input range of temperature from the range selector in side bar
         // var int: always keep the latest input Max/Min temperature
         if (event.high !== undefined) {
@@ -272,17 +504,17 @@ export class HeatmapComponent implements OnInit {
                     break;
                 }
             }
-
+            // Remove previous canvas layers
+            for (const layer of this.tempLayers) {
+                this.map.removeLayer(layer);
+            }
+            // Add new canvas layers in the updated list tempRegionsMax to Map
+            for (const region of this.tempRegionsMax) {
+                region.addTo(this.map);
+            }
+            console.log(this.tempRegionsMax);
         }
-        // Remove previous canvas layers
-        for (const layer of this.tempLayers) {
-            this.map.removeLayer(layer);
-        }
-        // Add new canvas layers in the updated list tempRegionsMax to Map
-        for (const region of this.tempRegionsMax) {
-            region.addTo(this.map);
-        }
-    }
+    };
 
     boundaryDataHandler = ([[data], value]) => {
         console.log(data);
@@ -312,7 +544,7 @@ export class HeatmapComponent implements OnInit {
             this.setLabelStyle(this.theSearchMarker); // sets the label style
 
         }
-    }
+    };
     setLabelStyle = (marker) => {
         // sets the name label style
         marker.getElement().style.backgroundColor = 'transparent';
@@ -320,7 +552,7 @@ export class HeatmapComponent implements OnInit {
         marker.getElement().style.fontFamily = 'monospace';
         marker.getElement().style.webkitTextStroke = '#ffe710';
         marker.getElement().style.webkitTextStrokeWidth = '0.5px';
-    }
+    };
 
 
     resetHighlight = (event) => {
@@ -332,13 +564,13 @@ export class HeatmapComponent implements OnInit {
             this.map.removeControl(this.theSearchMarker);
         }
         this.geojsonLayer.resetStyle(event.target);
-    }
+    };
 
     zoomToFeature = (event) => {
         // zooms to a region when the region is clicked
         this.map.fitBounds(event.target.getBounds());
 
-    }
+    };
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
         // OPTIMIZE: the get polygon center function
@@ -349,7 +581,7 @@ export class HeatmapComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    }
+    };
     getColor = (density) => {
         // color for the boundary layers
         // TODO: remove this func
@@ -372,7 +604,7 @@ export class HeatmapComponent implements OnInit {
                 return '#FFEDA0';
         }
 
-    }
+    };
     style = (feature) => {
         // style for the boundary layers
         return {
@@ -383,7 +615,7 @@ export class HeatmapComponent implements OnInit {
             dashArray: '3',
             fillOpacity: 0.3
         };
-    }
+    };
 
     highlightFeature = (event) => {
         // highlights the region when the mouse moves over the region
@@ -412,7 +644,7 @@ export class HeatmapComponent implements OnInit {
             ._northEast.lat - 15, this.map.getBounds()._northEast.lng - 60]), {icon: divIcon}).addTo(this.map);
         this.setLabelStyle(this.theHighlightMarker);
         this.setLabelStyle(this.theSearchMarker);
-    }
+    };
 
     onEachFeature = (feature, layer) => {
         // controls the interaction between the mouse and the map

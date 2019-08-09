@@ -55,7 +55,24 @@ export class MapService {
     }
 
 
+    getRecentTweetData(): Observable<any> {
+
+        return this.http.get('http://127.0.0.1:5000/tweet/recent-tweet');
+    }
+
     getTemperatureData(): Observable<HeatMap[]> {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');
+    }
+
+    getClickData(lat, lng, radius, timestamp, range): Observable<any> {
+
+        return this.http.post('http://127.0.0.1:5000/data/aggregation', JSON.stringify({
+            lat, lng, radius, timestamp, range
+        }));
+    }
+
+    getIntentTweetData(id): Observable<any> {
+        return this.http.get('http://127.0.0.1:5000/tweet/tweet-from-id',
+            {params: new HttpParams().set('tweet_id', id)});
     }
 }

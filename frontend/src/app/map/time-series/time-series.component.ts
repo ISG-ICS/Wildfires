@@ -22,22 +22,19 @@ export class TimeSeriesComponent implements OnInit {
     }
 
     // Draw time series
-    drawTimeSeries = (data: Tweet[]) => {
+    drawTimeSeries = (tweets: Tweet[]) => {
         const chartData = [];
         const dailyCount = {};
-        const dataArray = [];
-        for (const entry of data) {
-            const createAt = entry.create_at.split('T')[0];
 
+        for (const tweet of tweets) {
+            const createAt = tweet.create_at.split('T')[0];
             if (dailyCount.hasOwnProperty(createAt)) {
                 dailyCount[createAt]++;
             } else {
                 dailyCount[createAt] = 1;
             }
-
-            const leftTop = [entry.lat, entry.long];
-            dataArray.push([leftTop[0], leftTop[1], new Date(createAt).getTime()]);
         }
+
 
         // time bar
         Object.keys(dailyCount).sort().forEach(key => {

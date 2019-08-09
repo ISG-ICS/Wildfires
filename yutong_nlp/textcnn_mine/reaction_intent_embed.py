@@ -12,6 +12,7 @@ from yutong_nlp.textcnn_mine.CNN_text1 import CNN_Text
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
+from paths import GOOGLE_VOCAB_PATH
 
 
 def handle_args():
@@ -87,7 +88,7 @@ def get_sql_results(cur, id_sql, text_sql, cur_id):
 
 
 def data_processing(texts_Train, texts_Validate, texts_Test):
-    gensim_model = KeyedVectors.load_word2vec_format('./dataset/GoogleNews-vectors-negative300.bin',
+    gensim_model = KeyedVectors.load_word2vec_format(GOOGLE_VOCAB_PATH,
                                                      binary=True, limit=300000, unicode_errors='ignore')
     vocab = gensim_model.vocab
     vocab_len = len(vocab)
@@ -135,8 +136,9 @@ def get_dataset_loader(feature_padding_train, labels_Train,
 
 def get_dataset_from_sql(cur, label_sql, select_reaction_x_sql, select_reaction_y_sql, select_reaction_text_sql,
                          select_intent_sql, select_intent_text_sql):
-    gensim_model = KeyedVectors.load_word2vec_format('./dataset/GoogleNews-vectors-negative300.bin',
-                                                     binary=True, limit=300000, unicode_errors='ignore')
+    gensim_model = KeyedVectors.load_word2vec_format(
+        '/Users/gutingxuan/Desktop/Wildfires/backend/models/GoogleNews-vectors-negative300.bin',
+        binary=True, limit=300000, unicode_errors='ignore')
     vocab = gensim_model.vocab
     reactions_x = []
     reactions_x_prob = []
@@ -202,6 +204,7 @@ if __name__ == "__main__":
         # select_labeled_sql = "SELECT id,label1 FROM records WHERE (label1=0 or label1=1)"
         select_labeled_train_sql = "SELECT id,label1 FROM records WHERE (label1=0 or label1=1)"
         select_labeled_test_sql = "SELECT id,label2 FROM records WHERE (label2=0 or label2=1)"
+
         select_reaction_x_sql = "SELECT reaction_x_id, probability FROM reaction_x_in_records WHERE record_id=%s"
         select_reaction_y_sql = "SELECT reaction_y_id, probability FROM reaction_y_in_records WHERE record_id=%s"
         select_intent_sql = "SELECT intent_id, probability FROM intent_in_records WHERE record_id=%s"
@@ -224,19 +227,23 @@ if __name__ == "__main__":
 
         cur.close()
 
+    stacked_train_data = np.tile(stacked_train_data, (10, 1))
+    stacked_train_prob = np.tile(stacked_train_prob, (10, 1, 1))
+    train_labels = np.tile(train_labels, 10)
+
     texts_Train = stacked_train_data[0:int(0.9 * len(stacked_train_data))]
     prob_Train = stacked_train_prob[0:int(0.9 * len(stacked_train_data))]
     prob_Train = make_batch(prob_Train, 64)
     labels_Train = train_labels[0:int(0.9 * len(train_labels))]
-
     texts_Validate = stacked_train_data[int(0.9 * len(stacked_train_data)):]
     prob_Validate = stacked_train_prob[int(0.9 * len(stacked_train_data)):]
     prob_Validate = make_batch(prob_Validate, 64)
     labels_Validate = train_labels[int(0.9 * len(train_labels)):]
 
-    texts_Test = stacked_test_data
+    texts_Test = np.tile(stacked_test_data, (10, 1))
+    stacked_test_prob = np.tile(stacked_test_prob, (10, 1, 1))
     prob_Test = make_batch(stacked_test_prob, 64)
-    labels_Test = test_labels
+    labels_Test = np.tile(test_labels, 10)
 
     vocab_len, weights, feature_padding_train, feature_padding_validate, feature_padding_test \
         = data_processing(texts_Train, texts_Validate, texts_Test)

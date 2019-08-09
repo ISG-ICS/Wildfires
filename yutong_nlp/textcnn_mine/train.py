@@ -88,26 +88,27 @@ def test(validate_loader, test_loader, model, my_loss, weight, prob_Validate, pr
     pos_proba_sorted = -numpy.sort(-pos_proba)
     target_accuracy = [1.0, 0.98, 0.9]
     test_avg_loss, test_acc, test_probs, test_labels = predict_prob(test_loader, model, my_loss, weight, prob_Test)
-    denominator_accuracy = numpy.sum(test_labels == 1)
-    final_accuracy = []
-    reduction = []
-    for accuracy in target_accuracy:
-        min_accuracy = pos_proba_sorted[int(pos_proba_sorted.shape[0] * accuracy) - 1]
-        test_probs_copy = numpy.copy(test_probs)
-        test_pos_probs = test_probs_copy[:, 1]
-        test_pos_probs[test_pos_probs >= min_accuracy] = 1
-        test_pos_probs[test_pos_probs < min_accuracy] = 0
-        denominator_reduction = test_pos_probs.shape[0]
-        nominator_reduction = numpy.sum(test_pos_probs == 0)
-        test_pos_probs_1 = test_pos_probs[test_labels == 1]
-        nominator_accuracy = numpy.sum(test_pos_probs_1 == 1)
-        final_accuracy.append(nominator_accuracy / denominator_accuracy)
-        reduction.append(nominator_reduction / denominator_reduction)
-    print(
-        "\nTest-Phase: validate-avg-loss: {:.6f} validate-acc: {:.4f}% test-avg-loss: {:.6f} test-acc: {:.4f}%".format(
-            validate_avg_loss, validate_acc, test_avg_loss, test_acc))
-    print("final-accuracy: {} reduction: {}".format(final_accuracy, reduction))
-    return validate_avg_loss, test_avg_loss, final_accuracy, reduction
+    print("test_avg_loss:{:.6f} test_acc:{:.6f}".format(test_avg_loss, test_acc))
+    # denominator_accuracy = numpy.sum(test_labels == 1)
+    # final_accuracy = []
+    # reduction = []
+    # for accuracy in target_accuracy:
+    #     min_accuracy = pos_proba_sorted[int(pos_proba_sorted.shape[0] * accuracy) - 1]
+    #     test_probs_copy = numpy.copy(test_probs)
+    #     test_pos_probs = test_probs_copy[:, 1]
+    #     test_pos_probs[test_pos_probs >= min_accuracy] = 1
+    #     test_pos_probs[test_pos_probs < min_accuracy] = 0
+    #     denominator_reduction = test_pos_probs.shape[0]
+    #     nominator_reduction = numpy.sum(test_pos_probs == 0)
+    #     test_pos_probs_1 = test_pos_probs[test_labels == 1]
+    #     nominator_accuracy = numpy.sum(test_pos_probs_1 == 1)
+    #     final_accuracy.append(nominator_accuracy / denominator_accuracy)
+    #     reduction.append(nominator_reduction / denominator_reduction)
+    # print(
+    #     "\nTest-Phase: validate-avg-loss: {:.6f} validate-acc: {:.4f}% test-avg-loss: {:.6f} test-acc: {:.4f}%".format(
+    #         validate_avg_loss, validate_acc, test_avg_loss, test_acc))
+    # print("final-accuracy: {} reduction: {}".format(final_accuracy, reduction))
+    # return validate_avg_loss, test_avg_loss, final_accuracy, reduction
 
 
 def predict_prob(data_loader, model, my_loss, weight, prob):

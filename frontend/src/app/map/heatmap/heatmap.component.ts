@@ -11,7 +11,6 @@ import {SearchService} from '../../services/search/search.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
-import {ClickboxLayer} from '../layers/clickbox.layer';
 import {Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
 
@@ -335,7 +334,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    }
+    };
 
     onMapClick(e) {
         function mouseMoveChangeRadius(event) {
@@ -420,12 +419,22 @@ export class HeatmapComponent implements OnInit {
         // TODO: change marker from global var since it only specify one.
         this.marker = marker;
         this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
-            .subscribe(this.clickPointHandler);
+            .subscribe((data) => this.clickPointHandler(data));
     }
 
     clickPointHandler = (data) => {
         console.log(data);
 
+        const cntTime = [];
+        const cntValue = [];
+        for (const i of data.cnt_tweet) {
+            cntTime.push(i[0]);
+            if (i[1] === null) {
+                cntValue.push(0);
+            } else {
+                cntValue.push(i[1]);
+            }
+        }
         const tmpTime = [];
         const tmpValue = [];
         for (const i of data.tmp) {
@@ -451,10 +460,10 @@ export class HeatmapComponent implements OnInit {
             '</div>';
 
         this.marker.bindPopup(chartContents).openPopup();
-        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', [1, 2, 3, 4, 5, 6, 7], 'fires',
+        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
             'Moisture', soilwValue, 'mm', 'green');
         // this.drawChart('container2',tmpTime, [1,2,3,4,5,6,7], 'fire',tmpValue, 'Cesius');
-        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', [1, 2, 3, 4, 5, 6, 7], 'fires',
+        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
             'Temperature', tmpValue, 'Cesius', 'red');
         // this.drawChart('container4',tmpTime, [1,2,3,4,5,6,7], 'fire',soilwValue, 'mm');
 
@@ -469,7 +478,6 @@ export class HeatmapComponent implements OnInit {
         const inRange = (min: number, max: number, target: number) => {
             return target < max && target >= min;
         };
-
         // Respond to the input range of temperature from the range selector in side bar
         // var int: always keep the latest input Max/Min temperature
         if (event.high !== undefined) {

@@ -55,15 +55,10 @@ export class MapService {
     }
 
 
-    stopLiveTweet(): void {
-        window.clearInterval(this.liveTweetCycle);
-    }
-
-
     getRecentTweetData(): Observable<any> {
 
         return this.http.get('http://127.0.0.1:5000/tweet/recent-tweet');
-    };
+    }
 
     getTemperatureData(): Observable<HeatMap[]> {
         return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');

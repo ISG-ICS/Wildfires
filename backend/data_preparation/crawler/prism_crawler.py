@@ -2,15 +2,16 @@ import logging
 import os
 from datetime import datetime, timedelta, timezone
 from ftplib import FTP, error_perm
-from typing import List
+from typing import List, Union
 
+import numpy as np
 import rootpath
 
 rootpath.append()
 
 from paths import PRISM_DATA_PATH
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.extractor.bil_extractor import BILExtractor
+from backend.data_preparation.extractor.bil_extractor import BILExtractor, BILFormat
 
 logging.getLogger('TaskManager')
 
@@ -27,7 +28,7 @@ class PRISMCrawler(CrawlerBase):
         self.ftp.login('anonymous')
         self.buffer: List[bytes] = list()
 
-    def crawl(self, date: datetime.date, variable) -> str:
+    def crawl(self, date: datetime.date, variable) -> Union[str, None]:
         """this func will download a single file"""
         if not os.path.exists(PRISM_DATA_PATH):
             os.makedirs(PRISM_DATA_PATH)
@@ -48,6 +49,9 @@ class PRISMCrawler(CrawlerBase):
                 print('write')
                 return os.path.join(PRISM_DATA_PATH, filename)
 
+        # return None if not crawled
+        return None
+
     def start(self, end_clause: datetime.date = None, *args, **kwargs) -> None:
         """this func will start a round of crawling.
             based on RECENT or HISTORICAL
@@ -55,9 +59,14 @@ class PRISMCrawler(CrawlerBase):
 
         date = self.current_date - timedelta(days=1)
         while date >= end_clause:
-            saved_filename = self.crawl(date, 'ppt')
+            saved_filepath = self.crawl(date, 'ppt')
+            if saved_filepath:
+                # noinspection PyTypeChecker
+                bil = self.extractor.extract(saved_filepath)  # type: BILFormat
+                np.save(os.path.splitext(saved_filepath)[0], bil.ndarray)
+
+            os.remove(saved_filepath)
             date = date - timedelta(days=1)
-            self.extractor.extract(saved_filename)
 
     def assign_buffer(self, content) -> None:
         self.buffer.append(content)

@@ -1,8 +1,8 @@
 import logging
-import psycopg2
 import traceback
 
 import rootpath
+from psycopg2 import extras
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
@@ -43,7 +43,7 @@ class Event2MindDumper(DumperBase):
     BATCH_INSRT_Y_SQL = "INSERT INTO reaction_y_in_records(record_id,reaction_y_id,probability) values %s"
     BATCH_INSRT_I_SQL = "INSERT INTO intent_in_records(record_id,intent_id,probability) values %s"
 
-    def insert(self,data: dict, record_id: int):
+    def insert(self, data: dict, record_id: int):
         """insert data and corresponding record_id into database, data is a dictionary"""
         if Event2MindDumper.INTENT_TOKENS in data.keys():
             self.traverse_tokens(Event2MindDumper.INTENT_TOKENS,
@@ -63,7 +63,8 @@ class Event2MindDumper(DumperBase):
                                  Event2MindDumper.TABLE_Y_IN_RCD,
                                  data, record_id)
 
-    def insert_into_tokens(self, token: str, token_type: str, conn):
+    @staticmethod
+    def insert_into_tokens(token: str, token_type: str, conn):
         """insert token into table: reactions or intents"""
         cur = conn.cursor()
         if token_type == Event2MindDumper.INTENT_TOKENS:
@@ -96,7 +97,8 @@ class Event2MindDumper(DumperBase):
         cur.close()
         return eid
 
-    def insert_into_pairs(self, rid, eid: int, probability, tablename: str, conn):
+    @staticmethod
+    def insert_into_pairs(rid, eid: int, probability, tablename: str, conn):
         """insert record id(rid), token id(eid) and probability into database"""
         cur = conn.cursor()
         try:
@@ -153,7 +155,8 @@ class Event2MindDumper(DumperBase):
                                        Event2MindDumper.TABLE_Y_IN_RCD,
                                        data_list, record_id_list, page_size)
 
-    def batch_insert_into_tokens(self, tokens: list, token_type: str, page_size: int, conn) -> list:
+    @staticmethod
+    def batch_insert_into_tokens(tokens: list, token_type: str, page_size: int, conn) -> list:
         """batch insert tokens into table: reactions or intents"""
         cur = conn.cursor()
 
@@ -193,7 +196,7 @@ class Event2MindDumper(DumperBase):
         eid_token_pairs.append(tokens)
         eid_token_pairs = list(zip(*eid_token_pairs))
         try:
-            psycopg2.extras.execute_values(cur, batch_insert_sql, eid_token_pairs, template=None, page_size=page_size)
+            extras.execute_values(cur, batch_insert_sql, eid_token_pairs, template=None, page_size=page_size)
         except Exception:
             logger.error('error: ' + traceback.format_exc())
             return eids
@@ -201,7 +204,8 @@ class Event2MindDumper(DumperBase):
         cur.close()
         return eids
 
-    def batch_insert_into_pairs(self, rids: list, eids: list, probabilities, tablename, page_size, conn):
+    @staticmethod
+    def batch_insert_into_pairs(rids: list, eids: list, probabilities, tablename, page_size, conn):
         """batch insert record ids(rids), token ids(eids) and probabilities into database"""
 
         cur = conn.cursor()
@@ -220,7 +224,7 @@ class Event2MindDumper(DumperBase):
             batch_insert_sql = Event2MindDumper.BATCH_INSRT_I_SQL
         try:
             psycopg2.extras.execute_values(cur, batch_insert_sql, rid_eid_prob_pairs, template=None,
-                                               page_size=page_size)
+                                           page_size=page_size)
         except Exception as err:
             logger.error('error: ' + traceback.format_exc())
         conn.commit()

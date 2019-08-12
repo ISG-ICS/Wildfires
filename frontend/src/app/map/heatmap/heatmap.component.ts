@@ -178,7 +178,7 @@ export class HeatmapComponent implements OnInit {
         this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map);
 
         // Get fire events data from service
-        this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService);
+        this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
         this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map);
 
@@ -192,6 +192,7 @@ export class HeatmapComponent implements OnInit {
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
         $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
+        $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -252,24 +253,25 @@ export class HeatmapComponent implements OnInit {
         this.map.addLayer(this.geojsonLayer);
     };
 
-    fireEventHandler = (data) => {
 
-        const fireEventList = [];
-
-        for (const ev of data.fireEvents) {
-            const point = [ev.lat, ev.long];
-            const size = 40;
-            const fireIcon = L.icon({
-                iconUrl: 'assets/image/pixelfire.gif',
-                iconSize: [size, size],
-            });
-            const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%). My evidence is:<br/>' + ev.text);
-            fireEventList.push(marker);
-
-        }
-        const fireEvents = L.layerGroup(fireEventList);
-        this.mainControl.addOverlay(fireEvents, 'Fire event');
-    };
+    // fireEventHandler = (data) => {
+    //
+    //     const fireEventList = [];
+    //
+    //     for (const ev of data.fireEvents) {
+    //         const point = [ev.lat, ev.long];
+    //         const size = 40;
+    //         const fireIcon = L.icon({
+    //             iconUrl: 'assets/image/pixelfire.gif',
+    //             iconSize: [size, size],
+    //         });
+    //         const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%). My evidence is:<br/>' + ev.text);
+    //         fireEventList.push(marker);
+    //
+    //     }
+    //     const fireEvents = L.layerGroup(fireEventList);
+    //     this.mainControl.addOverlay(fireEvents, 'Fire event');
+    // };
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap

@@ -3,7 +3,6 @@ import {Observable} from 'rxjs';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {map} from 'rxjs/operators';
 import {Tweet} from '../../models/tweet.model';
-import {FirePrediction} from '../../models/firePrediction.model';
 import {Wind} from '../../models/wind.model';
 import {HeatMap} from '../../models/heatMap.model';
 import {Boundary} from '../../models/boundary.model';
@@ -26,8 +25,13 @@ export class MapService {
         return this.http.get<Tweet[]>('http://127.0.0.1:5000/tweet/fire-tweet');
     }
 
-    getWildfirePredictionData(): Observable<FirePrediction[]> {
-        return this.http.get<FirePrediction[]>('http://127.0.0.1:5000/wildfire-prediction');
+    getWildfirePredictionData(northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
+        return this.http.post('http://127.0.0.1:5000/wildfire-prediction', JSON.stringify({
+            northEast: northEastBoundaries,
+            southWest: southWestBoundaries,
+            startDate: start,
+            endDate: end,
+        }));
     }
 
     getFirePolygonData(northEastBoundaries, southWestBoundaries, setSize, start, end): Observable<any> {

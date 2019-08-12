@@ -16,11 +16,11 @@ logger = logging.getLogger('TaskManager')
 
 
 class EnvironmentDumper(DumperBase):
-    INSERT_CONSTANT_FEATURES = 'INSERT INTO "constant_env_features" (gid, landcover, elevation, aspect, slope) ' \
+    INSERT_CONSTANT_FEATURES = 'INSERT INTO env_constant_features (gid, landcover, elevation, aspect, slope) ' \
                                'VALUES (%s, %s, %s, %s, %s)'
-    INSERT_SOIL_MOISTURE = 'INSERT INTO "soil_moisture" (gid, datetime, soil_moisture) ' \
+    INSERT_SOIL_MOISTURE = 'INSERT INTO env_soil_moisture (gid, datetime, soil_moisture) ' \
                            'VALUES (%s, %s, %s)'
-    INSERT_NDVI = 'INSERT INTO "ndvi" (gid, datetime, ndvi) ' \
+    INSERT_NDVI = 'INSERT INTO env_ndvi (gid, datetime, ndvi) ' \
                   'VALUES (%s, %s, %s)'
     INSERT_ENV_PREDICTION = 'INSERT INTO env_features_prediction(gid, datetime, wildfire_probability) ' \
                             'values (%s, %s, %s)'

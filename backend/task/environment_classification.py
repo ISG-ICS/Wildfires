@@ -59,7 +59,7 @@ class EnvironmentClassification(Runnable):
 
         try:
             for gid, landcover, elevation, aspect, slope in Connection().sql_execute \
-                        ("select gid, landcover, elevation, aspect, slope from constant_env_features"):
+                        ("select gid, landcover, elevation, aspect, slope from env_constant_features"):
                 ca_landcover[0][int(gid // 248)][int(gid % 248)] = landcover
                 ca_elevation[0][int(gid // 248)][int(gid % 248)] = elevation
                 ca_aspect[0][int(gid // 248)][int(gid % 248)] = aspect
@@ -67,11 +67,11 @@ class EnvironmentClassification(Runnable):
 
             if datetime:
                 for gid, ndvi in Connection().sql_execute \
-                            ("select gid, ndvi from ndvi where datetime = '{}'".format(ndvi_weektime)):
+                            ("select gid, ndvi from env_ndvi where datetime = '{}'".format(ndvi_weektime)):
                     ca_ndvi[0][int(gid // 248)][int(gid % 248)] = ndvi
 
                 for gid, sm in Connection().sql_execute \
-                            ("select gid, soil_moisture from soil_moisture where datetime = '{}'".format(soil_weektime)):
+                            ("select gid, soil_moisture from env_soil_moisture where datetime = '{}'".format(soil_weektime)):
                     ca_soil_moisture[0][int(gid // 248)][int(gid % 248)] = sm
             else:
                 # datetime is None, fetch all

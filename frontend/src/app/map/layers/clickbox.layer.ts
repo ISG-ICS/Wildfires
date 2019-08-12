@@ -22,7 +22,6 @@ export class ClickboxLayer {
     }
 
     mouseMoveChangeRadius(event) {
-
         const newRadius = this.distance(event.latlng);
         this.boundary.setRadius(newRadius);
         this.circle.setRadius(newRadius);

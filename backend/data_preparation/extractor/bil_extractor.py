@@ -62,6 +62,10 @@ class BILExtractor(ExtractorBase):
         prism_array[prism_array == float(hdr_dict['NODATA'])] = np.nan
 
         bil = BILFormat()
+
+        # crop:
+        # begin point(191, 14)
+        # (228, 248)
         bil.ndarray = prism_array[191:419, 14:262]
         bil.nodata = float(hdr_dict['NODATA'])
         return bil

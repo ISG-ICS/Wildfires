@@ -18,7 +18,13 @@ logging.getLogger('TaskManager')
 
 class PRISMCrawler(CrawlerBase):
     ftp_server = 'prism.nacse.org'
+    variables = ['ppt', 'tmax', 'vpdmax']
     stages = ['stable', 'provisional', 'early']
+    addition_codes = {
+        'ppt': '4kmD2',
+        'tmax': '4kmD1',
+        'vpdmax': '4kmD1'
+    }
 
     def __init__(self):
         super().__init__()
@@ -35,7 +41,8 @@ class PRISMCrawler(CrawlerBase):
 
         self.ftp.cwd(f'/daily/{variable}/{date.strftime("%Y")}')
         for stage in PRISMCrawler.stages:
-            filename = f'PRISM_ppt_{stage}_4kmD2_{date.strftime("%Y%m%d")}_bil.zip'
+            filename = f'PRISM_{variable}_{stage}_{PRISMCrawler.addition_codes[variable]}' \
+                f'_{date.strftime("%Y%m%d")}_bil.zip'
             try:
                 self.ftp.retrbinary(f"RETR {filename}", self.assign_buffer)
             except error_perm as e:
@@ -59,13 +66,16 @@ class PRISMCrawler(CrawlerBase):
 
         date = self.current_date - timedelta(days=1)
         while date >= end_clause:
-            saved_filepath = self.crawl(date, 'ppt')
-            if saved_filepath:
-                # noinspection PyTypeChecker
-                bil = self.extractor.extract(saved_filepath)  # type: BILFormat
-                np.save(os.path.splitext(saved_filepath)[0], bil.ndarray)
+            for var in PRISMCrawler.variables:
+                saved_filepath = self.crawl(date, var)
+                if saved_filepath:
+                    # noinspection PyTypeChecker
+                    bil = self.extractor.extract(saved_filepath)  # type: BILFormat
+                    np.save(os.path.splitext(saved_filepath)[0], bil.ndarray)
+                    # clean up
+                    os.remove(saved_filepath)
 
-            os.remove(saved_filepath)
+            # finish crawling a day
             date = date - timedelta(days=1)
 
     def assign_buffer(self, content) -> None:

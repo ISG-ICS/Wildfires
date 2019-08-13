@@ -30,6 +30,8 @@ TEST_DATA_PATH = os.path.join(ROOT_DIR, 'data/test')
 
 GRIB2_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grib-data')
 
+GRACE_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grace-data')
+
 USGS_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'usgs')
 
 WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')

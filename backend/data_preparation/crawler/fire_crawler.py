@@ -27,10 +27,11 @@ class FireCrawler(CrawlerBase):
     Step 2: Get Nodes: Nodes pattern: fire_name
 
     """
-    def __init__(self):
+    def __init__(self, states):
         super().__init__()
         self.baseDir = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
         self.years = []
+        self.states = states
         self.explored_year = set()
         self.explored_fire = set()
         self.to_check = []
@@ -56,18 +57,17 @@ class FireCrawler(CrawlerBase):
         fire = []
         for year_node in year_nodes:
             true_year = current_year if year_node == "current_year_fire_data" else int(year_node.split("_")[0])
-            list_of_CA_fires = requests.get(url="{}{}/California/".format(self.baseDir, year_node)).content.decode("utf-8")
-            re_formula = r'<A .*?>(\w*?)</A>'
-            fires = re.findall(re_formula, list_of_CA_fires, re.S | re.M)
-            fire += list(map(lambda f: (true_year, f), fires))
+            for state in self.states:
+                list_of_state_fires = requests.get(url=f"{self.baseDir}{year_node}/{state}").content.decode("utf-8")
+                re_formula = r'<A .*?>(\w*?)</A>'
+                fires = re.findall(re_formula, list_of_state_fires, re.S | re.M)
+                fire += list(map(lambda f: (true_year, state, f), fires))
         return fire
 
-    def generate_url_from_tuple(self, fires:set, current_year:int):
-        urls = []
-        for t in fires:
-            year_of_t = "current_year" if t[0] == current_year else str(t[0])
-            urls.append("{}{}_fire_data/California/{}".format(self.baseDir, year_of_t, t[1]))
-        return urls
+    def generate_url_from_tuple(self, year_of_t, state_of_t, name_of_t, current_year:int):
+        yearstring = "current_year" if year_of_t == current_year else str(year_of_t)
+        url = f"{self.baseDir}{yearstring}_fire_data/{state_of_t}/{name_of_t}"
+        return url
 
     def crawl(self, url_to_crawl):
         """

@@ -11,7 +11,7 @@ import {SearchService} from '../../services/search/search.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
-import {Subject} from 'rxjs';
+import {of, Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
 
 
@@ -23,8 +23,6 @@ declare let L;
     styleUrls: ['./heatmap.component.css']
 })
 export class HeatmapComponent implements OnInit {
-
-    private circle;
 
     private static STATE_LEVEL_ZOOM = 8;
     private static COUNTY_LEVEL_ZOOM = 9;
@@ -39,6 +37,7 @@ export class HeatmapComponent implements OnInit {
     private pinRadius = 40000;
     // For what to present when click event happens
     private marker;
+    private timer = null;
 
 
     // Set up for a range and each smaller interval of temp to give specific color layers
@@ -191,12 +190,8 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
 
-        // this.map.on('click', event => {
-        //     this.marker = new ClickboxLayer(this.mainControl, this.mapService, this.map, event.latlng);
-        //     this.marker.addTo(this.map);
-        // });
-        this.map.on('click', this.onMapClick, this);
-
+        //this.map.on('dblclick', this.onMapClick, this);
+        this.map.on('mousedown', e => this.onMapHold(e));
 
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
@@ -251,7 +246,6 @@ export class HeatmapComponent implements OnInit {
         this.map.addLayer(this.geojsonLayer);
     };
 
-
     fireEventHandler = (data) => {
 
         const fireEventList = [];
@@ -270,7 +264,6 @@ export class HeatmapComponent implements OnInit {
         const fireEvents = L.layerGroup(fireEventList);
         this.mainControl.addOverlay(fireEvents, 'Fire event');
     };
-
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap
@@ -343,6 +336,7 @@ export class HeatmapComponent implements OnInit {
             circle.setRadius(newRadius);
         }
 
+
         function distance(center, pt) {
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
@@ -379,12 +373,12 @@ export class HeatmapComponent implements OnInit {
 
                 this.map.on('mouseup', (event) => {
                     const newRadius = distance(circle._latlng, event.latlng);
-                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-07-30T15:37:27Z', 7)
+                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-08-12T15:37:27Z', 7)
                         .subscribe(this.clickPointHandler);
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
                     setTimeout(() => {
-                        this.map.on('click', this.onMapClick, this);
+                        this.map.on('mousedown', this.onMapHold, this);
                         this.map.removeEventListener('mouseup');
                     }, 500);
                 }, this);
@@ -412,10 +406,24 @@ export class HeatmapComponent implements OnInit {
             autoClose: true,
         }).openPopup();
 
-        // Remove popup fire remove all (default is not sticky)
+
+        // this.map.on('dblclick', () => { group.remove();}, this);
+        this.map.on('mousedown', (e) => judgeDistance(e));
+
+        const that = this;
+
+        function judgeDistance(event) {
+            that.map.on('mouseup', (e) => {
+                if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
+                    group.remove();
+                }
+            });
+        }
+
         marker.getPopup().on('remove', () => {
             group.remove();
-        });
+        }); // Remove popup fire remove all (default is not sticky)
+
         // TODO: change marker from global var since it only specify one.
         this.marker = marker;
         this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
@@ -439,25 +447,38 @@ export class HeatmapComponent implements OnInit {
         const tmpValue = [];
         for (const i of data.tmp) {
             tmpTime.push(i[0]);
-            tmpValue.push(i[1] - 273.15);
-            // tmpValue.push(Number(i[1] - 273.15).toFixed(2));
+            if (i[1] === null) {
+                tmpValue.push(0);
+            } else {
+                tmpValue.push(i[1] - 273.15);
+            }
         }
 
         const soilwTime = [];
         const soilwValue = [];
-        for (const j of data.soilw) {
-            soilwTime.push(j[0]);
-            soilwValue.push(j[1]);
-            // soilwValue.push(j[1].toFixed(3));
+        for (const i of data.soilw) {
+            soilwTime.push(i[0]);
+            if (i[1] === null) {
+                soilwValue.push(0);
+            } else {
+                soilwValue.push(i[1]);
+            }
         }
 
 
-        const chartContents = '<div id="containers" style="width: 600px; height: 300px;">\n' +
+        const chartContents = '<div>' +
+            '    <button onclick="switchTweet()">Switch</button><br>' +
+            '    <div id="containers" style="width: 600px; height: 300px;">\n' +
             '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
             '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
-            '</div>';
+            '<script>' +
+            'function switchTweet() {alert("I am an alert box!");}' +
+            '</script>' +
+            '    </div>';
+
+
 
         this.marker.bindPopup(chartContents).openPopup();
         HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
@@ -472,7 +493,6 @@ export class HeatmapComponent implements OnInit {
             this.map.removeLayer(this.marker);
         });
     };
-
 
     rangeSelectHandler = (event) => {
         const inRange = (min: number, max: number, target: number) => {
@@ -545,6 +565,7 @@ export class HeatmapComponent implements OnInit {
 
         }
     };
+
     setLabelStyle = (marker) => {
         // sets the name label style
         marker.getElement().style.backgroundColor = 'transparent';
@@ -553,7 +574,6 @@ export class HeatmapComponent implements OnInit {
         marker.getElement().style.webkitTextStroke = '#ffe710';
         marker.getElement().style.webkitTextStrokeWidth = '0.5px';
     };
-
 
     resetHighlight = (event) => {
         // gets rid of the highlight when the mouse moves out of the region
@@ -571,6 +591,7 @@ export class HeatmapComponent implements OnInit {
         this.map.fitBounds(event.target.getBounds());
 
     };
+
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
         // OPTIMIZE: the get polygon center function
@@ -582,6 +603,7 @@ export class HeatmapComponent implements OnInit {
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
     };
+
     getColor = (density) => {
         // color for the boundary layers
         // TODO: remove this func
@@ -605,6 +627,7 @@ export class HeatmapComponent implements OnInit {
         }
 
     };
+
     style = (feature) => {
         // style for the boundary layers
         return {
@@ -653,6 +676,24 @@ export class HeatmapComponent implements OnInit {
             mouseout: this.resetHighlight,
             click: this.zoomToFeature
         });
+    };
+
+    onMapHold(event) {
+        const duration = 1000;
+        if (this.timer !== null) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        this.map.on('mouseup', () => {
+            clearTimeout(this.timer);
+            this.timer = null;
+        });
+
+        this.timer = setTimeout(L.Util.bind(() => {
+            of(event).subscribe((ev) => this.onMapClick(ev));
+            this.timer = null;
+        }, this), duration);
     }
 
 }

@@ -1,6 +1,5 @@
 import os
 import zipfile
-from typing import List, Tuple
 
 import numpy as np
 import rootpath
@@ -13,19 +12,17 @@ from backend.data_preparation.extractor.extractorbase import ExtractorBase
 class BILFormat:
     def __init__(self):
         self.ndarray: np.ndarray = np.zeros(0)
-        self.nrows = 0
-        self.ncols = 0
-        self.ulxmap = 0.0
-        self.ulymap = 0.0
-        self.xdim = 0.0
-        self.ydim = 0.0
-        self.nodata = -9999.0
-        self.flattened: List[Tuple[int, float]] = []
+        self.flattened: np.ndarray = np.zeros(0)
 
 
 class BILExtractor(ExtractorBase):
-    def __init__(self):
-        super().__init__()
+    # crop:
+    # begin point(191, 14)
+    # (228, 248)
+    crop_top = 191
+    crop_bottom = 419
+    crop_left = 14
+    crop_right = 262
 
     def extract(self, filepath) -> BILFormat:
         # extract files
@@ -65,11 +62,8 @@ class BILExtractor(ExtractorBase):
 
         bil = BILFormat()
 
-        # crop:
-        # begin point(191, 14)
-        # (228, 248)
-        bil.ndarray = prism_array[191:419, 14:262]
-        bil.nodata = float(hdr_dict['NODATA'])
+        bil.ndarray = prism_array[BILExtractor.crop_top:BILExtractor.crop_bottom,
+                      BILExtractor.crop_left:BILExtractor.crop_right]
         bil.flattened = prism_array.flatten()
         return bil
 
@@ -80,11 +74,6 @@ class BILExtractor(ExtractorBase):
             header_list = input_f.readlines()
         # noinspection PyTypeChecker
         return dict(item.strip().split() for item in header_list)
-
-    # @staticmethod
-    # def flatten(mat: np.ndarray) -> List[Tuple[int, float]]:
-    #     flat = mat.flatten()
-    #     return [(gid, val) for gid, val in enumerate(flat)]
 
 
 if __name__ == '__main__':

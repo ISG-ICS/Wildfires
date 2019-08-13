@@ -14,38 +14,39 @@ logger = logging.getLogger('TaskManager')
 
 
 class PRISMDumper(DumperBase):
-    def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
-        insert_sql = {
-            'ppt': '''
+    insert_sql = {
+        'ppt': '''
                 insert into prism (date, gid, ppt) values %s
                 ON CONFLICT (date, gid) DO UPDATE SET
                 ppt=EXCLUDED.ppt
             ''',
-            'tmax': '''
+        'tmax': '''
                 insert into prism (date, gid, tmax) values %s
                 ON CONFLICT (date, gid) DO UPDATE SET
                 tmax=EXCLUDED.tmax
             ''',
-            'vpdmax': '''
+        'vpdmax': '''
                 insert into prism (date, gid, vpdmax) values %s
                 ON CONFLICT (date, gid) DO UPDATE SET
                 vpdmax=EXCLUDED.vpdmax
             '''
-        }
-        insert_info = {
-            'ppt': 'insert into prism_info (date, ppt) values (%s, %s) '
-                   'on conflict(date) do update set ppt=EXCLUDED.ppt',
-            'tmax': 'insert into prism_info (date, tmax) values (%s, %s) '
-                    'on conflict(date) do update set tmax=EXCLUDED.tmax',
-            'vpdmax': 'insert into prism_info (date, vpdmax) values (%s, %s) '
-                      'on conflict(date) do update set vpdmax=EXCLUDED.vpdmax'
-        }
+    }
+    insert_info = {
+        'ppt': 'insert into prism_info (date, ppt) values (%s, %s) '
+               'on conflict(date) do update set ppt=EXCLUDED.ppt',
+        'tmax': 'insert into prism_info (date, tmax) values (%s, %s) '
+                'on conflict(date) do update set tmax=EXCLUDED.tmax',
+        'vpdmax': 'insert into prism_info (date, vpdmax) values (%s, %s) '
+                  'on conflict(date) do update set vpdmax=EXCLUDED.vpdmax'
+    }
 
+    def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
         with Connection() as conn:
             cur = conn.cursor()
-            psycopg2.extras.execute_values(cur, insert_sql[var_type], PRISMDumper.record_generator(date, _data),
+            psycopg2.extras.execute_values(cur, PRISMDumper.insert_sql[var_type],
+                                           PRISMDumper.record_generator(date, _data),
                                            template=None, page_size=10000)
-            cur.execute(insert_info[var_type], (date, 1))
+            cur.execute(PRISMDumper.insert_info[var_type], (date, 1))
             conn.commit()
             cur.close()
 

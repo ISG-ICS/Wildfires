@@ -6,9 +6,9 @@ sql_create_new_table = "CREATE TABLE IF NOT EXISTS fire_aggregated (name varchar
                        "geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, center geometry, start_time timestamp," \
                        "end_time timestamp, PRIMARY KEY (name, start_time, end_time))"
 
-sql_get_all_fire_names = "select distinct (name) from fire_info;"
+sql_get_all_fire_names = "select distinct (name) from fire_info_1;"
 
-sql_get_fire_with_name = "select * from fire_info where name = %s"
+sql_get_fire_with_name = "select * from fire_info_1 where name = %s"
 
 sql_insert_record = "INSERT INTO fire_aggregated (name, agency, if_sequence, geom_full, geom_1e4, geom_1e3, geom_1e2, center, start_time, end_time) VALUES ('{name}', '{agency}', {if_seq}, {geom_f},{geom_4}, {geom_3}, {geom_2},st_centroid({center}), '{st}', '{et}')"
 
@@ -61,7 +61,7 @@ def get_aggregated_agency(current_fire):
 def polygons_to_string(polygons):
     result ="ST_AsText(ST_Union(ARRAY["
     for p in polygons:
-        result += f"ST_GeomFromText(ST_ASTEXT('{p}')),"
+        result += f"st_makevalid(ST_GeomFromText(ST_ASTEXT('{p}'))),"
     result = result[:-1] + "]) )"
     return result
 

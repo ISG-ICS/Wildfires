@@ -11,12 +11,13 @@ class FireExtractor(ExtractorBase):
         super().__init__()
 
 
-    def extract(self, path, record, if_sequence):
+    def extract(self, path, record, if_sequence, id):
         """
         Extract useful information of a fire from a path
         :param path: str, path of the files of this fire
         :param record: str, the name of this record(stage)
         :param if_sequence: bool, if the stage belongs to a sequence of fire
+        :param id: int, id of the aggregated fire
         :return: result: dict, all values needed
         """
         # The original data is not clean, field names are different each year
@@ -81,6 +82,7 @@ class FireExtractor(ExtractorBase):
         result["geopolygon_small"] = str(self.simplify_multipolygon(geom,1.e-02))
         result["year"] = year
         result["if_sequence"] = if_sequence
+        result["id"] = id
         return result
 
     def extract_full_geom(self, shp: shapefile.Reader):

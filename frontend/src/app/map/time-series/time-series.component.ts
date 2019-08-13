@@ -1,6 +1,7 @@
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
 import * as $ from 'jquery';
 import {MapService} from '../../services/map-service/map.service';
+import {TimeService} from '../../services/time/time.service';
 import {Tweet} from '../../models/tweet.model';
 
 declare var require: any;
@@ -17,11 +18,11 @@ export class TimeSeriesComponent implements OnInit {
     private hasPlotBand = false;
     private currentDate = null;
 
-    constructor(private mapService: MapService) {
+    constructor(private mapService: MapService, private timeService: TimeService) {
     }
 
     ngOnInit() {
-        this.mapService.getFireTweetData().subscribe(this.drawTimeSeries);
+        this.mapService.getFireTweetData().subscribe(data => this.drawTimeSeries(data));
     }
 
     // Draw time series
@@ -65,30 +66,30 @@ export class TimeSeriesComponent implements OnInit {
                         const halfUnit = 86400000 / 2;
                         let dateInMs = event.xAxis[0].value - event.xAxis[0].value % halfUnit;
                         dateInMs += dateInMs % (halfUnit * 2);
-                        const dateInISO = new Date(dateInMs).toISOString();
+                        const dateSelectedInISO = new Date(dateInMs).toISOString();
                         if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - halfUnit,
                                 to: dateInMs + halfUnit,
-                                color: '#656253',
+                                color: '#d88040',
                                 id: 'plotBand'
                             });
-                            this.currentDate = dateInISO;
                             this.hasPlotBand = true;
-                        } else if (dateInISO !== this.currentDate) {
+                            this.timeService.setCurrentDate(dateSelectedInISO);
+                        } else if (this.ISOToYMD(dateSelectedInISO) !== this.ISOToYMD(this.timeService.getCurrentDate())) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - halfUnit,
                                 to: dateInMs + halfUnit,
-                                color: '#656253',
+                                color: '#d88040',
                                 id: 'plotBand'
                             });
-                            this.currentDate = dateInISO;
                             this.hasPlotBand = true;
+                            this.timeService.setCurrentDate(dateSelectedInISO);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');
-                            this.currentDate = null;
                             this.hasPlotBand = false;
+                            this.timeService.setCurrentDate(null);
                         }
                     },
                 }
@@ -110,6 +111,14 @@ export class TimeSeriesComponent implements OnInit {
             }]
 
         });
-    };
+    }
+
+    ISOToYMD(fullISOString) {
+        return fullISOString.substring(0, 10);
+    }
+
+    YMDToISO(YMD) {
+        return new Date(YMD).toISOString();
+    }
 
 }

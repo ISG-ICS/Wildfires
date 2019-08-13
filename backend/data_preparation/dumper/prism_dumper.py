@@ -1,8 +1,7 @@
 import datetime
 import logging
-from ast import literal_eval as make_tuple
-from typing import Tuple, Generator, Union, List, Dict
 
+import numpy as np
 import psycopg2.errors
 import psycopg2.extras
 import rootpath
@@ -15,62 +14,42 @@ logger = logging.getLogger('TaskManager')
 
 
 class PRISMDumper(DumperBase):
-    def insert(self, data: Dict[str, Dict[str, Dict[Tuple[float, float], float]]]):
-        list_data = self.dict2list(data)
-        print(list_data)
-        for date, long, lat, ppt, tmax, tmean, tmin in list_data:
-            Connection.sql_execute_commit(
-                f"INSERT INTO prisms values ({repr(str(datetime.datetime.strptime(date, '%Y%m%d')))},st_makepoint({long}, {lat}),{ppt},{tmax}, {tmean}, {tmin}) on conflict do nothing")
+    def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
+        insert_sql = {
+            'ppt': '''
+                insert into prism (date, gid, ppt) values %s
+                ON CONFLICT (date, gid) DO UPDATE SET
+                ppt=EXCLUDED.ppt
+            ''',
+            'tmax': '''
+                insert into prism (date, gid, tmax) values %s
+                ON CONFLICT (date, gid) DO UPDATE SET
+                tmax=EXCLUDED.tmax
+            ''',
+            'vpdmax': '''
+                insert into prism (date, gid, vpdmax) values %s
+                ON CONFLICT (date, gid) DO UPDATE SET
+                vpdmax=EXCLUDED.vpdmax
+            '''
+        }
+        insert_info = {
+            'ppt': 'insert into prism_info (date, ppt) values (%s, %s) '
+                   'on conflict(date) do update set ppt=EXCLUDED.ppt',
+            'tmax': 'insert into prism_info (date, tmax) values (%s, %s) '
+                    'on conflict(date) do update set tmax=EXCLUDED.tmax',
+            'vpdmax': 'insert into prism_info (date, vpdmax) values (%s, %s) '
+                      'on conflict(date) do update set vpdmax=EXCLUDED.vpdmax'
+        }
 
-    def dict2list(self, data) -> List[Tuple]:
-        result = list()
-        for time, time_dict in data.items():
-            for long, lat in list(time_dict.values())[0]:
-                record = [time, long, lat]
+        with Connection() as conn:
+            cur = conn.cursor()
+            psycopg2.extras.execute_values(cur, insert_sql[var_type], PRISMDumper.record_generator(date, _data),
+                                           template=None, page_size=10000)
+            cur.execute(insert_info[var_type], (date, 1))
+            conn.commit()
+            cur.close()
 
-                for param, param_dict in time_dict.items():
-                    record.append(param_dict[(long, lat)])
-
-                result.append(tuple(record))
-                print(result)
-        return result
-
-
-if __name__ == '__main__':
-    # check the gps key values
-    data = {'20190701': {
-        'ppt': {(49.9374999999997, -66.4791666666195): -9999.0, (49.895833333333, -66.4791666666195): -9999.0,
-                (49.8541666666663, -66.4791666666195): -9999.0, (49.8124999999996, -66.4791666666195): -9999.0,
-                (49.9374999999997, -66.5208333332862): -9999.0, (49.895833333333, -66.5208333332862): -9999.0,
-                (49.8541666666663, -66.5208333332862): -9999.0, (49.8124999999996, -66.5208333332862): -9999.0,
-                (49.9374999999997, -66.5624999999529): -9999.0, (49.895833333333, -66.5624999999529): -9999.0,
-                (49.8541666666663, -66.5624999999529): -9999.0, (49.8124999999996, -66.5624999999529): -9999.0,
-                (49.9374999999997, -66.6041666666196): -9999.0, (49.895833333333, -66.6041666666196): -9999.0,
-                (49.8541666666663, -66.6041666666196): -9999.0, (49.8124999999996, -66.6041666666196): -9999.0},
-        'tmax': {(49.9374999999997, -66.4791666666195): -9999.0, (49.895833333333, -66.4791666666195): -9999.0,
-                 (49.8541666666663, -66.4791666666195): -9999.0, (49.8124999999996, -66.4791666666195): -9999.0,
-                 (49.9374999999997, -66.5208333332862): -9999.0, (49.895833333333, -66.5208333332862): -9999.0,
-                 (49.8541666666663, -66.5208333332862): -9999.0, (49.8124999999996, -66.5208333332862): -9999.0,
-                 (49.9374999999997, -66.5624999999529): -9999.0, (49.895833333333, -66.5624999999529): -9999.0,
-                 (49.8541666666663, -66.5624999999529): -9999.0, (49.8124999999996, -66.5624999999529): -9999.0,
-                 (49.9374999999997, -66.6041666666196): -9999.0, (49.895833333333, -66.6041666666196): -9999.0,
-                 (49.8541666666663, -66.6041666666196): -9999.0, (49.8124999999996, -66.6041666666196): -9999.0},
-        'tmean': {(49.9374999999997, -66.4791666666195): -9999.0, (49.895833333333, -66.4791666666195): -9999.0,
-                  (49.8541666666663, -66.4791666666195): -9999.0, (49.8124999999996, -66.4791666666195): -9999.0,
-                  (49.9374999999997, -66.5208333332862): -9999.0, (49.895833333333, -66.5208333332862): -9999.0,
-                  (49.8541666666663, -66.5208333332862): -9999.0, (49.8124999999996, -66.5208333332862): -9999.0,
-                  (49.9374999999997, -66.5624999999529): -9999.0, (49.895833333333, -66.5624999999529): -9999.0,
-                  (49.8541666666663, -66.5624999999529): -9999.0, (49.8124999999996, -66.5624999999529): -9999.0,
-                  (49.9374999999997, -66.6041666666196): -9999.0, (49.895833333333, -66.6041666666196): -9999.0,
-                  (49.8541666666663, -66.6041666666196): -9999.0, (49.8124999999996, -66.6041666666196): -9999.0},
-        'tmin': {(49.9374999999997, -66.4791666666195): -9999.0, (49.895833333333, -66.4791666666195): -9999.0,
-                 (49.8541666666663, -66.4791666666195): -9999.0, (49.8124999999996, -66.4791666666195): -9999.0,
-                 (49.9374999999997, -66.5208333332862): -9999.0, (49.895833333333, -66.5208333332862): -9999.0,
-                 (49.8541666666663, -66.5208333332862): -9999.0, (49.8124999999996, -66.5208333332862): -9999.0,
-                 (49.9374999999997, -66.5624999999529): -9999.0, (49.895833333333, -66.5624999999529): -9999.0,
-                 (49.8541666666663, -66.5624999999529): -9999.0, (49.8124999999996, -66.5624999999529): -9999.0,
-                 (49.9374999999997, -66.6041666666196): -9999.0, (49.895833333333, -66.6041666666196): -9999.0,
-                 (49.8541666666663, -66.6041666666196): -9999.0, (49.8124999999996, -66.6041666666196): -9999.0}}}
-
-    dumper = PRISMDumper()
-    dump_data = dumper.insert(data)
+    @staticmethod
+    def record_generator(date: datetime.date, _data):
+        for gid, val in enumerate(_data.tolist()):
+            yield (date, gid, val)

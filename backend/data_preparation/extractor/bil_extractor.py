@@ -11,7 +11,7 @@ from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
 
 class BILFormat:
-    def __init__(self, ):
+    def __init__(self):
         self.ndarray: np.ndarray = np.zeros(0)
         self.nrows = 0
         self.ncols = 0
@@ -20,7 +20,7 @@ class BILFormat:
         self.xdim = 0.0
         self.ydim = 0.0
         self.nodata = -9999.0
-        self.flattened: List[Tuple[float, float, float]] = []
+        self.flattened: List[Tuple[int, float]] = []
 
 
 class BILExtractor(ExtractorBase):
@@ -56,10 +56,12 @@ class BILExtractor(ExtractorBase):
         # For now, only use NROWS, NCOLS, and NODATA
         # Eventually use NBANDS, BYTEORDER, LAYOUT, PIXELTYPE, NBITS
 
-        prism_array = np.fromfile(bil_path, dtype=np.float32)
+        prism_array = np.fromfile(bil_path, dtype=np.float32)  # type: np.ndarray
         prism_array = prism_array.reshape(
             int(hdr_dict['NROWS']), int(hdr_dict['NCOLS']))
-        prism_array[prism_array == float(hdr_dict['NODATA'])] = np.nan
+
+        # replace -9999 with np.nan
+        # prism_array[prism_array == float(hdr_dict['NODATA'])] = np.nan
 
         bil = BILFormat()
 
@@ -68,6 +70,7 @@ class BILExtractor(ExtractorBase):
         # (228, 248)
         bil.ndarray = prism_array[191:419, 14:262]
         bil.nodata = float(hdr_dict['NODATA'])
+        bil.flattened = prism_array.flatten()
         return bil
 
     @staticmethod
@@ -77,6 +80,11 @@ class BILExtractor(ExtractorBase):
             header_list = input_f.readlines()
         # noinspection PyTypeChecker
         return dict(item.strip().split() for item in header_list)
+
+    # @staticmethod
+    # def flatten(mat: np.ndarray) -> List[Tuple[int, float]]:
+    #     flat = mat.flatten()
+    #     return [(gid, val) for gid, val in enumerate(flat)]
 
 
 if __name__ == '__main__':

@@ -14,7 +14,8 @@ from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.extractor.bil_extractor import BILExtractor, BILFormat
 from backend.data_preparation.dumper.prism_dumper import PRISMDumper
 
-logging.getLogger('TaskManager')
+logger = logging.getLogger('TaskManager')
+
 
 
 class PRISMCrawler(CrawlerBase):
@@ -47,14 +48,14 @@ class PRISMCrawler(CrawlerBase):
             try:
                 self.ftp.retrbinary(f"RETR {filename}", self.assign_buffer)
             except error_perm as e:
-                print(e)
+                logger.info(e)
                 continue
             else:
                 self.buffer = b''.join(self.buffer)
                 with open(os.path.join(PRISM_DATA_PATH, filename), 'wb') as f:
                     f.write(self.buffer)
                 self.buffer = list()
-                print('write')
+                logger.info('write')
                 return os.path.join(PRISM_DATA_PATH, filename)
 
         # return None if not crawled
@@ -77,12 +78,12 @@ class PRISMCrawler(CrawlerBase):
         date = self.current_date - timedelta(days=1)
         while date >= end_clause:
 
-            print(f'fetch: {date}')
+            logger.info(f'fetch: {date}')
             # var_dict = dict()
             for var_idx, var in enumerate(PRISMCrawler.variables):
                 # skip if exist
                 if date in exist_dict and exist_dict[date][var_idx]:
-                    print(f'skip: {date}-{var}')
+                    logger.info(f'skip: {date}-{var}')
                     continue
 
                 saved_filepath = self.crawl(date, var)
@@ -109,6 +110,8 @@ class PRISMCrawler(CrawlerBase):
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
     crawler = PRISMCrawler()
     crawler.set_extractor(BILExtractor())
     crawler.set_dumper(PRISMDumper())

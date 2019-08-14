@@ -466,58 +466,11 @@ export class HeatmapComponent implements OnInit {
             }
         }
 
-
-        // const chartContents = '<div>' +
-        //     '    <button onclick="switchTweet()">Switch</button><br>' +
-        //     '<tab-group-basic>test</tab-group-basic>\n'+
-        //     '    <div id="containers" style="width: 600px; height: 300px;">\n' +
-        //     '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-        //     '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
-        //     '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-        //     '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
-        //     '<script>' +
-        //     'function switchTweet() {alert("I am an alert box!");}' +
-        //     '</script>' +
-        //     '<script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.12/angular-material.min.js"></script>' +
-        //     '    </div>';
-
-        // const info= document.getElementById('info');
-
-        const chartContents = '<div class="tabs">' +
-
-            '<div class="tab" id="tab-1">' +
-            '<div class="content">' +
-            '<b>Tab 1 content</b>' +
-            '</div>' +
-            '</div>' +
-
-            '<div class="tab" id="tab-2">' +
-            '<div class="content">' +
-            '<b>Tab 2 content</b>' +
-            '</div>' +
-            '</div>' +
-
-            '<div class="tab" id="tab-3">' +
-            '<div class="content">' +
-            '<b>Tab 3 content</b>' +
-            '</div>' +
-            '</div>' +
-
-            '<ul class="tabs-link">' +
-            '<li class="tab-link"> <a href="#tab-1"><span>Tab 1</span></a></li>' +
-            '<li class="tab-link"> <a href="#tab-2"><span>Tab 2</span></a></li>' +
-            '<li class="tab-link"> <a href="#tab-3"><span>Tab 3</span></a></li>' +
-            '</ul>' +
-            '</div>';
-
-
-
-        this.marker.bindPopup(chartContents).openPopup();
-
-        // HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
-        //     'Moisture', soilwValue, 'mm', 'green');
-        // HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
-        //     'Temperature', tmpValue, 'Cesius', 'red');
+        this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
+        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
+            'Moisture', soilwValue, 'mm', 'green');
+        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
+            'Temperature', tmpValue, 'Cesius', 'red');
         this.marker.getPopup().on('remove', () => {
             this.map.removeLayer(this.marker);
         });
@@ -724,5 +677,97 @@ export class HeatmapComponent implements OnInit {
             this.timer = null;
         }, this), duration);
     }
+
+    clickboxContentsToShow() {
+        const chartContents = '    <div id="containers" style="width: 600px; height: 300px;">\n' +
+            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n';
+
+
+        const clickboxContents = '<style>' +
+            `.leaflet-popup-content {
+                width: 400px;
+            }
+            .tabs {
+                position: relative;
+                min-height: 400px;
+                min-width: 320px;
+                clear: both;
+                margin: 0px 0;
+            }
+            .tab {
+                float: left;
+                display: none;
+            }
+            .tab:first-of-type {
+                display: inline-block;
+            }
+            .tabs-link {
+                position: relative;
+                top: -14px;
+                height: 20px;
+                left: -40px;
+            }
+            .tab-link {
+                background: #eee;
+                display: inline-block;
+                padding: 10px;
+                border: 1px solid #ccc;
+                margin-left: -1px;
+                position: relative;
+                list-style-type: none;
+                left: 1px;
+                top: 1px;
+                cursor: pointer;
+            }
+            .tab-link {
+                background: #f8f8f8;
+            }
+            .content {
+                background: white;
+                position: absolute;
+                top: 28px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                padding: 20px;
+                border: 1px solid #ccc;
+            }
+            .tab:target {
+                display: block;
+            }` +
+            '</style>' +
+            '<div class="tabs" >' +
+            '<div class="tab" id="tab-1" >' +
+            '<div class="content">' +
+            '<b>' +
+            chartContents +
+            '</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-2" >' +
+            '<div class="content">' +
+            '<b>I am tweets</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-3" >' +
+            '<div class="content">' +
+            '<b>else whatever</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<ul class="tabs-link">' +
+            '<li class="tab-link"> <a href="#tab-1"><span>Charts</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-2"><span>Tweets</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-3"><span>Else</span></a></li>' +
+            '</ul>' +
+            '</div>';
+        return clickboxContents;
+    }
+
 
 }

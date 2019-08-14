@@ -56,6 +56,7 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
+
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
 
@@ -466,9 +467,9 @@ export class HeatmapComponent implements OnInit {
         }
 
 
-        // const chartContents0 = '<div>' +
+        // const chartContents = '<div>' +
         //     '    <button onclick="switchTweet()">Switch</button><br>' +
-        //     '<tab-group-basic-example>test</tab-group-basic-example>\n'+
+        //     '<tab-group-basic>test</tab-group-basic>\n'+
         //     '    <div id="containers" style="width: 600px; height: 300px;">\n' +
         //     '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
         //     '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
@@ -479,7 +480,7 @@ export class HeatmapComponent implements OnInit {
         //     '</script>' +
         //     '<script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.12/angular-material.min.js"></script>' +
         //     '    </div>';
-        //
+
         // const info= document.getElementById('info');
 
         const chartContents = '<div class="tabs">' +
@@ -512,14 +513,11 @@ export class HeatmapComponent implements OnInit {
 
 
         this.marker.bindPopup(chartContents).openPopup();
-        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
-            'Moisture', soilwValue, 'mm', 'green');
-        // this.drawChart('container2',tmpTime, [1,2,3,4,5,6,7], 'fire',tmpValue, 'Cesius');
-        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
-            'Temperature', tmpValue, 'Cesius', 'red');
-        // this.drawChart('container4',tmpTime, [1,2,3,4,5,6,7], 'fire',soilwValue, 'mm');
 
-        // drawChart([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7]);
+        // HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
+        //     'Moisture', soilwValue, 'mm', 'green');
+        // HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
+        //     'Temperature', tmpValue, 'Cesius', 'red');
         this.marker.getPopup().on('remove', () => {
             this.map.removeLayer(this.marker);
         });

@@ -1,11 +1,12 @@
 import {Component, OnInit} from '@angular/core';
 
 @Component({
-    selector: 'tab-group-basic-example',
+    selector: 'tab-group-basic',
     templateUrl: 'tab.component.html',
     styleUrls: ['tab.component.css']
 })
-export class TabGroupBasicExample implements OnInit {
+export class TabGroupComponent implements OnInit {
+    public link: string;
     constructor() {
     }
 

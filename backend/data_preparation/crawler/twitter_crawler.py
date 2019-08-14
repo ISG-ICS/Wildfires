@@ -64,14 +64,12 @@ class TweetCrawler(CrawlerBase):
 
     def crawl(self, keywords: List, batch_number: int, fetch_from_db: bool) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
-        logger.info("TOTAL CRAWLED COUNT: " + str(self.total_crawled_count))
-        self.crawled_id_set = self._crawl_tweet_ids()
-        logger.info("crawled: " + str(len(self.crawled_id_set)))
+
         if not fetch_from_db:
             # crawl status ids
-            logger.info(f"TOTAL CRAWLED COUNT {self.total_crawled_count}")
+            logger.info(f"Online Mode: Total crawled count {self.total_crawled_count}")
             self.crawled_id_set = self._crawl_tweet_ids()
-            logger.info(f"crawled {len(self.crawled_id_set)}")
+            logger.info(f"Online Mode: crawled {len(self.crawled_id_set)}")
 
             while len(self.crawled_id_set) < batch_number:
                 # loops until the number of id collected is greater than the batch number
@@ -79,14 +77,15 @@ class TweetCrawler(CrawlerBase):
                 time.sleep(10)
                 self.crawled_id_set.update(self._crawl_tweet_ids())
                 if len(self.crawled_id_set) > current_count:
-                    logger.info(f"crawled: {len(self.crawled_id_set)}")
+                    logger.info(f"Online Mode: crawled: {len(self.crawled_id_set)}")
 
             # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
             ids = list(self.crawled_id_set)
         else:
             # reprocess the crawled status ids that are stored in db
             ids = next(self.id_generator)
-            logger.info(f'ids taken from db length {len(ids)}')
+            logger.info(f'DB Mode: ids taken from db length {len(ids)}')
+            logger.info(f'DB Mode: Total crawled count {self.total_crawled_count}')
         try:
             self.data = self.api.GetStatuses(ids)
             # reset the set to empty so that the id will not accumulate

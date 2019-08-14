@@ -47,7 +47,8 @@ class DataFromPRISM(Runnable):
                 saved_filepath = self.crawler.crawl(date, var)
                 if saved_filepath:
                     bil = self.extractor.extract(saved_filepath)  # type: BILFormat
-                    self.dumper.insert(date, bil.flattened, var)
+                    if bil:
+                        self.dumper.insert(date, bil.flattened, var)
 
                     # clean up
                     os.remove(saved_filepath)

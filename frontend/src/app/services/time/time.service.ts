@@ -7,7 +7,7 @@ import {Injectable} from '@angular/core';
 })
 export class TimeService {
     // "2018-04-23T10:26:00.996Z" => "2018-04-23"
-    private currentDateInISOString = null;
+    private currentDateInYMD = null;
     private startDate;
     private rangeStartDate;
     private rangeEndDate;
@@ -15,12 +15,21 @@ export class TimeService {
     constructor() {
     }
 
-    setCurrentDate(dateInISOString) {
-        this.currentDateInISOString = dateInISOString;
+    setCurrentDate(dateInYMD) {
+        this.currentDateInYMD = dateInYMD;
     }
 
     getCurrentDate() {
-        return this.currentDateInISOString !== null ? this.currentDateInISOString : new Date().toISOString();
+        return this.currentDateInYMD !== null ? this.currentDateInYMD : new Date().toISOString().substring(0, 10);
+    }
+
+    setRangeDate(startInMs, endInMs) {
+        this.rangeStartDate = new Date(startInMs).toISOString().substring(0, 10);
+        this.rangeEndDate = new Date(endInMs).toISOString().substring(0, 10);
+    }
+
+    getRangeDate() {
+        return [this.rangeStartDate, this.rangeEndDate];
     }
 }
 

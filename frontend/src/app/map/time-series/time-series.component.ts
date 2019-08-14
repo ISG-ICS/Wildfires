@@ -14,6 +14,7 @@ import * as Highcharts from 'highcharts/highstock';
 export class TimeSeriesComponent implements OnInit {
 
     @Output() timeRangeChange = new EventEmitter();
+    private halfUnit = 86400000 / 2;
     private hasPlotBand = false;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
@@ -47,32 +48,35 @@ export class TimeSeriesComponent implements OnInit {
                 backgroundColor: null,
                 zoomType: 'x',
                 events: {
-                    click: (event) => {
+                    selection: event => {
+                        this.timeService.setRangeDate(event.xAxis[0].min + this.halfUnit, event.xAxis[0].max);
+                        return true;
+                    },
+                    click: event => {
                         // @ts-ignore
                         const clickValue = event.xAxis[0].value;
-                        const halfUnit = 86400000 / 2;
-                        let dateInMs = clickValue - clickValue % halfUnit;
-                        dateInMs += dateInMs % (halfUnit * 2);
-                        const dateSelectedInISO = new Date(dateInMs).toISOString();
+                        let dateInMs = clickValue - clickValue % this.halfUnit;
+                        dateInMs += dateInMs % (this.halfUnit * 2);
+                        const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
                         if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - halfUnit,
-                                to: dateInMs + halfUnit,
+                                from: dateInMs - this.halfUnit,
+                                to: dateInMs + this.halfUnit,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
                             this.hasPlotBand = true;
-                            this.timeService.setCurrentDate(dateSelectedInISO);
-                        } else if (this.ISOToYMD(dateSelectedInISO) !== this.ISOToYMD(this.timeService.getCurrentDate())) {
+                            this.timeService.setCurrentDate(dateSelectedInYMD);
+                        } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - halfUnit,
-                                to: dateInMs + halfUnit,
+                                from: dateInMs - this.halfUnit,
+                                to: dateInMs + this.halfUnit,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
                             this.hasPlotBand = true;
-                            this.timeService.setCurrentDate(dateSelectedInISO);
+                            this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             this.hasPlotBand = false;
@@ -82,7 +86,7 @@ export class TimeSeriesComponent implements OnInit {
                 }
             },
             navigator: {
-                height: 20
+                height: 40
             },
             title: {
                 text: '',
@@ -101,16 +105,21 @@ export class TimeSeriesComponent implements OnInit {
                 crosshair: true,
                 range: 6 * 30 * 24 * 3600 * 1000, // six months
             },
-
+            scrollbar: {
+                barBackgroundColor: 'gray',
+                barBorderRadius: 6,
+                barBorderWidth: 0,
+                buttonBackgroundColor: 'gray',
+                buttonBorderWidth: 0,
+                buttonArrowColor: 'silver',
+                buttonBorderRadius: 6,
+                rifleColor: 'silver',
+                trackBackgroundColor: 'rgba(251,254,255,0.19)',
+                trackBorderWidth: 1,
+                trackBorderColor: 'silver',
+                trackBorderRadius: 6
+            },
         });
-    }
-
-    ISOToYMD(fullISOString) {
-        return fullISOString.substring(0, 10);
-    }
-
-    YMDToISO(YMD) {
-        return new Date(YMD).toISOString();
     }
 
 }

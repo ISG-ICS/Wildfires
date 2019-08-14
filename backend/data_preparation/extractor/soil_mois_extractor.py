@@ -14,9 +14,6 @@ from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from paths import SOIL_MOIS_DATA_DIR
 
 
-# os.system('gdalwarp -te -124.482016861 32.528836736 -114.148683528 42.0288367361 temp1.tif temp2.tif')
-# os.system('gdalwarp -dstnodata -9999 -cutline CA_counties_TIGER2016_WGS.shp temp2.tif newdata.tif')
-
 class SoilMoisExtractor(ExtractorBase):
     def __init__(self):
         super().__init__()

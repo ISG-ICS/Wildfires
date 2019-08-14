@@ -20,7 +20,6 @@ class SoilMoisDumper(DumperBase):
 
         with Connection() as conn:
             cur = conn.cursor()
-
             for i in range(len(weekly_soil_mois)):
                 for j in range(len(weekly_soil_mois[i])):
 

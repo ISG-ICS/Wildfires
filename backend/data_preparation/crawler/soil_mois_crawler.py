@@ -8,19 +8,19 @@ import rootpath
 
 rootpath.append()
 from backend.data_preparation.connection import Connection
-from paths import GRACE_DATA_DIR
+from paths import SOIL_MOIS_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 
 
-class GraceCrawler(CrawlerBase):
+class SoilMoisCrawler(CrawlerBase):
     def __init__(self):
         super().__init__()
         self.baseDir = 'https://nasagrace.unl.edu/GRACE/'
-        self.select_exists = 'select datetime from env_soil_moisture'
+        self.select_exists = 'select datetime from env_soil_moisture group by datetime having count(*) = 810810'
 
-    def start(self, end_clause=None):
+    def start(self):
         # get data from nasagrace
         begin_time = (datetime.today() + timedelta(days=7)).strftime('%Y%m%d')  # remove the hours and minutes
         begin_time = datetime.strptime(begin_time, '%Y%m%d')  # put it back into a datetime object
@@ -44,24 +44,24 @@ class GraceCrawler(CrawlerBase):
                     self.crawl(time_t)
 
     def crawl(self, date_stamp):
-        date_stamp = date_stamp.strftime('%Y%m%d')
-        file_url = self.baseDir + date_stamp + '/sfsm_perc_0125deg_US_' + date_stamp + '.tif'
+        formatted_date_stamp = date_stamp.strftime('%Y%m%d')
+        file_url = self.baseDir + formatted_date_stamp + '/sfsm_perc_0125deg_US_' + formatted_date_stamp + '.tif'
         try:
             response = requests.get(url=file_url)
             if response.status_code != 200:
-                logger.error('file: ' + date_stamp + ' not found')
+                logger.error('file: ' + formatted_date_stamp + ' not found')
                 return None
             else:
                 # create dirs
-                if not os.path.isdir(GRACE_DATA_DIR):
-                    os.makedirs(GRACE_DATA_DIR)
+                if not os.path.isdir(SOIL_MOIS_DATA_DIR):
+                    os.makedirs(SOIL_MOIS_DATA_DIR)
                 # write file
-                with open(os.path.join(GRACE_DATA_DIR, date_stamp + '.tif'), 'wb') as f:
+                with open(os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif'), 'wb') as f:
                     f.write(response.content)
-                    logger.info('saved file: ' + date_stamp)
+                    logger.info('saved file: ' + formatted_date_stamp)
         except IOError:
             logger.error('error: ' + traceback.format_exc())
-        return date_stamp
+        return date_stamp.strftime('%Y-%m-%d')
 
     def get_exists(self):
         """get how far we went last time"""
@@ -75,5 +75,5 @@ class GraceCrawler(CrawlerBase):
 
 if __name__ == '__main__':
     while True:
-        crawler = GraceCrawler()
+        crawler = SoilMoisCrawler()
         crawler.start()

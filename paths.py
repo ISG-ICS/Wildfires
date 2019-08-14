@@ -30,7 +30,9 @@ TEST_DATA_PATH = os.path.join(ROOT_DIR, 'data/test')
 
 GRIB2_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grib-data')
 
-GRACE_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grace-data')
+SOIL_MOIS_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'soil-mois-data')
+
+US_SHAPE_PATH = os.path.join(ROOT_DIR, 'data', 'US-continental', 'US_continental.shp')
 
 USGS_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'usgs')
 

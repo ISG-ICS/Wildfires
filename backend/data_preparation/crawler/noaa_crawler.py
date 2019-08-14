@@ -9,11 +9,13 @@ from datetime import datetime, timedelta, timezone
 import requests
 import rootpath
 
+from backend.data_preparation.dumper.dumperbase import DumperException
+
 rootpath.append()
 
 from paths import GRIB2_DATA_DIR
 from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase, DumperException
+from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.dumper.noaa_dumper import NOAADumper
 
 logger = logging.getLogger('TaskManager')

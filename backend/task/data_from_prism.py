@@ -38,7 +38,7 @@ class DataFromPRISM(Runnable):
         while date >= end_clause:
 
             logger.info(f'fetch: {date}')
-            for var_idx, var in enumerate(PRISMCrawler.variables):
+            for var_idx, var in enumerate(PRISMCrawler.VARIABLES):
                 # skip if exist
                 if date in exist_dict and exist_dict[date][var_idx]:
                     logger.info(f'skip: {date}-{var}')
@@ -46,7 +46,6 @@ class DataFromPRISM(Runnable):
 
                 saved_filepath = self.crawler.crawl(date, var)
                 if saved_filepath:
-                    # noinspection PyTypeChecker
                     bil = self.extractor.extract(saved_filepath)  # type: BILFormat
                     self.dumper.insert(date, bil.flattened, var)
 

@@ -14,7 +14,7 @@ logger = logging.getLogger('TaskManager')
 
 
 class PRISMDumper(DumperBase):
-    insert_sql = {
+    INSERT_SQLS = {
         'ppt': '''
                 insert into prism (date, gid, ppt) values %s
                 ON CONFLICT (date, gid) DO UPDATE SET
@@ -31,7 +31,7 @@ class PRISMDumper(DumperBase):
                 vpdmax=EXCLUDED.vpdmax
             '''
     }
-    insert_info = {
+    INSERT_INFOS = {
         'ppt': 'insert into prism_info (date, ppt) values (%s, %s) '
                'on conflict(date) do update set ppt=EXCLUDED.ppt',
         'tmax': 'insert into prism_info (date, tmax) values (%s, %s) '
@@ -43,10 +43,10 @@ class PRISMDumper(DumperBase):
     def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
         with Connection() as conn:
             cur = conn.cursor()
-            psycopg2.extras.execute_values(cur, PRISMDumper.insert_sql[var_type],
+            psycopg2.extras.execute_values(cur, PRISMDumper.INSERT_SQLS[var_type],
                                            PRISMDumper.record_generator(date, _data),
                                            template=None, page_size=10000)
-            cur.execute(PRISMDumper.insert_info[var_type], (date, 1))
+            cur.execute(PRISMDumper.INSERT_INFOS[var_type], (date, 1))
             conn.commit()
             cur.close()
 

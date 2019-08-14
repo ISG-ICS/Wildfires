@@ -11,18 +11,18 @@ from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
 class BILFormat:
     def __init__(self):
-        self.ndarray: np.ndarray = np.zeros(0)
-        self.flattened: np.ndarray = np.zeros(0)
+        self.ndarray: np.ndarray
+        self.flattened: np.ndarray
 
 
 class BILExtractor(ExtractorBase):
     # crop:
     # begin point(191, 14)
     # (228, 248)
-    crop_top = 191
-    crop_bottom = 419
-    crop_left = 14
-    crop_right = 262
+    CROP_TOP = 191
+    CROP_BOTTOM = 419
+    CROP_LEFT = 14
+    CROP_RIGHT = 262
 
     def extract(self, filepath) -> BILFormat:
         # extract files
@@ -43,6 +43,7 @@ class BILExtractor(ExtractorBase):
 
         return bil
 
+    # TODO: export numpy array file
     def export(self, file_type: str, file_name: str) -> None:
         pass
 
@@ -61,14 +62,13 @@ class BILExtractor(ExtractorBase):
         # prism_array[prism_array == float(hdr_dict['NODATA'])] = np.nan
 
         bil = BILFormat()
-
-        bil.ndarray = prism_array[BILExtractor.crop_top:BILExtractor.crop_bottom,
-                      BILExtractor.crop_left:BILExtractor.crop_right]
+        bil.ndarray = prism_array[BILExtractor.CROP_TOP:BILExtractor.CROP_BOTTOM,
+                      BILExtractor.CROP_LEFT:BILExtractor.CROP_RIGHT]
         bil.flattened = prism_array.flatten()
         return bil
 
     @staticmethod
-    def read_prism_hdr(hdr_path):
+    def read_prism_hdr(hdr_path: str):
         """Read an ESRI BIL HDR file"""
         with open(hdr_path, 'r') as input_f:
             header_list = input_f.readlines()

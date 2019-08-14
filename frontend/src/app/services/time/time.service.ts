@@ -8,6 +8,9 @@ import {Injectable} from '@angular/core';
 export class TimeService {
     // "2018-04-23T10:26:00.996Z" => "2018-04-23"
     private currentDateInISOString = null;
+    private startDate;
+    private rangeStartDate;
+    private rangeEndDate;
 
     constructor() {
     }

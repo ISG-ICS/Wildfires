@@ -1,6 +1,6 @@
 #timebar-container{
     z-index: 1000;
     position: absolute;
-    top:60%;
+    bottom:5%;
     left:35%;
 }

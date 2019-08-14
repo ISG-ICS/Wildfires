@@ -4,8 +4,7 @@ import {MapService} from '../../services/map-service/map.service';
 import {TimeService} from '../../services/time/time.service';
 import {Tweet} from '../../models/tweet.model';
 
-declare var require: any;
-const Highcharts = require('highcharts');
+import * as Highcharts from 'highcharts/highstock';
 
 @Component({
     selector: 'app-time-series',
@@ -16,7 +15,6 @@ export class TimeSeriesComponent implements OnInit {
 
     @Output() timeRangeChange = new EventEmitter();
     private hasPlotBand = false;
-    private currentDate = null;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -43,36 +41,25 @@ export class TimeSeriesComponent implements OnInit {
             chartData.push([new Date(key).getTime(), dailyCount[key]]);
         });
 
-        const timeseries = Highcharts.chart('timebar-container', {
+        const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
-                type: 'line',
-                zoomType: 'x',
                 height: 200,
                 backgroundColor: null,
+                zoomType: 'x',
                 events: {
-                    selection(event) {
-                        let timebarStart = 1;
-                        let timebarEnd = 0;
-                        if (event.hasOwnProperty('xAxis')) {
-                            timebarStart = event.xAxis[0].min;
-                            timebarEnd = event.xAxis[0].max;
-                        } else {
-                            timebarStart = event.target.axes[0].dataMin;
-                            timebarEnd = event.target.axes[0].dataMax;
-                        }
-                        $(window).trigger('timeRangeChange', {timebarStart, timebarEnd});
-                    },
                     click: (event) => {
+                        // @ts-ignore
+                        const clickValue = event.xAxis[0].value;
                         const halfUnit = 86400000 / 2;
-                        let dateInMs = event.xAxis[0].value - event.xAxis[0].value % halfUnit;
+                        let dateInMs = clickValue - clickValue % halfUnit;
                         dateInMs += dateInMs % (halfUnit * 2);
                         const dateSelectedInISO = new Date(dateInMs).toISOString();
                         if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - halfUnit,
                                 to: dateInMs + halfUnit,
-                                color: '#d88040',
-                                id: 'plotBand'
+                                color: 'rgba(216,128,64,0.25)',
+                                id: 'plotBand',
                             });
                             this.hasPlotBand = true;
                             this.timeService.setCurrentDate(dateSelectedInISO);
@@ -81,7 +68,7 @@ export class TimeSeriesComponent implements OnInit {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - halfUnit,
                                 to: dateInMs + halfUnit,
-                                color: '#d88040',
+                                color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
                             this.hasPlotBand = true;
@@ -94,21 +81,26 @@ export class TimeSeriesComponent implements OnInit {
                     },
                 }
             },
+            navigator: {
+                height: 20
+            },
             title: {
-                text: 'Wildfire',
-                style: {
-                    color: '#e25822'
-                }
+                text: '',
+            },
+            series: [{
+                type: 'line',
+                data: chartData,
+                color: '#e25822',
+                name: '<span style=\'color:#e25822\'>Wildfire Tweet</span>'
+            }],
+            rangeSelector: {
+                enabled: false
             },
             xAxis: {
                 type: 'datetime',
                 crosshair: true,
+                range: 6 * 30 * 24 * 3600 * 1000, // six months
             },
-            series: [{
-                data: chartData,
-                color: '#e25822',
-                name: '<span style=\'color:#e25822\'>Wildfire Tweet</span>'
-            }]
 
         });
     }

@@ -33,7 +33,7 @@ class TweetDumper(DumperBase):
                                 data['favourites_count'], data['friends_count'], data['user_id'], data['user_location'],
                                 data['statuses_count'])]
             self.inserted_count += 1
-        logger.info(f'data inserted into records {self.inserted_count}')
+
         try:
             with Connection() as connection:
                 cur = connection.cursor()
@@ -53,7 +53,8 @@ class TweetDumper(DumperBase):
                 cur.close()
         except Exception as err:
             logger.error(str(err) + traceback.format_exc())
-
+        else:
+            logger.info(f'data inserted into records {self.inserted_count}')
         # construct sql statement to insert data into the locations db table
         tuples_locations: list[tuple] = []
         for data in data_list:
@@ -61,7 +62,7 @@ class TweetDumper(DumperBase):
                 tuples_locations += [(data['id'], data['top_left'][1], data['top_left'][0], data['bottom_right'][1],
                                       data['bottom_right'][0])]
                 self.inserted_locations_count += 1
-        logger.info(f'data inserted into locations {self.inserted_locations_count}')
+
         try:
             with Connection() as connection:
                 cur = connection.cursor()
@@ -74,6 +75,8 @@ class TweetDumper(DumperBase):
                 cur.close()
         except Exception as err:
             logger.error(str(err) + traceback.format_exc())
+        else:
+            logger.info(f'data inserted into locations {self.inserted_locations_count}')
 
     def report_status(self):
         return self.inserted_count, self.inserted_locations_count

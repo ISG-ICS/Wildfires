@@ -23,8 +23,13 @@ class DataFromPRISM(Runnable):
         self.dumper = PRISMDumper()
         self.buffer: List[bytes] = list()
 
-    def run(self, end_clause: datetime.date = None):
+    def run(self, end_clause: int = 7):
+        """
+            end_clause: number of days we want to crawl
+            default = 7
+        """
         current_date = datetime.now(timezone.utc).date()
+        end_date = current_date - timedelta(days=end_clause)
         with Connection() as conn:
             cur = conn.cursor()
             cur.execute('select date, ppt, tmax, vpdmax from prism_info')
@@ -35,7 +40,7 @@ class DataFromPRISM(Runnable):
                 exist_dict[date] = (ppt, tmax, vpdmax)
 
         date = current_date - timedelta(days=1)
-        while date >= end_clause:
+        while date >= end_date:
 
             logger.info(f'fetch: {date}')
             for var_idx, var in enumerate(PRISMCrawler.VARIABLES):
@@ -61,5 +66,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     while True:
-        DataFromPRISM().run(datetime.now().date() - timedelta(days=7))
+        DataFromPRISM().run(2)
+        logger.info('[PRISM][finished a round. Sleeping]')
         time.sleep(3600 * 6)

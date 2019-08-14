@@ -466,17 +466,48 @@ export class HeatmapComponent implements OnInit {
         }
 
 
-        const chartContents = '<div>' +
-            '    <button onclick="switchTweet()">Switch</button><br>' +
-            '    <div id="containers" style="width: 600px; height: 300px;">\n' +
-            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
-            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
-            '<script>' +
-            'function switchTweet() {alert("I am an alert box!");}' +
-            '</script>' +
-            '    </div>';
+        // const chartContents0 = '<div>' +
+        //     '    <button onclick="switchTweet()">Switch</button><br>' +
+        //     '<tab-group-basic-example>test</tab-group-basic-example>\n'+
+        //     '    <div id="containers" style="width: 600px; height: 300px;">\n' +
+        //     '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+        //     '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
+        //     '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
+        //     '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
+        //     '<script>' +
+        //     'function switchTweet() {alert("I am an alert box!");}' +
+        //     '</script>' +
+        //     '<script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.12/angular-material.min.js"></script>' +
+        //     '    </div>';
+        //
+        // const info= document.getElementById('info');
+
+        const chartContents = '<div class="tabs">' +
+
+            '<div class="tab" id="tab-1">' +
+            '<div class="content">' +
+            '<b>Tab 1 content</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-2">' +
+            '<div class="content">' +
+            '<b>Tab 2 content</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-3">' +
+            '<div class="content">' +
+            '<b>Tab 3 content</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<ul class="tabs-link">' +
+            '<li class="tab-link"> <a href="#tab-1"><span>Tab 1</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-2"><span>Tab 2</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-3"><span>Tab 3</span></a></li>' +
+            '</ul>' +
+            '</div>';
 
 
 

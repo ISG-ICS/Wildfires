@@ -16,6 +16,11 @@ export class MapService {
 
     // Declare data events for components to action
     temperatureChangeEvent = new EventEmitter();
+    searchMarkerLoaded = new EventEmitter();
+    hoverMarkerLoaded = new EventEmitter();
+    markerRemove = new EventEmitter();
+    searchNameLoaded = new EventEmitter();
+    sendFireToFront = new EventEmitter();
 
     constructor(private http: HttpClient) {
     }

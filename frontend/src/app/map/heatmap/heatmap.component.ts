@@ -1,5 +1,3 @@
-import {Component, OnInit} from '@angular/core';
-import 'leaflet/dist/leaflet.css';
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
@@ -12,8 +10,10 @@ import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
 import {of, Subject} from 'rxjs';
-import {Boundary} from '../../models/boundary.model';
-import {FireRegionLayer} from "../layers/fire.region.layer";
+import {FireRegionLayer} from '../layers/fire.region.layer';
+import {LocationBoundaryLayer} from '../layers/location.boundary.layer';
+import {LocationMarkerLayer} from '../layers/location.marker';
+import {Component, OnInit} from '@angular/core';
 
 
 declare let L;
@@ -27,6 +27,7 @@ export class HeatmapComponent implements OnInit {
 
     private static STATE_LEVEL_ZOOM = 8;
     private static COUNTY_LEVEL_ZOOM = 9;
+    private locationBoundaryLayer;
     private mainControl;
     private map;
     private theSearchMarker;
@@ -36,6 +37,12 @@ export class HeatmapComponent implements OnInit {
     private windLayer;
     private fireEventLayer;
     private fireRegionLayer;
+    private locationMarkerLayer;
+
+    constructor(private mapService: MapService, private searchService: SearchService) {
+    }
+
+
     private pinRadius = 40000;
     // For what to present when click event happens
     private marker = null;
@@ -166,7 +173,7 @@ export class HeatmapComponent implements OnInit {
         });
 
         // get boundary on init
-        this.getBoundary();
+        // this.getBoundary();
 
         // Get temperature data from service
         const tempSubject = new Subject();
@@ -182,6 +189,9 @@ export class HeatmapComponent implements OnInit {
 
         this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map);
 
+        this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
+
+        this.locationMarkerLayer = new LocationMarkerLayer(this.mainControl, this.mapService, this.map);
         // Get wind events data from service
         this.windLayer = new WindLayer(this.mainControl, this.mapService);
 
@@ -196,62 +206,11 @@ export class HeatmapComponent implements OnInit {
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
-        this.map.on('zoomend, moveend', this.getBoundary);
-
 
         this.map.on('mousedown', e => this.onMapHold(e));
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
-
-    getBoundary = () => {
-        // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
-        const zoom = this.map.getZoom();
-        const bound = this.map.getBounds();
-        const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
-        const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
-        // tslint:disable-next-line:one-variable-per-declaration
-        let showCityLevel, showStateLevel, showCountyLevel;
-
-        // the boundary display with zoom levels is defined arbitrarily
-        if (zoom < HeatmapComponent.STATE_LEVEL_ZOOM) {
-            showCityLevel = false;
-            showCountyLevel = false;
-            showStateLevel = true;
-        } else if (zoom < HeatmapComponent.COUNTY_LEVEL_ZOOM) {
-            showCityLevel = false;
-            showCountyLevel = true;
-            showStateLevel = true;
-        } else {
-            showCityLevel = true;
-            showCountyLevel = true;
-            showStateLevel = true;
-        }
-
-
-        this.mapService.getBoundaryData(showStateLevel, showCountyLevel, showCityLevel, boundNE, boundSW)
-            .subscribe(this.getBoundaryScreenDataHandler);
-    };
-
-    getBoundaryScreenDataHandler = (data: Boundary) => {
-        // adds boundary layer onto the map
-        if (!this.map.hasLayer(this.geojsonLayer) && this.geojsonLayer) {
-            return;
-        }
-
-        // remove previous overlay
-        if (this.geojsonLayer) {
-            this.map.removeLayer(this.geojsonLayer);
-            this.mainControl.removeLayer(this.geojsonLayer);
-        }
-        this.geojsonLayer = L.geoJson(data, {
-            style: this.style,
-            onEachFeature: this.onEachFeature
-        });
-
-        this.mainControl.addOverlay(this.geojsonLayer, 'Boundary');
-        this.map.addLayer(this.geojsonLayer);
-    };
 
 
     // fireEventHandler = (data) => {
@@ -433,7 +392,6 @@ export class HeatmapComponent implements OnInit {
     }
 
 
-
     clickPointHandler = (data) => {
         console.log(data);
 
@@ -552,9 +510,11 @@ export class HeatmapComponent implements OnInit {
         }
     };
 
+
     boundaryDataHandler = ([[data], value]) => {
-        console.log(data);
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
+        // not plotting anything, only zooming in
+        console.log(data);
         const listWithFixedLL = [];
         if (data) {
             // list will be converted because of the lat and lon are misplaced
@@ -563,49 +523,11 @@ export class HeatmapComponent implements OnInit {
                 listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
             }
             this.map.fitBounds(listWithFixedLL); // fits map according to the given fixed boundary list
-
-            if (this.theSearchMarker) {
-                // removes previous marker
-                this.map.removeControl(this.theSearchMarker);
-            }
-
-            // TODO: separate a component for name label
-            // creates the name label
-            const divIcon = L.divIcon({
-                html: '<span style=\'color:#ffffff;font-size:18px;\' id=\'userInput\'>' + value + '</span>',
-                iconSize: [this.map.getZoom(), this.map.getZoom()],
-            });
-            const centerLatlng = this.getPolygonCenter(listWithFixedLL);
-            this.theSearchMarker = L.marker(new L.LatLng(centerLatlng[0], centerLatlng[1]), {icon: divIcon}).addTo(this.map);
-            this.setLabelStyle(this.theSearchMarker); // sets the label style
+            const centerLatLng = this.getPolygonCenter(listWithFixedLL);
+            this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);
+            // sends the center of the polygon to the location.boundary layer
 
         }
-    };
-
-    setLabelStyle = (marker) => {
-        // sets the name label style
-        marker.getElement().style.backgroundColor = 'transparent';
-        marker.getElement().style.border = 'transparent';
-        marker.getElement().style.fontFamily = 'monospace';
-        marker.getElement().style.webkitTextStroke = '#ffe710';
-        marker.getElement().style.webkitTextStrokeWidth = '0.5px';
-    };
-
-    resetHighlight = (event) => {
-        // gets rid of the highlight when the mouse moves out of the region
-        if (this.theHighlightMarker) {
-            this.map.removeControl(this.theHighlightMarker);
-        }
-        if (this.theSearchMarker) {
-            this.map.removeControl(this.theSearchMarker);
-        }
-        this.geojsonLayer.resetStyle(event.target);
-    };
-
-    zoomToFeature = (event) => {
-        // zooms to a region when the region is clicked
-        this.map.fitBounds(event.target.getBounds());
-
     };
 
     getPolygonCenter = (coordinateArr) => {
@@ -620,105 +542,12 @@ export class HeatmapComponent implements OnInit {
         return [(minX + maxX) / 2, (minY + maxY) / 2];
     };
 
-    getColor = (density) => {
-        // color for the boundary layers
-        // TODO: remove this func
-        switch (true) {
-            case (density > 1000):
-                return '#802403';
-            case (density > 500):
-                return '#BD0026';
-            case (density > 200):
-                return '#E31A1C';
-            case (density > 100):
-                return '#FC4E2A';
-            case (density > 50):
-                return '#FD8D3C';
-            case (density > 20):
-                return '#FEB24C';
-            case (density > 10):
-                return '#FED976';
-            default:
-                return '#FFEDA0';
-        }
-
-    };
-
-    style = (feature) => {
-        // style for the boundary layers
-        return {
-            fillColor: this.getColor(feature.properties.density),
-            weight: 2,
-            opacity: 0.8,
-            color: 'white',
-            dashArray: '3',
-            fillOpacity: 0.3
-        };
-    };
-
-    highlightFeature = (event) => {
-        // highlights the region when the mouse moves over the region
-        const layer = event.target;
-        layer.setStyle({
-            weight: 5,
-            color: '#e3d926',
-            dashArray: '',
-            fillOpacity: 0.7
-        });
-        // shows the name label when the area is highlighted
-        const divIcon = L.divIcon({
-            html: '<span style=\'color:#ffffff;font-size: 18px;\'>' + layer.feature.properties.name + '</span>',
-            iconSize: [this.map.getZoom(), this.map.getZoom()],
-        });
-        const centerLatLng = event.target.getCenter();
-        if (this.theSearchMarker) {
-            this.map.removeControl(this.theSearchMarker);
-        }
-        if (this.theHighlightMarker) {
-            this.map.removeControl(this.theHighlightMarker);
-        }
-        this.theHighlightMarker = L.marker(new L.LatLng(centerLatLng.lat, centerLatLng.lng), {icon: divIcon})
-            .addTo(this.map);
-        this.theSearchMarker = L.marker(new L.latLng([this.map.getBounds()
-            ._northEast.lat - 15, this.map.getBounds()._northEast.lng - 60]), {icon: divIcon}).addTo(this.map);
-        this.setLabelStyle(this.theHighlightMarker);
-        this.setLabelStyle(this.theSearchMarker);
-    };
-
-    onEachFeature = (feature, layer) => {
-        // controls the interaction between the mouse and the map
-        layer.on({
-            mouseover: this.highlightFeature,
-            mouseout: this.resetHighlight,
-            click: this.zoomToFeature
-        });
-    };
-
-    onMapHold(event) {
-        const duration = 1000;
-        if (this.timer !== null) {
-            clearTimeout(this.timer);
-            this.timer = null;
-        }
-
-        this.map.on('mouseup', () => {
-            clearTimeout(this.timer);
-            this.timer = null;
-        });
-
-        this.timer = setTimeout(L.Util.bind(() => {
-            of(event).subscribe((ev) => this.onMapClick(ev));
-            this.timer = null;
-        }, this), duration);
-    }
 
     clickboxContentsToShow() {
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
             '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
-
-
 
 
         const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +

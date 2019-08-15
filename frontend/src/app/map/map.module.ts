@@ -6,21 +6,14 @@ import {SidebarComponent} from './sidebar/sidebar.component';
 import {TimeSeriesComponent} from './time-series/time-series.component';
 import {TabGroupComponent} from './tab/tab.component';
 import {TemperatureRangeSliderComponent} from './sidebar/temperature-range-slider/temperature-range-slider.component';
-import {SearchComponent} from "./search-bar/search.component";
-import {MatAutocompleteModule, MatFormFieldModule, MatInputModule, MatTabsModule} from "@angular/material";
+import {SearchComponent} from './search-bar/search.component';
+import {MatAutocompleteModule, MatFormFieldModule, MatInputModule, MatTabsModule} from '@angular/material';
 import {MatSelectModule} from '@angular/material/select';
-import {FormsModule, ReactiveFormsModule} from "@angular/forms";
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {LocationNameDisplayComponent} from './location-name-display/location-name-display.component';
 
 @NgModule({
-    declarations: [
-        HeatmapComponent,
-        SidebarComponent,
-        TimeSeriesComponent,
-        TemperatureRangeSliderComponent,
-        SearchComponent,
-        SearchComponent,
-        TabGroupComponent],
-
+    declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent, TemperatureRangeSliderComponent, SearchComponent, SearchComponent, LocationNameDisplayComponent],
     exports: [
         HeatmapComponent,
         SidebarComponent,
@@ -28,6 +21,7 @@ import {FormsModule, ReactiveFormsModule} from "@angular/forms";
         TemperatureRangeSliderComponent,
         SearchComponent,
         TabGroupComponent,
+        LocationNameDisplayComponent
     ],
     imports: [
         CommonModule,

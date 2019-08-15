@@ -36,7 +36,8 @@ export class HeatmapComponent implements OnInit {
     private fireEventLayer;
     private pinRadius = 40000;
     // For what to present when click event happens
-    private marker;
+    private marker = null;
+    private group;
     private timer = null;
 
 
@@ -331,6 +332,14 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapClick(e) {
+        const oldMarker = this.marker;
+        const oldGroup = this.group;
+        if (oldMarker !== null) {
+            if (oldMarker.isSticky) {
+                oldGroup.addTo(this.map);
+            }
+        }
+
         function mouseMoveChangeRadius(event) {
             const newRadius = distance(circle._latlng, event.latlng);
             localBound.setRadius(newRadius);
@@ -427,6 +436,7 @@ export class HeatmapComponent implements OnInit {
 
         // TODO: change marker from global var since it only specify one.
         this.marker = marker;
+        this.group = L.layerGroup([marker, circle, localBound]);
         this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
             .subscribe((data) => this.clickPointHandler(data));
     }
@@ -466,7 +476,14 @@ export class HeatmapComponent implements OnInit {
             }
         }
 
-        this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
+        const clickboxContents = $('<div />');
+        clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
+            .on('click', '.leaflet-popup-sticky-button1', () => {
+                this.marker.isSticky = !this.marker.isSticky;
+            });
+        clickboxContents.append(this.clickboxContentsToShow);
+        this.marker.bindPopup(clickboxContents[0]).openPopup();
+        // this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
         HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
             'Moisture', soilwValue, 'mm', 'green');
         HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',

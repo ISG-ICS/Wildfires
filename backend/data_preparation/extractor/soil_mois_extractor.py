@@ -3,11 +3,11 @@ import logging
 import os
 
 import fiona
+import gdal
 import numpy as np
 import rasterio
 import rasterio.mask
 import rootpath
-from osgeo import gdal
 
 rootpath.append()
 from paths import US_SHAPE_PATH
@@ -15,6 +15,7 @@ from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from paths import SOIL_MOIS_DATA_DIR
 
 logger = logging.getLogger('TaskManager')
+
 
 class SoilMoisExtractor(ExtractorBase):
     def __init__(self):
@@ -30,7 +31,7 @@ class SoilMoisExtractor(ExtractorBase):
         os.system(
             f'gdalwarp -r bilinear -tr 0.041666667 0.041666667 -t_srs '
             f'"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" -overwrite {file_path} {temp_new_res_image_path}')
-
+        logger.info(f"{file_path} changed resolution")
         # use the us shape to mask the 'new_res.tif'
         with rasterio.open(temp_new_res_image_path) as src:
             out_image, out_transform = rasterio.mask.mask(src, self.features, crop=True)
@@ -44,10 +45,10 @@ class SoilMoisExtractor(ExtractorBase):
         # save the masked image as 'masked_image.tif'
         with rasterio.open(temp_masked_image_path, "w", **out_meta) as dest:
             dest.write(out_image)
-
+        logger.info(f"{file_path} cut")
         # get the list from the tif image
         self.data = gdal.Open(temp_masked_image_path).ReadAsArray().tolist()
-
+        logger.info(f"{file_path} extracted")
         # remove the temporary images and the original data file
         os.remove(temp_new_res_image_path)
         os.remove(temp_masked_image_path)

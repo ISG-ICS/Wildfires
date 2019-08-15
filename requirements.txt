@@ -1,3 +1,4 @@
+lxml
 gdal
 rasterio
 fiona

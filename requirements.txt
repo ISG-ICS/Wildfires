@@ -1,4 +1,5 @@
 lxml
+gdal
 rasterio
 fiona
 gdal

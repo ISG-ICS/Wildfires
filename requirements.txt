@@ -1,3 +1,5 @@
+rasterio
+fiona
 torchvision
 torch
 matplotlib

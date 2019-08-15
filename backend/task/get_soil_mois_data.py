@@ -19,47 +19,49 @@ class GetSoilMoisData(Runnable):
         self.crawler = SoilMoisCrawler()
         self.extractor = SoilMoisExtractor()
         self.dumper = SoilMoisDumper()
+        self.end_time = datetime.strptime('20131230', '%Y%m%d')
 
-    def run(self):
+    def run(self, begin_time_str=datetime.today().strftime('%Y%m%d')):
         # get data from nasagrace
-        begin_time = (datetime.today() + timedelta(days=7)).strftime('%Y%m%d')  # remove the hours and minutes
-        begin_time = datetime.strptime(begin_time, '%Y%m%d')  # put it back into a datetime object
-        end_time = datetime.strptime('20131230', '%Y%m%d')  # make it a datetime object
-        exists_list = self.crawler.get_exists()
+        begin_time = datetime.strptime(begin_time_str, '%Y%m%d')
+        # make it a datetime object
+        exists_set = self.crawler.get_exists()
         # crawl everyday's data from begin_time to end_time
-        time_t = begin_time
-        week_start_flag = False
-        while time_t > end_time:
-            formatted_date_stamp = time_t.strftime('%Y%m%d')
+        current_time = begin_time
+        found_week_start = False
+        while current_time > self.end_time:
+            formatted_date_stamp = current_time.strftime('%Y%m%d')
             logger.info('start crawling')
-            if week_start_flag == False:
+            if not found_week_start:
                 # to detect whether this is the last day with data
-                if (time_t,) not in exists_list:
-                    test = self.crawler.crawl(time_t)
-                if test is not None:
-                    data = self.extractor.extract(os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif'))
-                    logger.info('extraction finished')
-                    self.dumper.insert(test, data)
-                    logger.info('dumping finished')
-                    week_start_flag = True
+                stamp = self.crawler.crawl(current_time) if (current_time,) not in exists_set else None
+                if stamp is not None:
+                    self.extract_and_dump(formatted_date_stamp, stamp)
+                    found_week_start = True
                 else:
-                    time_t -= timedelta(days=1)
-            # start crawling every 7 days
-            if week_start_flag == True:
-                time_t -= timedelta(days=7)
-                if (time_t,) not in exists_list:
-                    stamp = self.crawler.crawl(time_t)
-                    data = self.extractor.extract(os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif'))
-                    logger.info('extraction finished')
-
-                    self.dumper.insert(stamp, data)
-                    logger.info('dumping finished')
+                    current_time -= timedelta(days=1)
+            else:
+                # start crawling every 7 days
+                current_time -= timedelta(days=7)
+                if (current_time,) not in exists_set:
+                    stamp = self.crawler.crawl(current_time)
+                    self.extract_and_dump(formatted_date_stamp, stamp)
+                else:
+                    logger.info(f'{formatted_date_stamp} is existed, skipped')
 
         # if there are no files left, delete the directory
         for root, dirs, files in os.walk(SOIL_MOIS_DATA_DIR, topdown=False):
             if not files and not dirs:
                 os.rmdir(root)
-        logger.info('all data processing finished')
+        logger.info(f'all data from {begin_time_str} to {self.end_time.strftime("%Y%m%d")}  processing finished')
+
+    def extract_and_dump(self, formatted_date_stamp: str, stamp: str):
+        file_path = os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif')
+        data = self.extractor.extract(file_path)
+        logger.info(f'{formatted_date_stamp} extraction finished')
+        self.dumper.insert(stamp, data)
+        logger.info(f'{formatted_date_stamp} dumping finished')
+        os.remove(file_path)
 
 
 if __name__ == '__main__':

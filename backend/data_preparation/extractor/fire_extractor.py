@@ -11,7 +11,7 @@ class FireExtractor(ExtractorBase):
         super().__init__()
 
 
-    def extract(self, path, record, if_sequence, id):
+    def extract(self, path, record, if_sequence, id, state):
         """
         Extract useful information of a fire from a path
         :param path: str, path of the files of this fire
@@ -83,6 +83,7 @@ class FireExtractor(ExtractorBase):
         result["year"] = year
         result["if_sequence"] = if_sequence
         result["id"] = id
+        result["state"] = state
         return result
 
     def extract_full_geom(self, shp: shapefile.Reader):

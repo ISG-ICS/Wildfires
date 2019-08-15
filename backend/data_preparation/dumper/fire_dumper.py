@@ -8,24 +8,56 @@ from backend.data_preparation.connection import Connection
 
 class FireDumper(DumperBase):
     """
-    Table 1(fire_crawl_history): fireyear firename
+    Table 1(fire_crawl_history): fireyear state firename
     Table 2(fire_geoms): firename firetime firegeom
     """
+    # code for checking
     sql_check_if_history_table_exists = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_crawl_history\''
-    sql_create_history_table = 'CREATE TABLE IF NOT EXISTS fire_crawl_history (year int4, state VARCHAR(40), name VARCHAR (40), PRIMARY KEY (year, state, name))'
-    sql_retrieve_all_fires = 'SELECT * FROM fire_crawl_history'
     sql_check_if_fire_info_table_exists = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_info\''
-    sql_create_fire_info_table = 'CREATE TABLE IF NOT EXISTS fire_info (name VARCHAR (40), if_sequence boolean, agency VARCHAR (20), time timestamp, geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, PRIMARY KEY (name, time))'
-    sql_insert_fire_into_history = 'INSERT INTO fire_crawl_history_1 (year, name) VALUES (%(year)s, %(firename)s) ON CONFLICT DO NOTHING'
-    sql_insert_fire_into_info = 'INSERT INTO fire_info_1 (name, if_sequence, agency, time, geom_full, geom_1e4, geom_1e3, geom_1e2) VALUES (%(firename)s,%(if_sequence)s,%(agency)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,%(geopolygon_medium)s,%(geopolygon_small)s) ON CONFLICT DO NOTHING'
-    sql_count_records = 'SELECT COUNT(*) FROM fire_info_1'
-    sql_get_lastest_id = 'SELECT MAX(id) FROM fire_test'
+    sql_check_if_fire_aggregated_table_exists = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_aggregated\''
+
+    # code for creating
+    sql_create_history_table = 'CREATE TABLE IF NOT EXISTS fire_crawl_history (id integer, year int4, state VARCHAR(40), ' \
+                               'name VARCHAR (40), url text, PRIMARY KEY (id))'
+    sql_create_fire_info_table = 'CREATE TABLE IF NOT EXISTS fire_info (name VARCHAR (40), if_sequence boolean, agency ' \
+                                 'VARCHAR (20), state VARCHAR(15), id INTEGER , time timestamp, geom_full geometry, ' \
+                                 'geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, geom_center geometry, ' \
+                                 'PRIMARY KEY (name, time))'
+    sql_create_fire_aggregated_table = 'CREATE TABLE IF NOT EXISTS fire_aggregated (name VARCHAR (40), if_sequence boolean, ' \
+                                       'agency VARCHAR (80), state VARCHAR(15), id INTEGER , starttime timestamp, ' \
+                                       'endtime timestamp, geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, ' \
+                                       'geom_1e2 geometry,geom_center geometry, PRIMARY KEY (id))'
+
+    # code for updating
+    sql_insert_fire_into_history = 'INSERT INTO fire_crawl_history (id, year, state, name,url) VALUES (%(id)s,%(year)s,' \
+                                   '%(state)s, %(firename)s, %(url)s) ON CONFLICT DO NOTHING'
+    sql_insert_fire_into_info = 'INSERT INTO fire_info (name, if_sequence, agency, state, id, time, geom_full, geom_1e4, ' \
+                                'geom_1e3, geom_1e2, geom_center) VALUES (%(firename)s,%(if_sequence)s,%(agency)s,' \
+                                '%(state)s,%(id)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,' \
+                                '%(geopolygon_medium)s,%(geopolygon_small)s, ' \
+                                'st_astext(st_centroid(st_geomfromtext(%(geopolygon_small)s)))) ON CONFLICT DO NOTHING'
+    sql_insert_fire_into_aggregated = 'INSERT INTO fire_aggregated(name, if_sequence, agency, state, id, starttime, ' \
+                                      'endtime, geom_full, geom_1e4, geom_1e3, geom_1e2, geom_center) ' \
+                                      'SELECT f.name, f.if_sequence,string_agg(distinct (f.agency), \', \'),f.state,' \
+                                      'f.id,min(f.time),Max(f.time), st_astext(st_union(st_makevalid(f.geom_full))) ' \
+                                      'as geom_full,st_astext(st_union(st_makevalid(f.geom_1e4))),' \
+                                      'st_astext(st_union(st_makevalid(f.geom_1e3))),' \
+                                      'st_astext(st_union(st_makevalid(f.geom_1e2))),' \
+                                      'st_astext(st_centroid(st_union(f.geom_center))) ' \
+                                      'FROM (SELECT * FROM fire_info where id = %(id)s) f Group by ' \
+                                      'f.name, f.if_sequence, f.state, f.id'
+
+    # code for accessing
+    sql_retrieve_all_fires = 'SELECT year,state,name FROM fire_crawl_history'
+    sql_count_records = 'SELECT COUNT(*) FROM fire_info'
+    sql_get_lastest_id = 'SELECT MAX(id) FROM fire_crawl_history'
+    sql_get_latest_fire = 'SELECT a.id, h.year, h.state, h.name ' \
+                          'from (SELECT id FROM fire_aggregated Where abs(DATE_PART(\'day\', ' \
+                          'endtime - now())) < 10) a, fire_crawl_history h where h.id = a.id;'
+
 
     def __init__(self):
         super().__init__()
-
-    def insert(self) -> None:
-        pass
 
     def check_history(self, conn):
         """
@@ -43,7 +75,7 @@ class FireDumper(DumperBase):
 
     def check_info(self, conn):
         """
-        create fire_crawl_history table if not exist
+        create fire_info table if not exist
         """
         cur = conn.cursor()
         # if table not exist
@@ -52,6 +84,20 @@ class FireDumper(DumperBase):
         if len(tables) == 0:
             print("No info table exists. Creating a new one.")
             cur.execute(FireDumper.sql_create_fire_info_table)
+            conn.commit()
+        cur.close()
+
+    def check_aggregated(self, conn):
+        """
+        create fire_aggregated table if not exist
+        """
+        cur = conn.cursor()
+        # if table not exist
+        cur.execute(self.sql_check_if_fire_aggregated_table_exists)
+        tables = cur.fetchall()
+        if len(tables) == 0:
+            print("No aggregated table exists. Creating a new one.")
+            cur.execute(FireDumper.sql_create_fire_aggregated_table)
             conn.commit()
         cur.close()
 
@@ -79,15 +125,22 @@ class FireDumper(DumperBase):
             cur.close()
         print("Finished inserting file:",info["firename"],info["datetime"])
         print("record count:",self.inserted_count)
-        return info["datetime"].year
+        # return info["datetime"].year
 
-    def insert_history(self,year,name):
+    def insert_history(self,year,name,state,id, current_year):
         with Connection() as connect:
-            info = {"year":year,"firename":name}
+            urlyear = ""
+            if year == current_year:
+                urlyear = 'current_year'
+            else:
+                urlyear = str(year)
+            info = {"year":year,"firename":name, "state":state, "id":id, "url":f"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/{urlyear}_fire_data/{state}/{name}/"}
             cur = connect.cursor()
             cur.execute(self.sql_insert_fire_into_history, info)
             connect.commit()
             cur.close
+
+
 
     def get_latest_fire_id(self):
         with Connection() as connect:
@@ -97,3 +150,41 @@ class FireDumper(DumperBase):
             # print(result)
             # print(type(result))
         return result
+
+    def aggregate(self, id):
+        with Connection() as conn:
+            cur = conn.cursor()
+            self.check_aggregated(conn)
+            info = {"id": id}
+            cur.execute(self.sql_insert_fire_into_aggregated,info)
+            conn.commit()
+        return
+
+    def get_recent_records(self):
+        """
+        return the list of ids of most recent records
+        :return:
+        """
+        with Connection() as conn:
+            cur = conn.cursor()
+            self.check_aggregated(conn)
+            cur.execute(self.sql_get_latest_fire)
+            result = cur.fetchall()
+        return result
+
+    def check_if_aggregation_exist(self, id):
+        """
+        check if the record with an id exist in aggregation table
+        if yes then delete it
+        :param id:
+        :return:
+        """
+        with Connection() as conn:
+            cur = conn.cursor()
+            cur.execute(f"SELECT * FROM fire_aggregated f WHERE f.id = {id}")
+            table = cur.fetchall()
+            if len(table) != 0:
+                print("Record exists, deleting")
+                cur.execute(f'DELETE from fire_aggregated where id = {id}')
+                conn.commit()
+                print("deleted")

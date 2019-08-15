@@ -10,7 +10,7 @@ sql_get_all_fire_names = "select distinct (name) from fire_info_1;"
 
 sql_get_fire_with_name = "select * from fire_info_1 where name = %s"
 
-sql_insert_record = "INSERT INTO fire_aggregated (name, agency, if_sequence, geom_full, geom_1e4, geom_1e3, geom_1e2, center, start_time, end_time) VALUES ('{name}', '{agency}', {if_seq}, {geom_f},{geom_4}, {geom_3}, {geom_2},st_centroid({center}), '{st}', '{et}')"
+sql_insert_record = "INSERT INTO fire_aggregated_1 (name, agency, if_sequence, geom_full, geom_1e4, geom_1e3, geom_1e2, center, start_time, end_time) VALUES ('{name}', '{agency}', {if_seq}, {geom_f},{geom_4}, {geom_3}, {geom_2},st_centroid({center}), '{st}', '{et}')"
 
 
 

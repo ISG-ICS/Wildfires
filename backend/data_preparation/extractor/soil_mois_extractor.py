@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from typing import List
 
 import fiona
 import gdal
@@ -24,7 +25,7 @@ class SoilMoisExtractor(ExtractorBase):
         with fiona.open(US_SHAPE_PATH, "r") as shapefile:
             self.features = [feature["geometry"] for feature in shapefile]
 
-    def extract(self, file_path):
+    def extract(self, file_path: str) -> List[List[float]]:
         temp_new_res_image_path = os.path.join(SOIL_MOIS_DATA_DIR, 'new_res.tif')
         temp_masked_image_path = os.path.join(SOIL_MOIS_DATA_DIR, 'masked_image.tif')
         # change resolution of the image, put it into a temporary 'new_res.tif', will be deleted automatically
@@ -47,7 +48,7 @@ class SoilMoisExtractor(ExtractorBase):
             dest.write(out_image)
         logger.info(f"{file_path} cut")
         # get the list from the tif image
-        self.data = gdal.Open(temp_masked_image_path).ReadAsArray().tolist()
+        self.data: list = gdal.Open(temp_masked_image_path).ReadAsArray().tolist()
         logger.info(f"{file_path} extracted")
         # remove the temporary images and the original data file
         os.remove(temp_new_res_image_path)

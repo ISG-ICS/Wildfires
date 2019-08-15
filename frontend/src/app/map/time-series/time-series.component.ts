@@ -15,7 +15,7 @@ export class TimeSeriesComponent implements OnInit {
 
     @Output() timeRangeChange = new EventEmitter();
     private halfUnit = 86400000 / 2;
-    private hasPlotBand = false;
+    private currentTick = null;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -58,14 +58,19 @@ export class TimeSeriesComponent implements OnInit {
                         let dateInMs = clickValue - clickValue % this.halfUnit;
                         dateInMs += dateInMs % (this.halfUnit * 2);
                         const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
-                        if (!this.hasPlotBand) {
+                        // @ts-ignore
+                        const tick = event.xAxis[0].axis.ticks[dateInMs];
+                        if (this.currentTick === null) {
+                            this.currentTick = tick;
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - this.halfUnit,
                                 to: dateInMs + this.halfUnit,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
-                            this.hasPlotBand = true;
+                            this.currentTick.label.css({
+                                color: '#ffffff'
+                            });
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
@@ -75,13 +80,23 @@ export class TimeSeriesComponent implements OnInit {
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
-                            this.hasPlotBand = true;
+                            this.currentTick.label.css({
+                                color: '#666666'
+                            });
+                            tick.label.css({
+                                color: '#ffffff'
+                            });
+                            this.currentTick = tick;
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');
-                            this.hasPlotBand = false;
+                            this.currentTick.label.css({
+                                color: '#666666'
+                            });
+                            this.currentTick = null;
                             this.timeService.setCurrentDate(null);
                         }
+
                     },
                 }
             },
@@ -121,5 +136,6 @@ export class TimeSeriesComponent implements OnInit {
             },
         });
     }
+
 
 }

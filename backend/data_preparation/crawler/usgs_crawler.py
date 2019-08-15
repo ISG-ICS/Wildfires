@@ -59,7 +59,7 @@ class USGSCrawler(CrawlerBase):
     def crawl(self, target_date: date) -> Optional[str]:
         """
             this func will download a single file
-            target_date should align with 2019-07-30
+            target_date should be 7-day interval with 2019-07-30
         """
 
         if not os.path.exists(USGS_DATA_DIR):
@@ -81,6 +81,7 @@ class USGSCrawler(CrawlerBase):
         else:
             # report error if not 200
             if response.status_code != 200:
+                logger.error(f'[failed]{filename} http-code={response.status_code}')
                 logger.warning(f'[failed]{filename} http-code={response.status_code}')
                 return None
 

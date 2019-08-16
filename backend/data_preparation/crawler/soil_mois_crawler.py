@@ -35,7 +35,7 @@ class SoilMoisCrawler(CrawlerBase):
         except error.HTTPError:
             logger.info('file: ' + formatted_date_stamp + ' not found, skipped')
         else:
-            return date_stamp.strftime('%Y-%m-%d')
+            return os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif')
 
     def get_exists(self) -> set:
         """get how far we went last time"""

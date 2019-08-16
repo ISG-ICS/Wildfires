@@ -34,9 +34,9 @@ class GetSoilMoisData(Runnable):
             logger.info('start crawling')
             if not found_week_start:
                 # to detect whether this is the last day with data
-                stamp = self.crawler.crawl(current_time) if (current_time,) not in exists_set else None
-                if stamp is not None:
-                    self.extract_and_dump(formatted_date_stamp, stamp)
+                file_path = self.crawler.crawl(current_time) if (current_time,) not in exists_set else None
+                if file_path is not None:
+                    self.extract_and_dump(file_path)
                     found_week_start = True
                 else:
                     current_time -= timedelta(days=1)
@@ -44,8 +44,8 @@ class GetSoilMoisData(Runnable):
                 # start crawling every 7 days
                 current_time -= timedelta(days=7)
                 if (current_time,) not in exists_set:
-                    stamp = self.crawler.crawl(current_time)
-                    self.extract_and_dump(formatted_date_stamp, stamp)
+                    file_path = self.crawler.crawl(current_time)
+                    self.extract_and_dump(file_path)
                 else:
                     logger.info(f'{formatted_date_stamp} is existed, skipped')
 
@@ -55,11 +55,11 @@ class GetSoilMoisData(Runnable):
                 os.rmdir(root)
         logger.info(f'all data from {begin_time_str} to {self.end_time.strftime("%Y%m%d")}  processing finished')
 
-    def extract_and_dump(self, formatted_date_stamp: str, stamp: str):
-        file_path = os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif')
+    def extract_and_dump(self, file_path: str):
         data = self.extractor.extract(file_path)
+        formatted_date_stamp = file_path.split('_')[-1].split('.')[0]
         logger.info(f'{formatted_date_stamp} extraction finished')
-        self.dumper.insert(stamp, data)
+        self.dumper.insert(formatted_date_stamp, data)
         logger.info(f'{formatted_date_stamp} dumping finished')
         os.remove(file_path)
 

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Union, Optional, List
 
+import numpy as np
 import rootpath
 
 rootpath.append()
@@ -22,9 +23,9 @@ class CrawlerBase(ABC):
         self.dumper = dumper
 
     @abstractmethod
-    def crawl(self, *args, **kwargs) -> Union[List, Dict]:
-        # save crawled to self.data (in-memory), or, if needed, to disk file
-        # also return a reference of self.data
+    def crawl(self, *args, **kwargs) -> Union[List, Dict, np.array]:
+        # saves the crawled data to self.data (in-memory), or, if needed, to disk file.
+        # also returns a reference of self.data
         pass
 
     def __getitem__(self, index):

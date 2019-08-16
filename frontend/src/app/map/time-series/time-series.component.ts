@@ -60,17 +60,20 @@ export class TimeSeriesComponent implements OnInit {
                         const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
                         // @ts-ignore
                         const tick = event.xAxis[0].axis.ticks[dateInMs];
+
                         if (this.currentTick === null) {
-                            this.currentTick = tick;
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - this.halfUnit,
                                 to: dateInMs + this.halfUnit,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
-                            this.currentTick.label.css({
-                                color: '#ffffff'
-                            });
+                            if (tick !== null) {
+                                tick.label.css({
+                                    color: '#ffffff'
+                                });
+                                this.currentTick = tick;
+                            }
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
@@ -83,10 +86,14 @@ export class TimeSeriesComponent implements OnInit {
                             this.currentTick.label.css({
                                 color: '#666666'
                             });
-                            tick.label.css({
-                                color: '#ffffff'
-                            });
-                            this.currentTick = tick;
+                            if (tick !== null) {
+                                tick.label.css({
+                                    color: '#ffffff'
+                                });
+                                this.currentTick = tick;
+                            } else {
+                                this.currentTick = null;
+                            }
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');

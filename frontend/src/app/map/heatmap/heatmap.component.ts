@@ -428,9 +428,9 @@ export class HeatmapComponent implements OnInit {
         function judgeDistance(event) {
             that.map.on('mouseup', (e) => {
                 if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
-                    if (!this.marker.isSticky) {
+                    //if (!that.marker.isSticky) {
                         group.remove();
-                    }
+                    //}
                 }
             });
         }
@@ -823,6 +823,4 @@ export class HeatmapComponent implements OnInit {
             '</div>';
         return clickboxContents;
     }
-
-
 }

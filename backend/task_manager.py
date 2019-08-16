@@ -64,11 +64,20 @@ class TaskManager:
 
     @classmethod
     def load_runnables(cls):
-        exec("from backend.task.runnable import Runnable")
-        task_dir = os.path.join(os.path.realpath(__file__), '..', 'task')
-        tasks = [os.path.split(file)[-1].strip(".py").strip("./") for file in
-                 glob.glob(os.path.join(task_dir, './*.py'))]
+        """
+        tasks should be stored in relative path 'task'
+        :return:
+        """
 
+        exec("from backend.task.runnable import Runnable")
+        # TODO: remove existing modules
+
+        # find tasks
+        task_dir = os.path.join(os.path.realpath(__file__), '..', 'task')
+        tasks = [os.path.split(file)[-1].strip(".py").strip("./")
+                 for file in glob.glob(os.path.join(task_dir, './*.py'))]
+
+        # load tasks, add to task_options
         TaskManager.task_options = dict()
         for t in tasks:
             importlib.import_module(f'task.{t}')
@@ -370,5 +379,5 @@ if __name__ == "__main__":
     try:
         task_manager = TaskManager()
         task_manager.main_loop()
-    except IOError:
+    except:
         logger.error('Invalid Input Cause Error')

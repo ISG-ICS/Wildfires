@@ -15,6 +15,7 @@ import {LocationBoundaryLayer} from '../layers/location.boundary.layer';
 import {LocationMarkerLayer} from '../layers/location.marker';
 import {Component, OnInit} from '@angular/core';
 
+import {TimeService} from "../../services/time/time.service";
 
 declare let L;
 
@@ -171,7 +172,7 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getTemperatureData().subscribe(tempSubject);
 
         // Get tweets data from service
-        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map);
+        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map, this.timeService);
 
         // Get fire events data from service
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);

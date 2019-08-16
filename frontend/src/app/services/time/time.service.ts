@@ -8,9 +8,8 @@ import {Injectable} from '@angular/core';
 export class TimeService {
     // "2018-04-23T10:26:00.996Z" => "2018-04-23"
     private currentDateInYMD = null;
-    private startDate;
-    private rangeStartDate;
-    private rangeEndDate;
+    private rangeStartDateInMS = new Date().getTime() - 6 * 30 * 24 * 3600 * 1000;
+    private rangeEndDateInMS = new Date().getTime();
 
     constructor() {
     }
@@ -24,12 +23,12 @@ export class TimeService {
     }
 
     setRangeDate(startInMs, endInMs) {
-        this.rangeStartDate = new Date(startInMs).toISOString().substring(0, 10);
-        this.rangeEndDate = new Date(endInMs).toISOString().substring(0, 10);
+        this.rangeStartDateInMS = startInMs;
+        this.rangeEndDateInMS = endInMs;
     }
 
     getRangeDate() {
-        return [this.rangeStartDate, this.rangeEndDate];
+        return [this.rangeStartDateInMS, this.rangeEndDateInMS];
     }
 }
 

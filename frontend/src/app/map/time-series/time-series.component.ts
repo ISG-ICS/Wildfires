@@ -16,8 +16,6 @@ export class TimeSeriesComponent implements OnInit {
     @Output() timeRangeChange = new EventEmitter();
     private halfUnit = 86400000 / 2;
     private currentTick = null;
-    private startTick = null;
-    private endTick = null;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -43,7 +41,6 @@ export class TimeSeriesComponent implements OnInit {
         Object.keys(dailyCount).sort().forEach(key => {
             chartData.push([new Date(key).getTime(), dailyCount[key]]);
         });
-
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
                 height: 200,
@@ -59,30 +56,8 @@ export class TimeSeriesComponent implements OnInit {
                         } else {
                             $('#report').html('Selection reset');
                         }
-                        //
-                        // if (this.startTick != null && this.startTick.hasOwnProperty('label')) {
-                        //         this.startTick.label.css({
-                        //             color: '#666666'
-                        //         });
-                        //     }
-                        // if (this.endTick != null && this.endTick.hasOwnProperty('label')) {
-                        //     this.endTick.label.css({
-                        //         color: '#666666'
-                        //     });
-                        // }
-                        // // @ts-ignore
-                        // const tickIndexs = event.xAxis[0].axis.tickPositions;
-                        // // @ts-ignore
-                        // this.startTick = event.xAxis[0].axis.ticks[tickIndexs[0]];
-                        // this.startTick.label.css({
-                        //             color: '#d88040'
-                        //         });
-                        // // @ts-ignore
-                        // this.endTick = event.xAxis[0].axis.ticks[tickIndexs[tickIndexs.length - 1]];
-                        // this.endTick.label.css({
-                        //             color: '#d88040'
-                        //         });
-
+                        this.timeRangeChange.emit();
+                        $(window).trigger('timeRangeChange');
                         return true;
                     },
                     click: event => {

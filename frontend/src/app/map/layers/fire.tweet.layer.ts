@@ -4,6 +4,7 @@ import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import {of} from 'rxjs';
 import {Tweet} from '../../models/tweet.model';
+import {TimeService} from '../../services/time/time.service';
 
 declare let L;
 
@@ -19,8 +20,7 @@ export class FireTweetLayer {
     private tempDataWithID = [];
     private timer = null;
 
-    constructor(private mainControl, private mapService: MapService, private map) {
-
+    constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
         this.map.on('mousemove', e => this.onMapMouseMove(e));
     }
@@ -141,16 +141,16 @@ export class FireTweetLayer {
 
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
-
+        this.timeRangeChangeHandler();
     }
 
-    timeRangeChangeHandler = (event, data) => {
+    timeRangeChangeHandler = () => {
         const tempData = [];
         this.tempDataWithID = [];
-
+        const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
         this.tweetData.forEach(tweet => {
             const time = new Date(tweet.create_at).getTime();
-            if (time > data.timebarStart && time < data.timebarEnd) {
+            if (time > startDateInMs && time < endDateInMs) {
                 tempData.push([tweet.lat, tweet.long]);
                 this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
             }

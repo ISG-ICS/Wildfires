@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import zipfile
 from datetime import datetime
 
 import fiona
@@ -9,6 +10,8 @@ import numpy as np
 import rasterio
 import rasterio.mask
 import rootpath
+
+from backend.data_preparation.crawler.usgs_crawler import USGSCrawler
 
 rootpath.append()
 from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
@@ -25,8 +28,10 @@ class TiffExtractor(ExtractorBase):
         self.data = []
 
     def extract(self, file_path: str) -> np.ndarray:
-        temp_new_res_image_path = os.path.join(SOIL_MOIS_DATA_DIR, 'new_res.tif')
-        temp_masked_image_path = os.path.join(SOIL_MOIS_DATA_DIR, 'masked_image.tif')
+        temp_new_res_image_path = os.path.join(SOIL_MOIS_DATA_DIR,
+                                               os.path.basename(file_path).split('.')[-2] + '_new_res.tif')
+        temp_masked_image_path = os.path.join(SOIL_MOIS_DATA_DIR,
+                                              os.path.basename(file_path).split('.')[-2] + '_masked_image.tif')
         # change resolution of the image, put it into a temporary 'new_res.tif', will be deleted automatically
         os.system(
             f'gdalwarp -r bilinear -tr 0.041666667 0.041666667 -t_srs '
@@ -78,12 +83,31 @@ class TiffExtractor(ExtractorBase):
 if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
+    extractor = TiffExtractor()
 
+    # test extracting soil moisture data
     crawler = SoilMoisCrawler()
-    soil_mois_extractor = TiffExtractor()
     target_date = "20131230"
 
     file_path = crawler.crawl(datetime.strptime(target_date, SoilMoisCrawler.TIME_FORMAT))
     if file_path is not None:
-        data = soil_mois_extractor.extract(file_path)
-        print(np.array(data).shape)
+        data = extractor.extract(file_path)
+        print(data.shape)
+
+    # test extracting NDVI data
+    crawler = USGSCrawler()
+    target_date = "20190806"
+
+    zip_file_path = crawler.crawl(datetime.strptime(target_date, '%Y%m%d'))
+
+    zf = zipfile.ZipFile(zip_file_path)
+    for file in zf.namelist():
+        if file.split('.')[-4] == 'VI_NDVI' and file.split('.')[-1] == 'tif':
+            zf.extract(file, os.path.split(zip_file_path)[0])
+            tif_file_name = file
+    zf.close()
+    tif_path = os.path.join(os.path.split(zip_file_path)[0], tif_file_name)
+
+    if tif_path is not None:
+        data = extractor.extract(tif_path)
+        print(data.shape)

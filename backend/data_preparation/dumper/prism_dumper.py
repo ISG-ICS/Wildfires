@@ -1,5 +1,7 @@
 import datetime
 import logging
+import os
+import zipfile
 
 import numpy as np
 import psycopg2.errors
@@ -9,6 +11,8 @@ import rootpath
 rootpath.append()
 from backend.data_preparation.connection import Connection
 from backend.data_preparation.dumper.dumperbase import DumperBase
+from backend.data_preparation.crawler.usgs_crawler import USGSCrawler
+from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
 
 logger = logging.getLogger('TaskManager')
 
@@ -47,11 +51,12 @@ class PRISMDumper(DumperBase):
                 'on conflict(date) do nothing'
     }
 
-    def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
+    def insert(self, date: datetime.date, unflattened_data: np.ndarray, var_type: str):
+        flattened = unflattened_data.flatten()
         with Connection() as conn:
             cur = conn.cursor()
             psycopg2.extras.execute_values(cur, PRISMDumper.INSERT_SQLS[var_type],
-                                           PRISMDumper.record_generator(date, _data),
+                                           PRISMDumper.record_generator(date, flattened),
                                            template=None, page_size=10000)
             if var_type == 'usgs':
                 cur.execute(PRISMDumper.INSERT_INFOS[var_type], (date,))
@@ -67,6 +72,23 @@ class PRISMDumper(DumperBase):
 
 
 if __name__ == '__main__':
-    # test USGS inserting
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+
+    crawler = USGSCrawler()
+    extractor = TiffExtractor()
     dumper = PRISMDumper()
-    dumper.insert(datetime.datetime.now().date(), np.ones((100,), dtype=int), var_type='usgs')
+    target_time = "20190806"
+
+    zip_file_path = crawler.crawl(datetime.datetime.strptime(target_time, '%Y%m%d'))
+    zf = zipfile.ZipFile(zip_file_path)
+    for file in zf.namelist():
+        if file.split('.')[-4] == 'VI_NDVI' and file.split('.')[-1] == 'tif':
+            zf.extract(file, os.path.split(zip_file_path)[0])
+            tif_file_name = file
+    zf.close()
+    tif_path = os.path.join(os.path.split(zip_file_path)[0], tif_file_name)
+
+    if tif_path is not None:
+        data = extractor.extract(tif_path)
+        dumper.insert(datetime.datetime.strptime(target_time, '%Y%m%d'), data, var_type='usgs')

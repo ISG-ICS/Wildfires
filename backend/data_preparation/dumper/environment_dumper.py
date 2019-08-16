@@ -70,19 +70,25 @@ class EnvironmentDumper(DumperBase):
 
             for i in range(len(landcover)):
                 for j in range(len(landcover[i])):
-                    labdcover_value = landcover[i][j]
-                    elevation_value = elevation[i][j]
-                    aspect_value = aspect[i][j]
-                    slope_value = slope[i][j]
+                    labdcover_value = np.float('NaN') if landcover[i][j]== 0 else landcover[i][j]
+                    elevation_value = np.float('NaN') if elevation[i][j]== -9999 else elevation[i][j]
+                    aspect_value = np.float('NaN') if aspect[i][j]== -9999 else aspect[i][j]
+                    slope_value = np.float('NaN') if slope[i][j]== -9999 else slope[i][j]
+
+                    # labdcover_value = landcover[i][j]
+                    # elevation_value = elevation[i][j]
+                    # aspect_value = aspect[i][j]
+                    # slope_value = slope[i][j]
 
                     try:
                         cur.execute(EnvironmentDumper.INSERT_CONSTANT_FEATURES,
                                     (gid, labdcover_value, elevation_value, aspect_value, slope_value))
+                        conn.commit()
                         gid += 1
                     except Exception:
                         logger.error("error: " + traceback.format_exc())
 
-            conn.commit()
+            # conn.commit()
             cur.close()
 
     def insert_weekly_feature(self, datetime: str, weekly_feature: list, feature_type: str):
@@ -116,30 +122,31 @@ class EnvironmentDumper(DumperBase):
 
 if __name__ == '__main__':
     # Case 1:
-    landcover_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/landcover_CA.tif')
+    landcover_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/LandCover_US_masked_image.tif')
     landcover = EnvironmentDumper().tif_to_list(landcover_path)
 
-    elevation_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/elevation_CA.tif')
+    elevation_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/Elevation_US_masked_image.tif')
     elevation = EnvironmentDumper().tif_to_list(elevation_path)
 
-    aspect_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/aspect_CA.tif')
+    aspect_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/Aspect_US_masked_image.tif')
     aspect = EnvironmentDumper().tif_to_list(aspect_path)
 
-    slope_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/slope_CA.tif')
+    slope_path = os.path.join(paths.ROOT_DIR, 'data/constant_env_features/Slope_US_masked_image.tif')
     slope = EnvironmentDumper().tif_to_list(slope_path)
 
+
     EnvironmentDumper().insert_constant_feature(landcover, elevation, aspect, slope)
-
-    # Case 2:
-    soil_moisture_path = os.path.join(paths.ROOT_DIR, 'data/4soil_moisture/sm201809171.tif')
-    soil_moisture = EnvironmentDumper().tif_to_list(soil_moisture_path)
-    datetime = '2018-09-17 00:00:00.000000'
-
-    EnvironmentDumper().insert_weekly_feature(datetime, soil_moisture, "soil_moisture")
-
-    # Case 3:
-    ndvi_path = os.path.join(paths.ROOT_DIR, 'data/5NDVI/NDVI201809111.tif')
-    ndvi = EnvironmentDumper().tif_to_list(ndvi_path)
-    datetime = '2018-09-11 00:00:00.000000'
-
-    EnvironmentDumper().insert_weekly_feature(datetime, ndvi, "ndvi")
+    #
+    # # Case 2:
+    # soil_moisture_path = os.path.join(paths.ROOT_DIR, 'data/4soil_moisture/sm201809171.tif')
+    # soil_moisture = EnvironmentDumper().tif_to_list(soil_moisture_path)
+    # datetime = '2018-09-17 00:00:00.000000'
+    #
+    # EnvironmentDumper().insert_weekly_feature(datetime, soil_moisture, "soil_moisture")
+    #
+    # # Case 3:
+    # ndvi_path = os.path.join(paths.ROOT_DIR, 'data/5NDVI/NDVI201809111.tif')
+    # ndvi = EnvironmentDumper().tif_to_list(ndvi_path)
+    # datetime = '2018-09-11 00:00:00.000000'
+    #
+    # EnvironmentDumper().insert_weekly_feature(datetime, ndvi, "ndvi")

@@ -194,7 +194,7 @@ export class HeatmapComponent implements OnInit {
 
         //this.map.on('dblclick', this.onMapClick, this);
         this.map.on('mousedown', e => this.onMapHold(e));
-
+        //this.onMapRemove();
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
@@ -420,12 +420,17 @@ export class HeatmapComponent implements OnInit {
         // this.map.on('dblclick', () => { group.remove();}, this);
         this.map.on('mousedown', (e) => judgeDistance(e));
 
+        this.marker = marker;
+        this.group = L.layerGroup([marker, circle, localBound]);
+
         const that = this;
 
         function judgeDistance(event) {
             that.map.on('mouseup', (e) => {
                 if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
-                    group.remove();
+                    if (!this.marker.isSticky) {
+                        group.remove();
+                    }
                 }
             });
         }
@@ -435,11 +440,29 @@ export class HeatmapComponent implements OnInit {
         }); // Remove popup fire remove all (default is not sticky)
 
         // TODO: change marker from global var since it only specify one.
-        this.marker = marker;
-        this.group = L.layerGroup([marker, circle, localBound]);
-        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
+        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-16T15:37:27Z', 7)
             .subscribe((data) => this.clickPointHandler(data));
     }
+
+    onMapRemove = () => {
+        this.map.on('mousedown', (e) => judgeDistance(e));
+        const that = this;
+
+        function judgeDistance(event) {
+            that.map.on('mouseup', (e) => {
+                if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
+                    this.group.remove();
+                }
+            });
+        }
+
+        this.marker.getPopup().on('remove', () => {
+            this.group.remove();
+        });
+        if (this.marker.isSticky) {
+            this.group.addTo(this.map);
+        }
+    };
 
     clickPointHandler = (data) => {
         console.log(data);
@@ -480,6 +503,9 @@ export class HeatmapComponent implements OnInit {
         clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
             .on('click', '.leaflet-popup-sticky-button1', () => {
                 this.marker.isSticky = !this.marker.isSticky;
+                if (this.marker.isSticky) {
+                    this.group.addTo(this.map);
+                }
             });
         clickboxContents.append(this.clickboxContentsToShow);
         this.marker.bindPopup(clickboxContents[0]).openPopup();
@@ -488,9 +514,16 @@ export class HeatmapComponent implements OnInit {
             'Moisture', soilwValue, 'mm', 'green');
         HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
             'Temperature', tmpValue, 'Cesius', 'red');
+        // HeatmapComponent.drawChart('tweetcontainer', tmpTime, 'Fire event', cntValue, 'fires',
+        //     'Temperature', tmpValue, 'Cesius', 'red');
+
         this.marker.getPopup().on('remove', () => {
-            this.map.removeLayer(this.marker);
+            this.group.remove();
         });
+
+        if (this.marker.isSticky) {
+            this.group.addTo(this.map);
+        }
     };
 
     rangeSelectHandler = (event) => {
@@ -702,6 +735,11 @@ export class HeatmapComponent implements OnInit {
             '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n';
 
+        const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
+            '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh2" style="width: 200px; height: 100px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="hh3" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh4" style="width: 200px; height: 100px; margin: 0px;float: right;;"></div>\n';
 
         const clickboxContents = '<style>' +
             `.leaflet-popup-content {
@@ -767,13 +805,13 @@ export class HeatmapComponent implements OnInit {
 
             '<div class="tab" id="tab-2" >' +
             '<div class="content">' +
-            '<b>I am tweets</b>' +
+            '<b>Put tweets contents here later</b>' +
             '</div>' +
             '</div>' +
 
             '<div class="tab" id="tab-3" >' +
             '<div class="content">' +
-            '<b>else whatever</b>' +
+            '<b>whatever else</b>' +
             '</div>' +
             '</div>' +
 

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import rootpath
 
 rootpath.append()
+
 from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
 from backend.data_preparation.dumper.soil_mois_dumper import SoilMoisDumper
 from backend.data_preparation.extractor.soil_mois_extractor import SoilMoisExtractor
@@ -14,7 +15,7 @@ from paths import SOIL_MOIS_DATA_DIR
 logger = logging.getLogger('TaskManager')
 
 
-class GetSoilMoisData(Runnable):
+class DataFromNASAGrace(Runnable):
     def __init__(self):
         self.crawler = SoilMoisCrawler()
         self.extractor = SoilMoisExtractor()
@@ -47,7 +48,7 @@ class GetSoilMoisData(Runnable):
                     file_path = self.crawler.crawl(current_time)
                     self.extract_and_dump(file_path)
                 else:
-                    logger.info(f'{formatted_date_stamp} is existed, skipped')
+                    logger.info(f'{formatted_date_stamp} existed, skipped')
 
         # if there are no files left, delete the directory
         for root, dirs, files in os.walk(SOIL_MOIS_DATA_DIR, topdown=False):
@@ -57,12 +58,11 @@ class GetSoilMoisData(Runnable):
 
     def extract_and_dump(self, file_path: str):
         data = self.extractor.extract(file_path)
-        formatted_date_stamp = file_path.split('_')[-1].split('.')[0]
+        formatted_date_stamp = file_path.split('_')[-1].split('.')[0].split('/')[-1]
         logger.info(f'{formatted_date_stamp} extraction finished')
         self.dumper.insert(formatted_date_stamp, data)
         logger.info(f'{formatted_date_stamp} dumping finished')
-        os.remove(file_path)
 
 
 if __name__ == '__main__':
-    GetSoilMoisData().run()
+    DataFromNASAGrace().run()

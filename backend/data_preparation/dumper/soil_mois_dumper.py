@@ -5,11 +5,9 @@ import traceback
 import numpy as np
 import rootpath
 
+rootpath.append()
 from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
 from backend.data_preparation.extractor.soil_mois_extractor import SoilMoisExtractor
-
-rootpath.append()
-
 from backend.data_preparation.dumper.dumperbase import DumperBase
 from backend.data_preparation.connection import Connection
 
@@ -21,10 +19,7 @@ class SoilMoisDumper(DumperBase):
                            "VALUES (%s, %s, %s) ON CONFLICT (gid, datetime) DO NOTHING"
 
     def insert(self, date_str: str, weekly_soil_mois: np.array):
-
         flattened_data = weekly_soil_mois.flatten()
-
-        print(flattened_data)
         with Connection() as conn:
             cur = conn.cursor()
             for gid, val in enumerate(flattened_data.tolist()):
@@ -36,7 +31,7 @@ class SoilMoisDumper(DumperBase):
                 except Exception:
                     logger.error("error: " + traceback.format_exc())
 
-            logger.info(f'{datetime} finished, total inserted {self.inserted_count}')
+            logger.info(f'{date_str} finished, total inserted {self.inserted_count}')
             cur.close()
 
 
@@ -44,8 +39,9 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     crawler = SoilMoisCrawler()
-    stamp = crawler.crawl(datetime.datetime.strptime("20131230", "%Y%m%d"))
+    file_path = crawler.crawl(datetime.datetime.strptime("20131230", "%Y%m%d"))
     extractor = SoilMoisExtractor()
-    data = extractor.extract(stamp)
+    data = extractor.extract(file_path)
     dumper = SoilMoisDumper()
-    dumper.insert("20131230", data)
+    date_str = file_path.split('_')[-1].split('.')[0].split('/')[-1]
+    dumper.insert(date_str, data)

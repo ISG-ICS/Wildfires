@@ -19,7 +19,7 @@ class SoilMoisCrawler(CrawlerBase):
     def __init__(self):
         super().__init__()
         self.baseDir = 'https://nasagrace.unl.edu/GRACE/'
-        self.select_exists = 'select datetime from env_soil_moisture group by datetime having count(*) = 810810'
+        self.select_exists = 'select datetime from env_soil_moisture group by datetime having count(*) = 872505'
 
     def start(self):
         pass
@@ -27,7 +27,6 @@ class SoilMoisCrawler(CrawlerBase):
     def crawl(self, date_stamp: date) -> Optional[str]:
         formatted_date_stamp = date_stamp.strftime('%Y%m%d')
         file_url = self.baseDir + formatted_date_stamp + '/sfsm_perc_0125deg_US_' + formatted_date_stamp + '.tif'
-        print(file_url)
         if not os.path.isdir(SOIL_MOIS_DATA_DIR):
             os.makedirs(SOIL_MOIS_DATA_DIR)
         try:
@@ -46,4 +45,4 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     crawler = SoilMoisCrawler()
-    crawler.crawl(datetime.strptime("20131230", "%Y%m%d"))
+    crawler.crawl(datetime.strptime("20190812", "%Y%m%d"))

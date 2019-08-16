@@ -7,7 +7,8 @@ import rootpath
 
 rootpath.append()
 from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
-from backend.data_preparation.extractor.soil_mois_extractor import SoilMoisExtractor
+from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
+
 from backend.data_preparation.dumper.dumperbase import DumperBase
 from backend.data_preparation.connection import Connection
 
@@ -15,11 +16,14 @@ logger = logging.getLogger('TaskManager')
 
 
 class SoilMoisDumper(DumperBase):
+    TIME_FORMAT = "%Y%m%d"
     INSERT_SOIL_MOISTURE = "INSERT INTO env_soil_moisture (gid, datetime, soil_moisture) " \
-                           "VALUES (%s, %s, %s) ON CONFLICT (gid, datetime) DO NOTHING"
+                           "VALUES (%s, %s, %s) ON CONFLICT (gid, datetime) DO UPDATE " \
+                           "SET soil_moisture = excluded.soil_moisture"
 
     def insert(self, date_str: str, weekly_soil_mois: np.array):
         flattened_data = weekly_soil_mois.flatten()
+
         with Connection() as conn:
             cur = conn.cursor()
             for gid, val in enumerate(flattened_data.tolist()):
@@ -38,10 +42,13 @@ class SoilMoisDumper(DumperBase):
 if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
+
     crawler = SoilMoisCrawler()
-    file_path = crawler.crawl(datetime.datetime.strptime("20131230", "%Y%m%d"))
-    extractor = SoilMoisExtractor()
-    data = extractor.extract(file_path)
+    extractor = TiffExtractor()
     dumper = SoilMoisDumper()
-    date_str = file_path.split('_')[-1].split('.')[0].split('/')[-1]
-    dumper.insert(date_str, data)
+    target_time = "20131230"
+
+    crawled_file_path = crawler.crawl(datetime.datetime.strptime(target_time, SoilMoisDumper.TIME_FORMAT))
+    if crawled_file_path is not None:
+        data = extractor.extract(crawled_file_path)
+        dumper.insert(target_time, data)

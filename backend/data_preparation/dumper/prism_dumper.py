@@ -29,6 +29,11 @@ class PRISMDumper(DumperBase):
                 insert into prism (date, gid, vpdmax) values %s
                 ON CONFLICT (date, gid) DO UPDATE SET
                 vpdmax=EXCLUDED.vpdmax
+            ''',
+        'usgs': '''
+                insert into usgs (date, gid, usgs) values %s
+                ON CONFLICT (date, gid) DO UPDATE SET
+                usgs=EXCLUDED.usgs
             '''
     }
     INSERT_INFOS = {
@@ -37,7 +42,9 @@ class PRISMDumper(DumperBase):
         'tmax': 'insert into prism_info (date, tmax) values (%s, %s) '
                 'on conflict(date) do update set tmax=EXCLUDED.tmax',
         'vpdmax': 'insert into prism_info (date, vpdmax) values (%s, %s) '
-                  'on conflict(date) do update set vpdmax=EXCLUDED.vpdmax'
+                  'on conflict(date) do update set vpdmax=EXCLUDED.vpdmax',
+        'usgs': 'insert into usgs_info (date) values (%s)'
+                'on conflict(date) do nothing'
     }
 
     def insert(self, date: datetime.date, _data: np.ndarray, var_type: str):
@@ -46,7 +53,10 @@ class PRISMDumper(DumperBase):
             psycopg2.extras.execute_values(cur, PRISMDumper.INSERT_SQLS[var_type],
                                            PRISMDumper.record_generator(date, _data),
                                            template=None, page_size=10000)
-            cur.execute(PRISMDumper.INSERT_INFOS[var_type], (date, 1))
+            if var_type == 'usgs':
+                cur.execute(PRISMDumper.INSERT_INFOS[var_type], (date,))
+            else:
+                cur.execute(PRISMDumper.INSERT_INFOS[var_type], (date, 1))
             conn.commit()
             cur.close()
 
@@ -54,3 +64,9 @@ class PRISMDumper(DumperBase):
     def record_generator(date: datetime.date, _data):
         for gid, val in enumerate(_data.tolist()):
             yield (date, gid, val)
+
+
+if __name__ == '__main__':
+    # test USGS inserting
+    dumper = PRISMDumper()
+    dumper.insert(datetime.datetime.now().date(), np.ones((100,), dtype=int), var_type='usgs')

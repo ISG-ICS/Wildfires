@@ -46,6 +46,9 @@ class FireDumper(DumperBase):
                                       'st_astext(st_centroid(st_union(f.geom_center))) ' \
                                       'FROM (SELECT * FROM fire_info where id = %(id)s) f Group by ' \
                                       'f.name, f.if_sequence, f.state, f.id'
+    sql_insert_fire_into_aggregated_single = 'INSERT INTO fire_aggregated(name, if_sequence, agency, state, id, starttime, endtime, geom_full, geom_1e4, geom_1e3, geom_1e2, geom_center) ' \
+                                             'VALUES (%(name)s, %(if_sequence)s, %(agency)s, %(state)s,%(id)s, %(starttime)s, %(endtime)s, %(geom_full)s, %(geom_1e4)s, %(geom_1e3)s, %(geom_1e2)s,%(geom_center)s) ON CONFLICT DO NOTHING'
+    sql_update_fire_info = 'UPDATE fire_info SET id = %(id)s WHERE name = %(name)s AND time >= %(endtime)s::timestamp AND time <= %(starttime)s::timestamp;'
 
     # code for accessing
     sql_retrieve_all_fires = 'SELECT year,state,name FROM fire_crawl_history'
@@ -54,7 +57,7 @@ class FireDumper(DumperBase):
     sql_get_latest_fire = 'SELECT a.id, h.year, h.state, h.name ' \
                           'from (SELECT id FROM fire_aggregated Where abs(DATE_PART(\'day\', ' \
                           'endtime - now())) < 10) a, fire_crawl_history h where h.id = a.id;'
-
+    sql_get_latest_aggregation = 'SELECT f.name, f.if_sequence,string_agg(distinct (f.agency), \', \'),f.state,f.id,min(f.time),Max(f.time), st_astext(st_union(st_makevalid(f.geom_full))) as geom_full,st_astext(st_union(st_makevalid(f.geom_1e4))),st_astext(st_union(st_makevalid(f.geom_1e3))),st_astext(st_union(st_makevalid(f.geom_1e2))),st_astext(st_centroid(st_union(f.geom_center))) FROM (SELECT * FROM fire_info where id = {}) f Group by f.name, f.if_sequence, f.state, f.id'
 
     def __init__(self):
         super().__init__()
@@ -87,19 +90,6 @@ class FireDumper(DumperBase):
             conn.commit()
         cur.close()
 
-    def check_aggregated(self, conn):
-        """
-        create fire_aggregated table if not exist
-        """
-        cur = conn.cursor()
-        # if table not exist
-        cur.execute(self.sql_check_if_fire_aggregated_table_exists)
-        tables = cur.fetchall()
-        if len(tables) == 0:
-            print("No aggregated table exists. Creating a new one.")
-            cur.execute(FireDumper.sql_create_fire_aggregated_table)
-            conn.commit()
-        cur.close()
 
     def retrieve_all_fires(self):
         """
@@ -125,7 +115,6 @@ class FireDumper(DumperBase):
             cur.close()
         print("Finished inserting file:",info["firename"],info["datetime"])
         print("record count:",self.inserted_count)
-        # return info["datetime"].year
 
     def insert_history(self,year,name,state,id, current_year):
         with Connection() as connect:
@@ -156,6 +145,15 @@ class FireDumper(DumperBase):
             cur = conn.cursor()
             self.check_aggregated(conn)
             info = {"id": id}
+            cur.execute(self.sql_get_latest_aggregation,info)
+            result = cur.fetchall()
+            if len(result) > 1:
+                for record in result:
+                    print(record)
+                    cur.execute(self.sql_insert_fire_into_aggregated_single, record)
+                    cur.execute()
+                    id += 1
+
             cur.execute(self.sql_insert_fire_into_aggregated,info)
             conn.commit()
         return
@@ -167,7 +165,12 @@ class FireDumper(DumperBase):
         """
         with Connection() as conn:
             cur = conn.cursor()
-            self.check_aggregated(conn)
+            cur.execute(self.sql_check_if_fire_aggregated_table_exists)
+            tables = cur.fetchall()
+            if len(tables) == 0:
+                print("No aggregated table exists. Creating a new one.")
+                cur.execute(FireDumper.sql_create_fire_aggregated_table)
+                conn.commit()
             cur.execute(self.sql_get_latest_fire)
             result = cur.fetchall()
         return result
@@ -188,3 +191,48 @@ class FireDumper(DumperBase):
                 cur.execute(f'DELETE from fire_aggregated where id = {id}')
                 conn.commit()
                 print("deleted")
+
+
+    def after_inserting_into_fire_info(self, id:int,year,name,state,current_year):
+        """
+        Procedure to be execute after inserting a set of fire into fire_info
+        :param id: int
+        :return:
+        """
+        with Connection() as conn:
+            cur = conn.cursor()
+            # check if fire_aggregate table exist
+            cur.execute(self.sql_check_if_fire_aggregated_table_exists)
+            tables = cur.fetchall()
+            if len(tables) == 0:
+                print("No aggregated table exists. Creating a new one.")
+                cur.execute(FireDumper.sql_create_fire_aggregated_table)
+                conn.commit()
+            cur.execute(self.sql_get_latest_aggregation.format(id))
+            aggregated_with_id = cur.fetchall()
+            print(aggregated_with_id)
+            new_id = id
+            for i in range(len(aggregated_with_id)):
+                new_id = new_id + i
+                info = {"name":aggregated_with_id[i][0],
+                        "if_sequence": aggregated_with_id[i][1],
+                        "agency": aggregated_with_id[i][2],
+                        "state": aggregated_with_id[i][3],
+                        "id": new_id,
+                        "starttime": aggregated_with_id[i][5],
+                        "endtime": aggregated_with_id[i][6],
+                        "geom_full": aggregated_with_id[i][7],
+                        "geom_1e4": aggregated_with_id[i][8],
+                        "geom_1e3": aggregated_with_id[i][9],
+                        "geom_1e2": aggregated_with_id[i][10],
+                        "geom_center": aggregated_with_id[i][11]
+                        }
+                # update their id in fire_info
+                cur.execute(self.sql_update_fire_info, info)
+                # insert this set in fire_aggregate
+                cur.execute(self.sql_insert_fire_into_aggregated_single,info)
+                conn.commit()
+                # insert this set into fire_crawl_history
+                self.insert_history(year,name,state,id,current_year)
+        return new_id
+

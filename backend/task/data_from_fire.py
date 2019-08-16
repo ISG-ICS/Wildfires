@@ -102,10 +102,7 @@ class DataFromFire(Runnable):
                 if single_record == dict():
                     continue
                 self.dumper.insert(single_record)
-            self.dumper.check_if_aggregation_exist(fire_id)
-            self.dumper.aggregate(fire_id)
-            print("Now fire id is:", fire_id)
-            self.dumper.insert_history(year,urlname,state,fire_id, current_year)
+            fire_id = self.dumper.after_inserting_into_fire_info(fire_id,year,urlname,state,current_year)
             fire_id += 1
             self.crawler.cleanup()
         # finished all insertion

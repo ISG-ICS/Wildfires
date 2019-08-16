@@ -16,6 +16,8 @@ export class TimeSeriesComponent implements OnInit {
     @Output() timeRangeChange = new EventEmitter();
     private halfUnit = 86400000 / 2;
     private currentTick = null;
+    private startTick = null;
+    private endTick = null;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -50,6 +52,37 @@ export class TimeSeriesComponent implements OnInit {
                 events: {
                     selection: event => {
                         this.timeService.setRangeDate(event.xAxis[0].min + this.halfUnit, event.xAxis[0].max);
+                        if (event.xAxis) {
+                            $('#report').html('Last selection ----- ' +
+                                'min: ' + Highcharts.dateFormat('%Y-%m-%d', event.xAxis[0].min) +
+                                ', max: ' + Highcharts.dateFormat('%Y-%m-%d', event.xAxis[0].max));
+                        } else {
+                            $('#report').html('Selection reset');
+                        }
+                        //
+                        // if (this.startTick != null && this.startTick.hasOwnProperty('label')) {
+                        //         this.startTick.label.css({
+                        //             color: '#666666'
+                        //         });
+                        //     }
+                        // if (this.endTick != null && this.endTick.hasOwnProperty('label')) {
+                        //     this.endTick.label.css({
+                        //         color: '#666666'
+                        //     });
+                        // }
+                        // // @ts-ignore
+                        // const tickIndexs = event.xAxis[0].axis.tickPositions;
+                        // // @ts-ignore
+                        // this.startTick = event.xAxis[0].axis.ticks[tickIndexs[0]];
+                        // this.startTick.label.css({
+                        //             color: '#d88040'
+                        //         });
+                        // // @ts-ignore
+                        // this.endTick = event.xAxis[0].axis.ticks[tickIndexs[tickIndexs.length - 1]];
+                        // this.endTick.label.css({
+                        //             color: '#d88040'
+                        //         });
+
                         return true;
                     },
                     click: event => {
@@ -60,7 +93,6 @@ export class TimeSeriesComponent implements OnInit {
                         const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
                         // @ts-ignore
                         const tick = event.xAxis[0].axis.ticks[dateInMs];
-                        console.log(tick)
                         if (this.currentTick === null) {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - this.halfUnit,
@@ -72,8 +104,8 @@ export class TimeSeriesComponent implements OnInit {
                                 tick.label.css({
                                     color: '#ffffff'
                                 });
-                                this.currentTick = tick;
                             }
+                            this.currentTick = tick;
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
@@ -83,7 +115,7 @@ export class TimeSeriesComponent implements OnInit {
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
-                            if (this.currentTick != null) {
+                            if (this.currentTick != null && this.currentTick.hasOwnProperty('label')) {
                                 this.currentTick.label.css({
                                     color: '#666666'
                                 });
@@ -92,14 +124,12 @@ export class TimeSeriesComponent implements OnInit {
                                 tick.label.css({
                                     color: '#ffffff'
                                 });
-                                this.currentTick = tick;
-                            } else {
-                                this.currentTick = undefined;
                             }
+                            this.currentTick = tick;
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');
-                            if (this.currentTick != null) {
+                            if (this.currentTick != null && this.currentTick.hasOwnProperty('label')) {
                                 this.currentTick.label.css({
                                     color: '#666666'
                                 });

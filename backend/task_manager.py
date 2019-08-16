@@ -1,4 +1,6 @@
 import ctypes
+import glob
+import importlib
 import inspect
 import json
 import logging.config
@@ -14,8 +16,9 @@ import rootpath
 rootpath.append()
 from paths import LOG_DIR, LOG_CONFIG_PATH
 
+
 # don't delete these imports because they're called implicitly
-exec("from backend.task import *")
+# exec("from backend.task import *")
 
 
 class Task:
@@ -48,21 +51,35 @@ class TaskManager:
     NOTE: Locks,Events,Semaphores etc. have not been taken into consideration
     and may cause unexpected behaviour if used!
      """
+
     exec("from backend.task.runnable import Runnable")
     running_threads: List[RunningThread] = list()
     task_options = dict()
-    # use 'Runnable' as parent class' name and get all the subclasses' names
-    for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
-        task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run, 1)
     task_option_id = 1
 
     TASK_MODE = 0
     KILL_MODE = 1
     QUIT_MODE = 2
+    RELOAD_MODE = 3
+
+    @classmethod
+    def load_runnables(cls):
+        exec("from backend.task.runnable import Runnable")
+        task_dir = os.path.join(os.path.realpath(__file__), '..', 'task')
+        tasks = [os.path.split(file)[-1].strip(".py").strip("./") for file in
+                 glob.glob(os.path.join(task_dir, './*.py'))]
+
+        TaskManager.task_options = dict()
+        for t in tasks:
+            importlib.import_module(f'task.{t}')
+        # use 'Runnable' as parent class' name and get all the subclasses' names
+        for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
+            cls.task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run, 1)
 
     def __init__(self):
         self.quit_flag: bool = False
         self.kill_thread_flag: bool = False
+        TaskManager.load_runnables()
 
     @staticmethod
     def initialize_logger() -> Logger:
@@ -79,7 +96,7 @@ class TaskManager:
             date_format = '%m/%d/%Y-%H:%M:%S'
             formatter = logging.Formatter(fmt=info_format, datefmt=date_format)
             handler_names = ['info.log', 'error.log']
-            current_time = time.strftime('%m%d%Y_%H:%M:%S_', time.localtime(time.time()))
+            current_time = time.strftime('%m%d%Y_%H-%M-%S_', time.localtime(time.time()))
             for handler_name in handler_names:
                 file_name = os.path.join(LOG_DIR, current_time + handler_name)
                 # create log file in advance
@@ -266,6 +283,10 @@ class TaskManager:
             elif task_mode == TaskManager.QUIT_MODE:
                 print("bye bye")
                 break
+            elif task_mode == TaskManager.RELOAD_MODE:
+
+                TaskManager.load_runnables()
+                continue
             else:
                 self.run_a_task(selected_task)
 
@@ -323,13 +344,15 @@ class TaskManager:
             try:
                 task_prompt = self.lower_case_prompt(
                     "\nWhich task would you like to run:\n" + self.task_option_to_string()
-                    + " [k]: kill a running thread\n [q]: QUIT\n")
+                    + " [k]: kill a running thread\n [q]: QUIT\n [r]: Reload\n")
                 if task_prompt == 'k':
                     return None, TaskManager.KILL_MODE
                 elif task_prompt == 'q':
                     if self.lower_case_prompt("Are you sure you want to quit? [Y/N]") not in ['y', 'yes']:
                         continue
                     return None, TaskManager.QUIT_MODE
+                elif task_prompt == 'r':
+                    return None, TaskManager.RELOAD_MODE
                 else:
                     selected_task = int(task_prompt)
                     # to test whether this is a legal task
@@ -342,9 +365,10 @@ class TaskManager:
 
 if __name__ == "__main__":
     logger = TaskManager.initialize_logger()
+    logger.addHandler(logging.StreamHandler())
     logger.info('Task manager is running now!')
     try:
         task_manager = TaskManager()
         task_manager.main_loop()
-    except:
+    except IOError:
         logger.error('Invalid Input Cause Error')

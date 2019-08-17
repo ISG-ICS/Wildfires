@@ -1,3 +1,7 @@
+lxml
+gdal
+rasterio
+fiona
 gdal
 rasterio
 fiona

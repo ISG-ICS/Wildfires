@@ -21,7 +21,7 @@ class DataFromNASAGrace(Runnable):
         self.crawler = SoilMoisCrawler()
         self.extractor = TiffExtractor()
         self.dumper = SoilMoisDumper()
-        self.end_time = datetime.strptime('20131230', '%Y%m%d')
+        self.end_time = datetime.strptime('20160104', '%Y%m%d')
 
     def run(self, begin_time_str=datetime.today().strftime('%Y%m%d')):
         # get data from nasagrace
@@ -53,9 +53,9 @@ class DataFromNASAGrace(Runnable):
                     else:
                         logger.info(f'{formatted_date_stamp} existed, skipped')
             finally:
-
                 for tif_file in glob.glob(os.path.join(SOIL_MOIS_DATA_DIR, "*.tif")):
-                    os.remove(tif_file)
+                    if 'res' not in tif_file and 'masked' not in tif_file:
+                        os.remove(tif_file)
                     logger.info(f"file: {tif_file} removed")
 
         # if there are no files left, delete the directory

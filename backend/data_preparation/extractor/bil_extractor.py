@@ -7,15 +7,15 @@ import numpy as np
 import rootpath
 
 rootpath.append()
-
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
 logger = logging.getLogger('TaskManager')
 
+
 class BILFormat:
     def __init__(self):
-        self.ndarray: np.ndarray
-        self.flattened: np.ndarray
+        self.ndarray: np.ndarray = np.zeros(0)
+        self.unflattened: np.ndarray = np.zeros(0)
 
 
 class BILExtractor(ExtractorBase):
@@ -71,7 +71,7 @@ class BILExtractor(ExtractorBase):
         bil = BILFormat()
         bil.ndarray = prism_array[BILExtractor.CROP_TOP:BILExtractor.CROP_BOTTOM,
                       BILExtractor.CROP_LEFT:BILExtractor.CROP_RIGHT]
-        bil.flattened = prism_array.flatten()
+        bil.unflattened = prism_array
         return bil
 
     @staticmethod

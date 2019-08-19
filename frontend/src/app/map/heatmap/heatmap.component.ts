@@ -85,7 +85,7 @@ export class HeatmapComponent implements OnInit {
                 labels: {
                     format: '{value}' + y1Unit,
                     style: {
-                        color: '#948a8c',
+                        color: '#3b2f31',
                         fontSize: '8px',
                     }
                 },
@@ -122,7 +122,7 @@ export class HeatmapComponent implements OnInit {
             }, {
                 name: y1Name,
                 type: 'spline',
-                color: 'black',
+                color: '#3b2f31',
                 data: y1Value,
                 yAxis: 0,
                 tooltip: {
@@ -192,9 +192,8 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
 
-        //this.map.on('dblclick', this.onMapClick, this);
+
         this.map.on('mousedown', e => this.onMapHold(e));
-        //this.onMapRemove();
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
@@ -395,29 +394,11 @@ export class HeatmapComponent implements OnInit {
             });
         const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
 
-
-        // Create Button To Set Sticky In Popup
-        const container = $('<div />');
-        container.html('<button href="#" class="leaflet-popup-sticky-button">S</button><br>')
-            .on('click', '.leaflet-popup-sticky-button', () => {
-                // Justify current sticky status
-                marker.isSticky = !marker.isSticky;
-                if (!marker.isSticky) {
-                    marker.getPopup().on('remove', () => {
-                        group.remove();
-                    });
-                } else {
-                    marker.getPopup().removeEventListener('remove');
-                }
-            });
-        container.append('You clicked the map at ' + e.latlng.toString());
-        marker.bindPopup(container[0], {
+        marker.bindPopup('You clicked the map at ' + e.latlng.toString(), {
             closeOnClick: false,
             autoClose: true,
         }).openPopup();
 
-
-        // this.map.on('dblclick', () => { group.remove();}, this);
         this.map.on('mousedown', (e) => judgeDistance(e));
 
         this.marker = marker;
@@ -440,29 +421,9 @@ export class HeatmapComponent implements OnInit {
         }); // Remove popup fire remove all (default is not sticky)
 
         // TODO: change marker from global var since it only specify one.
-        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-16T15:37:27Z', 7)
+        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-19T15:37:27Z', 7)
             .subscribe((data) => this.clickPointHandler(data));
     }
-
-    onMapRemove = () => {
-        this.map.on('mousedown', (e) => judgeDistance(e));
-        const that = this;
-
-        function judgeDistance(event) {
-            that.map.on('mouseup', (e) => {
-                if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
-                    this.group.remove();
-                }
-            });
-        }
-
-        this.marker.getPopup().on('remove', () => {
-            this.group.remove();
-        });
-        if (this.marker.isSticky) {
-            this.group.addTo(this.map);
-        }
-    };
 
     clickPointHandler = (data) => {
         console.log(data);
@@ -495,10 +456,40 @@ export class HeatmapComponent implements OnInit {
             if (i[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(i[1]);
+                soilwValue.push(i[1] * 100);
             }
         }
 
+        const pptTime = [];
+        const pptValue = [];
+        for (const i of data.ppt) {
+            pptTime.push(i[0]);
+            if (i[1] === null) {
+                pptValue.push(0);
+            } else {
+                pptValue.push(i[1]);
+            }
+        }
+
+        this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
+        // this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
+        HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
+            'Moisture', soilwValue, '%', '#d9db9c');
+        HeatmapComponent.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets',
+            'Temperature', tmpValue, 'Celsius', '#c4968b');
+        HeatmapComponent.drawChart('container3', pptTime, 'Tweet counts', cntValue, 'tweets',
+            'Precipitation', pptValue, 'mm', '#9fc7c3');
+
+        this.marker.getPopup().on('remove', () => {
+            this.group.remove();
+        });
+
+        if (this.marker.isSticky) {
+            this.group.addTo(this.map);
+        }
+    };
+
+    stickyBotton = () => {
         const clickboxContents = $('<div />');
         clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
             .on('click', '.leaflet-popup-sticky-button1', () => {
@@ -508,24 +499,7 @@ export class HeatmapComponent implements OnInit {
                 }
             });
         clickboxContents.append(this.clickboxContentsToShow);
-        this.marker.bindPopup(clickboxContents[0]).openPopup();
-        // this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
-        HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
-            'Moisture', soilwValue, '%', '#d9db9c');
-        HeatmapComponent.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets',
-            'Temperature', tmpValue, 'Celsius', '#c4968b');
-        HeatmapComponent.drawChart('container3', tmpTime, 'Tweet counts', cntValue, 'tweets',
-            'Precipitation', tmpValue, 'mm', '#9fc7c3');
-        // HeatmapComponent.drawChart('tweetcontainer', tmpTime, 'Fire event', cntValue, 'fires',
-        //     'Temperature', tmpValue, 'Cesius', 'red');
-
-        this.marker.getPopup().on('remove', () => {
-            this.group.remove();
-        });
-
-        if (this.marker.isSticky) {
-            this.group.addTo(this.map);
-        }
+        return clickboxContents[0];
     };
 
     rangeSelectHandler = (event) => {

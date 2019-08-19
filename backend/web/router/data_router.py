@@ -18,8 +18,8 @@ bp = Blueprint('data', __name__, url_prefix='/data')
 
 
 def gen_date_series(days: int, timestamp_str: str) -> List[Tuple[date, None]]:
-    _date = parser.parse(timestamp_str).date()
-    return [(_date - timedelta(days=i), None) for i in range(days)]
+    _date = parser.parse(timestamp_str).date() - timedelta(days=days - 1)
+    return [(_date + timedelta(days=i), None) for i in range(days)]
 
 
 def fill_series(date_series: List[Tuple[date, None]], fill: List[Tuple[date, Union[int, float, None]]]) \
@@ -49,19 +49,43 @@ def aggregation():
     query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
     query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s, TIMESTAMP %s, %s)'
     query3_mois = 'SELECT * from aggregate_moisture(%s, %s, %s, TIMESTAMP %s, %s)'
+    query4_ppt = '''
+        select rft."date", avg(prism.ppt) from prism,
+        (
+            SELECT rft."date" from prism_info rft
+            where rft."date" <= TIMESTAMP %s -- UTC timezong
+            -- returning PDT without timezong label
+            and rft."date" > TIMESTAMP %s - ( %s || ' day')::interval
+        ) as rft,
+        (
+            select mesh.gid from us_mesh mesh 
+            WHERE st_dwithin(st_makepoint(%s, %s),mesh.geom, %s)
+        ) as gids
+        where prism.gid=gids.gid
+        and prism."date" = rft."date"
+        and prism.ppt != FLOAT 'NaN'
+        GROUP BY rft."date"
+    '''
     with Connection() as conn:
         cur = conn.cursor()
 
+        # tweet count from 'records'
         cur.execute(query_tweet, (lng, lat, radius, timestamp_str, days))  # lng lat +-180
         tweet = cur.fetchall()
         tweet_series = fill_series(date_series, tweet)
+        # temp, mois from NOAA
         cur.execute(query2_temp, (lng, lat, radius, timestamp_str, days))
         temp = cur.fetchall()
         temp_series = fill_series(date_series, temp)
         cur.execute(query3_mois, (lng, lat, radius, timestamp_str, days))
         mois = cur.fetchall()
         mois_series = fill_series(date_series, mois)
-        resp = make_response(jsonify({'tmp': temp_series, 'soilw': mois_series, 'cnt_tweet': tweet_series}))
+        # ppt from PRISM
+        cur.execute(query4_ppt, (timestamp_str, timestamp_str, days, lng, lat, radius))
+        ppt = cur.fetchall()
+        ppt_series = fill_series(date_series, ppt)
+        resp = make_response(jsonify({'tmp': temp_series, 'soilw': mois_series, 'cnt_tweet': tweet_series,
+                                      'ppt': ppt_series}))
 
         cur.close()
     return resp

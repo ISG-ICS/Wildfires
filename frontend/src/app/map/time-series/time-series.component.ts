@@ -47,19 +47,6 @@ export class TimeSeriesComponent implements OnInit {
                 backgroundColor: null,
                 zoomType: 'x',
                 events: {
-                    selection: event => {
-                        this.timeService.setRangeDate(event.xAxis[0].min + this.halfUnit, event.xAxis[0].max);
-                        if (event.xAxis) {
-                            $('#report').html('Last selection ----- ' +
-                                'min: ' + Highcharts.dateFormat('%Y-%m-%d', event.xAxis[0].min) +
-                                ', max: ' + Highcharts.dateFormat('%Y-%m-%d', event.xAxis[0].max));
-                        } else {
-                            $('#report').html('Selection reset');
-                        }
-                        this.timeRangeChange.emit();
-                        $(window).trigger('timeRangeChange');
-                        return true;
-                    },
                     click: event => {
                         // @ts-ignore
                         const clickValue = event.xAxis[0].value;
@@ -135,6 +122,16 @@ export class TimeSeriesComponent implements OnInit {
                 type: 'datetime',
                 crosshair: true,
                 range: 6 * 30 * 24 * 3600 * 1000, // six months
+                events: {
+                    setExtremes: (event) => {
+                        this.timeService.setRangeDate(event.min + this.halfUnit, event.max);
+                        $('#report').html('Date Range => ' +
+                            'min: ' + Highcharts.dateFormat('%Y-%m-%d', event.min) +
+                            ', max: ' + Highcharts.dateFormat('%Y-%m-%d', event.max));
+                        $(window).trigger('timeRangeChange');
+                    }
+
+                }
             },
             scrollbar: {
                 barBackgroundColor: 'gray',

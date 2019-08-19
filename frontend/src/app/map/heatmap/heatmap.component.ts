@@ -85,7 +85,7 @@ export class HeatmapComponent implements OnInit {
                 labels: {
                     format: '{value}' + y1Unit,
                     style: {
-                        color: 'black',
+                        color: '#948a8c',
                         fontSize: '8px',
                     }
                 },
@@ -510,10 +510,12 @@ export class HeatmapComponent implements OnInit {
         clickboxContents.append(this.clickboxContentsToShow);
         this.marker.bindPopup(clickboxContents[0]).openPopup();
         // this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
-        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
-            'Moisture', soilwValue, 'mm', 'green');
-        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
-            'Temperature', tmpValue, 'Cesius', 'red');
+        HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
+            'Moisture', soilwValue, '%', '#d9db9c');
+        HeatmapComponent.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets',
+            'Temperature', tmpValue, 'Celsius', '#c4968b');
+        HeatmapComponent.drawChart('container3', tmpTime, 'Tweet counts', cntValue, 'tweets',
+            'Precipitation', tmpValue, 'mm', '#9fc7c3');
         // HeatmapComponent.drawChart('tweetcontainer', tmpTime, 'Fire event', cntValue, 'fires',
         //     'Temperature', tmpValue, 'Cesius', 'red');
 
@@ -728,12 +730,15 @@ export class HeatmapComponent implements OnInit {
         }, this), duration);
     }
 
+
     clickboxContentsToShow() {
-        const chartContents = '    <div id="containers" style="width: 600px; height: 300px;">\n' +
-            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
-            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n';
+        const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
+            '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
+
+
+
 
         const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
             '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +

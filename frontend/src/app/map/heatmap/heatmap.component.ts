@@ -15,7 +15,7 @@ import {LocationBoundaryLayer} from '../layers/location.boundary.layer';
 import {LocationMarkerLayer} from '../layers/location.marker';
 import {Component, OnInit} from '@angular/core';
 
-import {TimeService} from "../../services/time/time.service";
+import {TimeService} from '../../services/time/time.service';
 
 declare let L;
 
@@ -60,7 +60,8 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
-    constructor(private mapService: MapService, private searchService: SearchService, private fireService: FireService) {
+    constructor(private mapService: MapService, private searchService: SearchService,
+                private fireService: FireService, private timeService: TimeService) {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {

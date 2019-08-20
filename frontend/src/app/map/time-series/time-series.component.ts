@@ -104,7 +104,8 @@ export class TimeSeriesComponent implements OnInit {
                 }
             },
             navigator: {
-                height: 40
+                margin: 2,
+                height: 30,
             },
             title: {
                 text: '',
@@ -113,14 +114,22 @@ export class TimeSeriesComponent implements OnInit {
                 type: 'line',
                 data: chartData,
                 color: '#e25822',
-                name: '<span style=\'color:#e25822\'>Wildfire Tweet</span>'
+                name: '<span style=\'color:#e25822\'>Wildfire Tweet</span>',
             }],
+            tooltip: {
+                enabled: true,
+                backgroundColor: 'rgba(255,255,255,0)',
+                padding: 0,
+                hideDelay: 0,
+                style: {
+                    color: '#ffffff',
+                }
+            },
             rangeSelector: {
                 enabled: false
             },
             xAxis: {
                 type: 'datetime',
-                crosshair: true,
                 range: 6 * 30 * 24 * 3600 * 1000, // six months
                 events: {
                     setExtremes: (event) => {
@@ -133,18 +142,7 @@ export class TimeSeriesComponent implements OnInit {
                 }
             },
             scrollbar: {
-                barBackgroundColor: 'gray',
-                barBorderRadius: 6,
-                barBorderWidth: 0,
-                buttonBackgroundColor: 'gray',
-                buttonBorderWidth: 0,
-                buttonArrowColor: 'silver',
-                buttonBorderRadius: 6,
-                rifleColor: 'silver',
-                trackBackgroundColor: 'rgba(251,254,255,0.19)',
-                trackBorderWidth: 1,
-                trackBorderColor: 'silver',
-                trackBorderRadius: 6
+                height: 0,
             },
         });
     }

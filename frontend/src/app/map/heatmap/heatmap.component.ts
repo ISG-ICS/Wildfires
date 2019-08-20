@@ -331,13 +331,13 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapClick(e) {
-        const oldMarker = this.marker;
-        const oldGroup = this.group;
-        if (oldMarker !== null) {
-            if (oldMarker.isSticky) {
-                oldGroup.addTo(this.map);
-            }
-        }
+        // const oldMarker = this.marker;
+        // const oldGroup = this.group;
+        // if (oldMarker !== null) {
+        //     if (oldMarker.isSticky) {
+        //         oldGroup.addTo(this.map);
+        //     }
+        // }
 
         function mouseMoveChangeRadius(event) {
             const newRadius = distance(circle._latlng, event.latlng);
@@ -347,6 +347,7 @@ export class HeatmapComponent implements OnInit {
 
 
         function distance(center, pt) {
+            // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
 
@@ -382,7 +383,7 @@ export class HeatmapComponent implements OnInit {
 
                 this.map.on('mouseup', (event) => {
                     const newRadius = distance(circle._latlng, event.latlng);
-                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-08-12T15:37:27Z', 7)
+                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-08-12T15:37:27Z', 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
                         .subscribe(this.clickPointHandler);
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
@@ -446,7 +447,7 @@ export class HeatmapComponent implements OnInit {
             if (avgtmp[1] === null) {
                 tmpValue.push(0);
             } else {
-                tmpValue.push(avgtmp[1] - 273.15);
+                tmpValue.push(avgtmp[1] - 273.15);  // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
             }
         }
 
@@ -457,7 +458,7 @@ export class HeatmapComponent implements OnInit {
             if (avgsoilw[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(avgsoilw[1] * 100);
+                soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
             }
         }
 
@@ -473,7 +474,6 @@ export class HeatmapComponent implements OnInit {
         }
 
         this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
-        // this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
         HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
             'Moisture', soilwValue, '%', '#d9db9c');
         HeatmapComponent.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets',
@@ -485,23 +485,23 @@ export class HeatmapComponent implements OnInit {
             this.group.remove();
         });
 
-        if (this.marker.isSticky) {
-            this.group.addTo(this.map);
-        }
+        // if (this.marker.isSticky) {
+        //     this.group.addTo(this.map);
+        // }
     };
 
-    stickyBotton = () => {
-        const clickboxContents = $('<div />');
-        clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
-            .on('click', '.leaflet-popup-sticky-button1', () => {
-                this.marker.isSticky = !this.marker.isSticky;
-                if (this.marker.isSticky) {
-                    this.group.addTo(this.map);
-                }
-            });
-        clickboxContents.append(this.clickboxContentsToShow);
-        return clickboxContents[0];
-    };
+    // stickyBotton = () => {
+    //     const clickboxContents = $('<div />');
+    //     clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
+    //         .on('click', '.leaflet-popup-sticky-button1', () => {
+    //             this.marker.isSticky = !this.marker.isSticky;
+    //             if (this.marker.isSticky) {
+    //                 this.group.addTo(this.map);
+    //             }
+    //         });
+    //     clickboxContents.append(this.clickboxContentsToShow);
+    //     return clickboxContents[0];
+    // };
 
     rangeSelectHandler = (event) => {
         const inRange = (min: number, max: number, target: number) => {
@@ -704,7 +704,6 @@ export class HeatmapComponent implements OnInit {
             this.timer = null;
         }, this), duration);
     }
-
 
     clickboxContentsToShow() {
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +

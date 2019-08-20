@@ -11,7 +11,7 @@ import {SearchService} from '../../services/search/search.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
-import {Subject} from 'rxjs';
+import {of, Subject} from 'rxjs';
 import {Boundary} from '../../models/boundary.model';
 
 
@@ -23,8 +23,6 @@ declare let L;
     styleUrls: ['./heatmap.component.css']
 })
 export class HeatmapComponent implements OnInit {
-
-    private circle;
 
     private static STATE_LEVEL_ZOOM = 8;
     private static COUNTY_LEVEL_ZOOM = 9;
@@ -38,7 +36,9 @@ export class HeatmapComponent implements OnInit {
     private fireEventLayer;
     private pinRadius = 40000;
     // For what to present when click event happens
-    private marker;
+    private marker = null;
+    private group;
+    private timer = null;
 
 
     // Set up for a range and each smaller interval of temp to give specific color layers
@@ -56,6 +56,7 @@ export class HeatmapComponent implements OnInit {
     private tempRegionsMax = [];
     private tempMax = 36;
     private tempMin = 0;
+
 
     constructor(private mapService: MapService, private searchService: SearchService) {
     }
@@ -84,7 +85,7 @@ export class HeatmapComponent implements OnInit {
                 labels: {
                     format: '{value}' + y1Unit,
                     style: {
-                        color: 'black',
+                        color: '#3b2f31',
                         fontSize: '8px',
                     }
                 },
@@ -121,7 +122,7 @@ export class HeatmapComponent implements OnInit {
             }, {
                 name: y1Name,
                 type: 'spline',
-                color: 'black',
+                color: '#3b2f31',
                 data: y1Value,
                 yAxis: 0,
                 tooltip: {
@@ -191,13 +192,8 @@ export class HeatmapComponent implements OnInit {
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
         this.map.on('zoomend, moveend', this.getBoundary);
 
-        // this.map.on('click', event => {
-        //     this.marker = new ClickboxLayer(this.mainControl, this.mapService, this.map, event.latlng);
-        //     this.marker.addTo(this.map);
-        // });
-        this.map.on('click', this.onMapClick, this);
 
-
+        this.map.on('mousedown', e => this.onMapHold(e));
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
 
     }
@@ -251,7 +247,6 @@ export class HeatmapComponent implements OnInit {
         this.map.addLayer(this.geojsonLayer);
     };
 
-
     fireEventHandler = (data) => {
 
         const fireEventList = [];
@@ -270,7 +265,6 @@ export class HeatmapComponent implements OnInit {
         const fireEvents = L.layerGroup(fireEventList);
         this.mainControl.addOverlay(fireEvents, 'Fire event');
     };
-
 
     heatmapDataHandler = (data) => {
         // use heatmapOverlay from leaflet-heatmap
@@ -337,13 +331,23 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapClick(e) {
+        // const oldMarker = this.marker;
+        // const oldGroup = this.group;
+        // if (oldMarker !== null) {
+        //     if (oldMarker.isSticky) {
+        //         oldGroup.addTo(this.map);
+        //     }
+        // }
+
         function mouseMoveChangeRadius(event) {
             const newRadius = distance(circle._latlng, event.latlng);
             localBound.setRadius(newRadius);
             circle.setRadius(newRadius);
         }
 
+
         function distance(center, pt) {
+            // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
 
@@ -379,100 +383,125 @@ export class HeatmapComponent implements OnInit {
 
                 this.map.on('mouseup', (event) => {
                     const newRadius = distance(circle._latlng, event.latlng);
-                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-07-30T15:37:27Z', 7)
+                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-08-12T15:37:27Z', 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
                         .subscribe(this.clickPointHandler);
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
                     setTimeout(() => {
-                        this.map.on('click', this.onMapClick, this);
+                        this.map.on('mousedown', this.onMapHold, this);
                         this.map.removeEventListener('mouseup');
                     }, 500);
                 }, this);
             });
         const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
 
-
-        // Create Button To Set Sticky In Popup
-        const container = $('<div />');
-        container.html('<button href="#" class="leaflet-popup-sticky-button">S</button><br>')
-            .on('click', '.leaflet-popup-sticky-button', () => {
-                // Justify current sticky status
-                marker.isSticky = !marker.isSticky;
-                if (!marker.isSticky) {
-                    marker.getPopup().on('remove', () => {
-                        group.remove();
-                    });
-                } else {
-                    marker.getPopup().removeEventListener('remove');
-                }
-            });
-        container.append('You clicked the map at ' + e.latlng.toString());
-        marker.bindPopup(container[0], {
+        marker.bindPopup('You clicked the map at ' + e.latlng.toString(), {
             closeOnClick: false,
             autoClose: true,
         }).openPopup();
 
-        // Remove popup fire remove all (default is not sticky)
+        this.map.on('mousedown', (e) => this.judgeDistance(e, group));
+
+        this.marker = marker;
+        this.group = L.layerGroup([marker, circle, localBound]);
+
+
         marker.getPopup().on('remove', () => {
             group.remove();
-        });
+        }); // Remove popup fire remove all (default is not sticky)
+
         // TODO: change marker from global var since it only specify one.
-        this.marker = marker;
-        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-07-30T15:37:27Z', 7)
-            .subscribe((data) => this.clickPointHandler(data));
+        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-19T15:37:27Z', 7)
+            .subscribe(this.clickPointHandler);
     }
+
+    judgeDistance(event, group) {
+        this.map.on('mouseup', (e) => {
+            if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
+                //if (!that.marker.isSticky) {
+                group.remove();
+                //}
+            }
+        });
+    }
+
+
 
     clickPointHandler = (data) => {
         console.log(data);
 
         const cntTime = [];
         const cntValue = [];
-        for (const i of data.cnt_tweet) {
-            cntTime.push(i[0]);
-            if (i[1] === null) {
+        for (const tweetcnt of data.cnt_tweet) {
+            cntTime.push(tweetcnt[0]);
+            if (tweetcnt[1] === null) {
                 cntValue.push(0);
             } else {
-                cntValue.push(i[1]);
+                cntValue.push(tweetcnt[1]);
             }
         }
         const tmpTime = [];
         const tmpValue = [];
-        for (const i of data.tmp) {
-            tmpTime.push(i[0]);
-            tmpValue.push(i[1] - 273.15);
-            // tmpValue.push(Number(i[1] - 273.15).toFixed(2));
+        for (const avgtmp of data.tmp) {
+            tmpTime.push(avgtmp[0]);
+            if (avgtmp[1] === null) {
+                tmpValue.push(0);
+            } else {
+                tmpValue.push(avgtmp[1] - 273.15);  // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
+            }
         }
 
         const soilwTime = [];
         const soilwValue = [];
-        for (const j of data.soilw) {
-            soilwTime.push(j[0]);
-            soilwValue.push(j[1]);
-            // soilwValue.push(j[1].toFixed(3));
+        for (const avgsoilw of data.soilw) {
+            soilwTime.push(avgsoilw[0]);
+            if (avgsoilw[1] === null) {
+                soilwValue.push(0);
+            } else {
+                soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
+            }
         }
 
+        const pptTime = [];
+        const pptValue = [];
+        for (const avgppt of data.ppt) {
+            pptTime.push(avgppt[0]);
+            if (avgppt[1] === null) {
+                pptValue.push(0);
+            } else {
+                pptValue.push(avgppt[1]);
+            }
+        }
 
-        const chartContents = '<div id="containers" style="width: 600px; height: 300px;">\n' +
-            '    <div id="container" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container2" style="width: 300px; height: 150px; margin: 0px; float: right;"></div>\n' +
-            '    <div id="container3" style="width: 300px; height: 150px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="container4" style="width: 300px; height: 150px; margin: 0px;float: right;;"></div>\n' +
-            '</div>';
+        this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
+        HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
+            'Moisture', soilwValue, '%', '#d9db9c');
+        HeatmapComponent.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets',
+            'Temperature', tmpValue, 'Celsius', '#c4968b');
+        HeatmapComponent.drawChart('container3', pptTime, 'Tweet counts', cntValue, 'tweets',
+            'Precipitation', pptValue, 'mm', '#9fc7c3');
 
-        this.marker.bindPopup(chartContents).openPopup();
-        HeatmapComponent.drawChart('container', soilwTime, 'Fire event', cntValue, 'fires',
-            'Moisture', soilwValue, 'mm', 'green');
-        // this.drawChart('container2',tmpTime, [1,2,3,4,5,6,7], 'fire',tmpValue, 'Cesius');
-        HeatmapComponent.drawChart('container3', tmpTime, 'Fire event', cntValue, 'fires',
-            'Temperature', tmpValue, 'Cesius', 'red');
-        // this.drawChart('container4',tmpTime, [1,2,3,4,5,6,7], 'fire',soilwValue, 'mm');
-
-        // drawChart([1,2,3,4,5,6,7], [1,2,3,4,5,6,7], [1,2,3,4,5,6,7]);
         this.marker.getPopup().on('remove', () => {
-            this.map.removeLayer(this.marker);
+            this.group.remove();
         });
+
+        // if (this.marker.isSticky) {
+        //     this.group.addTo(this.map);
+        // }
     };
 
+    // stickyBotton = () => {
+    //     const clickboxContents = $('<div />');
+    //     clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
+    //         .on('click', '.leaflet-popup-sticky-button1', () => {
+    //             this.marker.isSticky = !this.marker.isSticky;
+    //             if (this.marker.isSticky) {
+    //                 this.group.addTo(this.map);
+    //             }
+    //         });
+    //     clickboxContents.append(this.clickboxContentsToShow);
+    //     return clickboxContents[0];
+    // };
 
     rangeSelectHandler = (event) => {
         const inRange = (min: number, max: number, target: number) => {
@@ -545,6 +574,7 @@ export class HeatmapComponent implements OnInit {
 
         }
     };
+
     setLabelStyle = (marker) => {
         // sets the name label style
         marker.getElement().style.backgroundColor = 'transparent';
@@ -553,7 +583,6 @@ export class HeatmapComponent implements OnInit {
         marker.getElement().style.webkitTextStroke = '#ffe710';
         marker.getElement().style.webkitTextStrokeWidth = '0.5px';
     };
-
 
     resetHighlight = (event) => {
         // gets rid of the highlight when the mouse moves out of the region
@@ -571,6 +600,7 @@ export class HeatmapComponent implements OnInit {
         this.map.fitBounds(event.target.getBounds());
 
     };
+
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
         // OPTIMIZE: the get polygon center function
@@ -582,6 +612,7 @@ export class HeatmapComponent implements OnInit {
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
     };
+
     getColor = (density) => {
         // color for the boundary layers
         // TODO: remove this func
@@ -605,6 +636,7 @@ export class HeatmapComponent implements OnInit {
         }
 
     };
+
     style = (feature) => {
         // style for the boundary layers
         return {
@@ -653,6 +685,121 @@ export class HeatmapComponent implements OnInit {
             mouseout: this.resetHighlight,
             click: this.zoomToFeature
         });
+    };
+
+    onMapHold(event) {
+        const duration = 1000;
+        if (this.timer !== null) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        this.map.on('mouseup', () => {
+            clearTimeout(this.timer);
+            this.timer = null;
+        });
+
+        this.timer = setTimeout(L.Util.bind(() => {
+            of(event).subscribe((ev) => this.onMapClick(ev));
+            this.timer = null;
+        }, this), duration);
     }
 
+    clickboxContentsToShow() {
+        const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
+            '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
+
+
+
+
+        const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
+            '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh2" style="width: 200px; height: 100px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="hh3" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh4" style="width: 200px; height: 100px; margin: 0px;float: right;;"></div>\n';
+
+        const clickboxContents = '<style>' +
+            `.leaflet-popup-content {
+                width: 400px;
+            }
+            .tabs {
+                position: relative;
+                min-height: 400px;
+                min-width: 320px;
+                clear: both;
+                margin: 0px 0;
+            }
+            .tab {
+                float: left;
+                display: none;
+            }
+            .tab:first-of-type {
+                display: inline-block;
+            }
+            .tabs-link {
+                position: relative;
+                top: -14px;
+                height: 20px;
+                left: -40px;
+            }
+            .tab-link {
+                background: #eee;
+                display: inline-block;
+                padding: 10px;
+                border: 1px solid #ccc;
+                margin-left: -1px;
+                position: relative;
+                list-style-type: none;
+                left: 1px;
+                top: 1px;
+                cursor: pointer;
+            }
+            .tab-link {
+                background: #f8f8f8;
+            }
+            .content {
+                background: white;
+                position: absolute;
+                top: 28px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                padding: 20px;
+                border: 1px solid #ccc;
+            }
+            .tab:target {
+                display: block;
+            }` +
+            '</style>' +
+            '<div class="tabs" >' +
+            '<div class="tab" id="tab-1" >' +
+            '<div class="content">' +
+            '<b>' +
+            chartContents +
+            '</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-2" >' +
+            '<div class="content">' +
+            '<b>Put tweets contents here later</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<div class="tab" id="tab-3" >' +
+            '<div class="content">' +
+            '<b>whatever else</b>' +
+            '</div>' +
+            '</div>' +
+
+            '<ul class="tabs-link">' +
+            '<li class="tab-link"> <a href="#tab-1"><span>Charts</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-2"><span>Tweets</span></a></li>' +
+            '<li class="tab-link"> <a href="#tab-3"><span>Else</span></a></li>' +
+            '</ul>' +
+            '</div>';
+        return clickboxContents;
+    }
 }

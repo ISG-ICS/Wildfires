@@ -22,7 +22,17 @@ export class FireTweetLayer {
 
     constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
-        this.map.on('mousemove', e => this.onMapMouseMove(e));
+        this.map.on('overlayadd', (event) => {
+            if (event.name === 'Fire tweet') {
+                this.map.on('mousemove', e => this.onMapMouseMove(e));
+            }
+        });
+        this.map.on('overlayremove', (event) => {
+            if (event.name === 'Fire tweet' && this.currentMarker !== undefined) {
+                this.map.removeLayer(this.currentMarker);
+                this.currentMarker = undefined;
+            }
+        });
     }
 
     // TODO: REWRITE IT!!!!!!

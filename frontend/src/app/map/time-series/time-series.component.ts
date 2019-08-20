@@ -15,7 +15,7 @@ export class TimeSeriesComponent implements OnInit {
 
     @Output() timeRangeChange = new EventEmitter();
     private halfUnit = 86400000 / 2;
-    private currentTick = null;
+    private currentTick = undefined;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -43,8 +43,8 @@ export class TimeSeriesComponent implements OnInit {
         });
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
-                height: 200,
-                backgroundColor: null,
+                height: 150,
+                backgroundColor: undefined,
                 zoomType: 'x',
                 events: {
                     click: event => {
@@ -55,14 +55,14 @@ export class TimeSeriesComponent implements OnInit {
                         const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
                         // @ts-ignore
                         const tick = event.xAxis[0].axis.ticks[dateInMs];
-                        if (this.currentTick === null) {
+                        if (this.currentTick === undefined) {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - this.halfUnit,
                                 to: dateInMs + this.halfUnit,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
-                            if (tick != null) {
+                            if (tick !== undefined) {
                                 tick.label.css({
                                     color: '#ffffff'
                                 });
@@ -77,12 +77,12 @@ export class TimeSeriesComponent implements OnInit {
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
-                            if (this.currentTick != null && this.currentTick.hasOwnProperty('label')) {
+                            if (this.currentTick !== undefined && this.currentTick.hasOwnProperty('label')) {
                                 this.currentTick.label.css({
                                     color: '#666666'
                                 });
                             }
-                            if (tick != null) {
+                            if (tick !== undefined) {
                                 tick.label.css({
                                     color: '#ffffff'
                                 });
@@ -91,13 +91,13 @@ export class TimeSeriesComponent implements OnInit {
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else {
                             timeseries.xAxis[0].removePlotBand('plotBand');
-                            if (this.currentTick != null && this.currentTick.hasOwnProperty('label')) {
+                            if (this.currentTick !== undefined && this.currentTick.hasOwnProperty('label')) {
                                 this.currentTick.label.css({
                                     color: '#666666'
                                 });
                             }
-                            this.currentTick = null;
-                            this.timeService.setCurrentDate(null);
+                            this.currentTick = undefined;
+                            this.timeService.setCurrentDate(undefined);
                         }
 
                     },
@@ -126,11 +126,10 @@ export class TimeSeriesComponent implements OnInit {
                     setExtremes: (event) => {
                         this.timeService.setRangeDate(event.min + this.halfUnit, event.max);
                         $('#report').html('Date Range => ' +
-                            'min: ' + Highcharts.dateFormat('%Y-%m-%d', event.min) +
-                            ', max: ' + Highcharts.dateFormat('%Y-%m-%d', event.max));
+                            'Start: ' + Highcharts.dateFormat('%Y-%m-%d', event.min) +
+                            ', End: ' + Highcharts.dateFormat('%Y-%m-%d', event.max));
                         $(window).trigger('timeRangeChange');
                     }
-
                 }
             },
             scrollbar: {

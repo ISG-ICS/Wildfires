@@ -6,20 +6,20 @@ import {Injectable} from '@angular/core';
     providedIn: 'root'
 })
 export class TimeService {
-    // "2018-04-23T10:26:00.996Z" => "2018-04-23"
-    private currentDateInYMD = null;
+    // Date are in format "yyyy-mm-dd"
+    private currentDateInYMD = undefined;
     private rangeStartDateInMS = new Date().getTime() - 6 * 30 * 24 * 3600 * 1000;
     private rangeEndDateInMS = new Date().getTime();
 
     constructor() {
     }
 
-    setCurrentDate(dateInYMD) {
+    setCurrentDate(dateInYMD: string) {
         this.currentDateInYMD = dateInYMD;
     }
 
     getCurrentDate() {
-        return this.currentDateInYMD !== null ? this.currentDateInYMD : new Date().toISOString().substring(0, 10);
+        return this.currentDateInYMD !== undefined ? this.currentDateInYMD : new Date().toISOString().substring(0, 10);
     }
 
     setRangeDate(startInMs, endInMs) {

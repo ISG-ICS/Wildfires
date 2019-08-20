@@ -399,22 +399,11 @@ export class HeatmapComponent implements OnInit {
             autoClose: true,
         }).openPopup();
 
-        this.map.on('mousedown', (e) => judgeDistance(e));
+        this.map.on('mousedown', (e) => this.judgeDistance(e, group));
 
         this.marker = marker;
         this.group = L.layerGroup([marker, circle, localBound]);
 
-        const that = this;
-
-        function judgeDistance(event) {
-            that.map.on('mouseup', (e) => {
-                if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
-                    //if (!that.marker.isSticky) {
-                        group.remove();
-                    //}
-                }
-            });
-        }
 
         marker.getPopup().on('remove', () => {
             group.remove();
@@ -422,52 +411,64 @@ export class HeatmapComponent implements OnInit {
 
         // TODO: change marker from global var since it only specify one.
         this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-19T15:37:27Z', 7)
-            .subscribe((data) => this.clickPointHandler(data));
+            .subscribe(this.clickPointHandler);
     }
+
+    judgeDistance(event, group) {
+        this.map.on('mouseup', (e) => {
+            if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
+                //if (!that.marker.isSticky) {
+                group.remove();
+                //}
+            }
+        });
+    }
+
+
 
     clickPointHandler = (data) => {
         console.log(data);
 
         const cntTime = [];
         const cntValue = [];
-        for (const i of data.cnt_tweet) {
-            cntTime.push(i[0]);
-            if (i[1] === null) {
+        for (const tweetcnt of data.cnt_tweet) {
+            cntTime.push(tweetcnt[0]);
+            if (tweetcnt[1] === null) {
                 cntValue.push(0);
             } else {
-                cntValue.push(i[1]);
+                cntValue.push(tweetcnt[1]);
             }
         }
         const tmpTime = [];
         const tmpValue = [];
-        for (const i of data.tmp) {
-            tmpTime.push(i[0]);
-            if (i[1] === null) {
+        for (const avgtmp of data.tmp) {
+            tmpTime.push(avgtmp[0]);
+            if (avgtmp[1] === null) {
                 tmpValue.push(0);
             } else {
-                tmpValue.push(i[1] - 273.15);
+                tmpValue.push(avgtmp[1] - 273.15);
             }
         }
 
         const soilwTime = [];
         const soilwValue = [];
-        for (const i of data.soilw) {
-            soilwTime.push(i[0]);
-            if (i[1] === null) {
+        for (const avgsoilw of data.soilw) {
+            soilwTime.push(avgsoilw[0]);
+            if (avgsoilw[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(i[1] * 100);
+                soilwValue.push(avgsoilw[1] * 100);
             }
         }
 
         const pptTime = [];
         const pptValue = [];
-        for (const i of data.ppt) {
-            pptTime.push(i[0]);
-            if (i[1] === null) {
+        for (const avgppt of data.ppt) {
+            pptTime.push(avgppt[0]);
+            if (avgppt[1] === null) {
                 pptValue.push(0);
             } else {
-                pptValue.push(i[1]);
+                pptValue.push(avgppt[1]);
             }
         }
 

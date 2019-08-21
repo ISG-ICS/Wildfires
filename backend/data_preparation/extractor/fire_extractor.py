@@ -3,9 +3,13 @@ rootpath.append()
 import re
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 import shapefile
+import logging
 import datetime
 from shapely.geometry import shape
 from shapely.geometry.multipolygon import MultiPolygon
+
+logger = logging.getLogger('TaskManager')
+
 class FireExtractor(ExtractorBase):
     def __init__(self):
         super().__init__()
@@ -64,6 +68,10 @@ class FireExtractor(ExtractorBase):
             except ValueError:
                 result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"] + datetime.timedelta(days=1)) + \
                                                                 "0000", '%m%d%Y%H%M')
+            try:
+                result["area"] = float(shp.record(0)["ACRES"])
+            except IndexError:
+                result["area"] = float(shp.record(0)["Acres"])
         else:
             try:
                 result["firename"] = shp.record(0)["fireName"].capitalize()
@@ -75,6 +83,10 @@ class FireExtractor(ExtractorBase):
                 result["agency"] = shp.record(0)["AGENCY"] if shp.record(0)["AGENCY"] != "" else "Unknown"
                 result["datetime"] = datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y %I:%M:%S %p') if \
                     len(shp.record(0)['PERDATTIME']) > 11 else datetime.datetime.strptime(shp.record(0)['PERDATTIME'], '%m/%d/%Y')
+            try:
+                result["area"] = float(shp.record(0)["GISACRES"])
+            except IndexError:
+                result["area"] = float(shp.record(0)["gisAcres"])
         geom = self.extract_full_geom(shp)
         result["geopolygon_full"] = str(geom)
         result["geopolygon_large"] = str(self.simplify_multipolygon(geom,1.e-04))

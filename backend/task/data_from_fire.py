@@ -1,10 +1,9 @@
 import os
-import sys
-import time
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import datetime
 import datetime
 import rootpath
-
+import psycopg2
 from paths import FIRE_DATA_DIR
 
 rootpath.append()
@@ -13,13 +12,13 @@ from backend.data_preparation.crawler.fire_crawler import FireCrawler
 from backend.data_preparation.extractor.fire_extractor import FireExtractor
 from backend.data_preparation.dumper.fire_dumper import FireDumper
 
-
+logger = logging.getLogger('TaskManager')
 
 
 class DataFromFire(Runnable):
     """run once per day/week/, not any time"""
     def __init__(self):
-        self.crawler = FireCrawler(["California", "Utah"])
+        self.crawler = FireCrawler(["California"])
         self.extractor = FireExtractor()
         self.dumper = FireDumper()
         self.explored_year = set()
@@ -33,92 +32,83 @@ class DataFromFire(Runnable):
         """
         Interface for runnable
         """
-        # get the value of current year
         current_year = datetime.datetime.now().date().year
-
-        # check if the crawler is first time used or continue work
-        if not os.path.isdir(FIRE_DATA_DIR): # or change to path exist?
+        if not os.path.isdir(FIRE_DATA_DIR):
+            logger.info(f"No fire data folder detected. Creating a new one at: {FIRE_DATA_DIR}")
             os.makedirs(FIRE_DATA_DIR)
-
-        # check all links
-        print("Detecting all links...")
-        all_fire_tuples = self.crawler.extract_all_fires()
-        print("Num of links:", len(all_fire_tuples))
-        # check for crawled fires from database
-        print("Retrieving historical fires...")
+        else:
+            logger.info(f"Temp fire data folder detected, path: {FIRE_DATA_DIR}")
+        while True:
+            try:
+                logger.info("Attempting to get all links...")
+                all_fire_tuples = self.crawler.extract_all_fires()
+            except:
+                logger.info("Attempt failed. Retrying...")
+                continue
+            break
+        for year_state_name_tuples in all_fire_tuples[:]:
+            if year_state_name_tuples[0] < 2015 or year_state_name_tuples[2] == "ActivePerim":
+                all_fire_tuples.remove(year_state_name_tuples)
+        logger.info("Retrieving historical fires...")
         crawled = set(self.dumper.retrieve_all_fires())
-        print("Num of historical links:", len(crawled))
+        logger.info(f"Num of historical links: {len(crawled)}")
         # get the difference between all links and crawled
-        print("Calculating the difference...")
         to_crawl = sorted(list(set(all_fire_tuples).difference(crawled)))
-        print("Num of new links:", len(to_crawl))
+        logger.info(f"Num of new links: {len(to_crawl)}")
+        logger.info("Requesting recent records...")
         recent_records = self.dumper.get_recent_records()
-        print("Recent records:", recent_records)
+        logger.info(f"Recent records: {recent_records}")
         to_crawl = recent_records + to_crawl
-
+        logger.info(f"Total number of fire urls needed to be crawled: {len(to_crawl)}")
         self.crawler.cleanup()
-        # generate the final list of urls to crawl
-        # url_to_crawl = sorted(self.crawler.generate_url_from_tuple(to_crawl,current_year))
-
-        # start to crawl
-        # for url in url_to_crawl:
-        #     self.crawler.crawl(url)
-        #     # whether a record belongs to a sequence of fire is important
-        #     # set up a bool value of this purpose
-        #     year = 0
-        #     name = url.split("/")[-1]
-        #     if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
-        #     for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]:
-                # for a single fire, there can be multiple stages, which shows how this fire develops and dies out.
-                # each stage should be treated as a separate record
-        #         absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
-        #         single_record = self.extractor.extract(absolute_path_folder, record, if_sequence)
-        #         if single_record == dict():
-        #             continue
-        #         year = self.dumper.insert(single_record)
-        #     self.dumper.insert_history(year, name)
-        #     self.crawler.cleanup()
-
-
-        # start crawling
-        # id by each fire
-        fire_id = 0 if self.dumper.get_latest_fire_id() == None else int(self.dumper.get_latest_fire_id()+1)
+        errors = []
+        fire_id = 0 if self.dumper.get_latest_fire_id() == None else int(self.dumper.get_latest_fire_id() + 1)
+        logger.info(f"Initial fire id: {fire_id}")
         for entry in to_crawl:
-            print("FIREID:",fire_id)
-            year = entry[0]
-            state = entry[1]
-            urlname = entry[2]
-            if urlname == "ActivePerim":
-                continue;
+            logger.info(f"Now working on: {entry}")
+            if len(entry) == 4:
+                fire_id = entry[0]
+                year =  entry[1]
+                state = entry[2]
+                urlname = entry[3]
+                logger.info(f"Updating recent fire: old fire id:{fire_id}, year: {year}, state:{state}, urlname:{urlname}.")
+            else:
+                year = entry[0]
+                state = entry[1]
+                urlname = entry[2]
+                logger.info(f"Updating new fire: fire id:{fire_id}, year: {year}, state:{state}, urlname:{urlname}.")
             url = self.crawler.generate_url_from_tuple(year, state, urlname, current_year)
-            print("Crawler is crawling:", url)
             self.crawler.crawl(url)
             if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
             for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]:
-                # for a single fire, there can be multiple stages, which shows how this fire develops and dies out.
-                # each stage should be treated as a separate record
                 absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
                 single_record = self.extractor.extract(absolute_path_folder, record, if_sequence, fire_id, state)
                 if single_record == dict():
+                    logger.info(f"Hit incomplete polygon files, skipping. ")
                     continue
                 self.dumper.insert(single_record)
-            fire_id = self.dumper.after_inserting_into_fire_info(fire_id,year,urlname,state,current_year)
-            fire_id += 1
+                logger.info(f"Successfully inserted {record} into fire_info.")
+            try:
+                fire_id = self.dumper.after_inserting_into_fire_info(fire_id,year,urlname,state,current_year)
+            except psycopg2.errors.InternalError_:
+                logger.error(f"Internal Error: {fire_id}, {year}, {urlname}")
+                errors.append((fire_id, year, urlname))
+            if len(entry) == 4:
+                logger.info(f"Updated recent records: id {fire_id}, next fire id:{self.dumper.get_latest_fire_id() + 1}")
+                fire_id = self.dumper.get_latest_fire_id() + 1
+            else:
+                fire_id += 1
+            logger.info(f"New fire id : {fire_id}")
             self.crawler.cleanup()
         # finished all insertion
-
-
-
-
-
-
-
-        print("Fire information updated.")
+        logger.info("Finished Crawling")
+        logger.info(f"Error in : {errors}")
         return
 
 
 
 
 
-
+if __name__ == '__main__':
+    DataFromFire().run()
 

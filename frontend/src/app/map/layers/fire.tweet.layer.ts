@@ -28,7 +28,7 @@ export class FireTweetLayer {
             }
         });
         this.map.on('overlayremove', (event) => {
-            if (event.name === 'Fire tweet' && this.currentMarker !== undefined) {
+            if (event.name === 'Fire tweet') {
                 this.map.removeLayer(this.currentMarker);
                 this.currentMarker = undefined;
             }
@@ -180,15 +180,17 @@ export class FireTweetLayer {
     }
 
     onMapMouseMove(event) {
-        const duration = 250;
-        if (this.timer !== null) {
-            clearTimeout(this.timer);
-            this.timer = null;
+        if (this.map.hasLayer(this.tweetLayer)) {
+            const duration = 250;
+            if (this.timer !== null) {
+                clearTimeout(this.timer);
+                this.timer = null;
+            }
+            this.timer = setTimeout(L.Util.bind(() => {
+                of(event).subscribe((ev) => this.onMapMouseIntent(ev));
+                this.timer = null;
+            }, this), duration);
         }
-        this.timer = setTimeout(L.Util.bind(() => {
-            of(event).subscribe((ev) => this.onMapMouseIntent(ev));
-            this.timer = null;
-        }, this), duration);
     }
 
     onMapMouseIntent(e) {

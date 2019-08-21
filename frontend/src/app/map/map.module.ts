@@ -13,7 +13,9 @@ import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {LocationNameDisplayComponent} from './location-name-display/location-name-display.component';
 
 @NgModule({
-    declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent, TemperatureRangeSliderComponent, SearchComponent, SearchComponent, LocationNameDisplayComponent],
+    declarations: [HeatmapComponent, SidebarComponent, TimeSeriesComponent,
+        TemperatureRangeSliderComponent, SearchComponent, SearchComponent,
+        LocationNameDisplayComponent, TabGroupComponent],
     exports: [
         HeatmapComponent,
         SidebarComponent,
@@ -35,7 +37,6 @@ import {LocationNameDisplayComponent} from './location-name-display/location-nam
         MatTabsModule,
 
     ],
-    entryComponents: [TabGroupComponent]
 })
 export class MapModule {
     constructor() {

@@ -9,7 +9,6 @@ import {SearchService} from '../../services/search/search.service';
 import {FireService} from '../../services/fire-service/fire.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
-import {FireEventLayer} from '../layers/fire.event.layer';
 import {of, Subject} from 'rxjs';
 import {FireRegionLayer} from '../layers/fire.region.layer';
 import {LocationBoundaryLayer} from '../layers/location.boundary.layer';
@@ -37,10 +36,6 @@ export class HeatmapComponent implements OnInit {
     private fireRegionLayer;
     private locationMarkerLayer;
 
-    constructor(private mapService: MapService, private searchService: SearchService, private fireService: FireService) {
-    }
-
-
     private pinRadius = 40000;
     // For what to present when click event happens
     private marker = null;
@@ -64,8 +59,7 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
-
-    constructor(private mapService: MapService, private searchService: SearchService) {
+    constructor(private mapService: MapService, private searchService: SearchService, private fireService: FireService) {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
@@ -180,7 +174,7 @@ export class HeatmapComponent implements OnInit {
         this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map);
 
         // Get fire events data from service
-        this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
+        // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
         this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map, this.fireService);
 
@@ -262,7 +256,7 @@ export class HeatmapComponent implements OnInit {
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    };
+    }
 
     dotMapDataHandler = (data) => {
         const latLongBins = [];
@@ -289,7 +283,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    };
+    }
 
     onMapClick(e) {
         // const oldMarker = this.marker;
@@ -379,9 +373,9 @@ export class HeatmapComponent implements OnInit {
     judgeDistance(event, group) {
         this.map.on('mouseup', (e) => {
             if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
-                //if (!that.marker.isSticky) {
+                // if (!that.marker.isSticky) {
                 group.remove();
-                //}
+                // }
             }
         });
     }
@@ -448,7 +442,7 @@ export class HeatmapComponent implements OnInit {
         // if (this.marker.isSticky) {
         //     this.group.addTo(this.map);
         // }
-    };
+    }
 
     // stickyBotton = () => {
     //     const clickboxContents = $('<div />');
@@ -503,7 +497,7 @@ export class HeatmapComponent implements OnInit {
             }
             console.log(this.tempRegionsMax);
         }
-    };
+    }
 
 
     boundaryDataHandler = ([[data], value]) => {
@@ -534,7 +528,25 @@ export class HeatmapComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    };
+    }
+
+    onMapHold(event) {
+        const duration = 1000;
+        if (this.timer !== null) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+
+        this.map.on('mouseup', () => {
+            clearTimeout(this.timer);
+            this.timer = null;
+        });
+
+        this.timer = setTimeout(L.Util.bind(() => {
+            of(event).subscribe((ev) => this.onMapClick(ev));
+            this.timer = null;
+        }, this), duration);
+    }
 
 
     clickboxContentsToShow() {

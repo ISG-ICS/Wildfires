@@ -20,6 +20,7 @@ export class LocationNameDisplayComponent implements OnInit {
 
     }
 
+    // OPTIMIZE: combine these two handlers
     locationInputEventHandler = ([[data], value]) => {
         document.getElementById('info').innerHTML = 'location name: ' + value;
 

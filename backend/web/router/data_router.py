@@ -293,9 +293,13 @@ def fire():
     size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
                     4: "geom_center"}
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
-    query = f"SELECT id, name, agency,start_time, end_time, st_asgeojson({size_getters[
-        size]}) as geom, max_area FROM fire_merged f WHERE ((('{start_date}'::date <= f.end_time::date) AND ('{start_date}'::date >= f.start_time::date)) OR (('{end_date}'::date >= f.start_time::date) AND ('{end_date}'::date <= f.end_time::date)) OR (('{start_date}'::date <= f.start_time::date) AND ('{end_date}'::date >= f.end_time::date) )) and (st_contains(ST_GeomFromText('{poly}'),f.{
-    size_getters[size]}) OR st_overlaps(ST_GeomFromText('{poly}'),f.{size_getters[size]}))"
+    query = f"SELECT id, name, agency,start_time, end_time, st_asgeojson({size_getters[size]}) as geom, max_area FROM " \
+            f"fire_merged f WHERE ((('{start_date}'::date <= f.end_time::date) AND " \
+            f"('{start_date}'::date >= f.start_time::date)) OR (('{end_date}'::date >= f.start_time::date) " \
+            f"AND ('{end_date}'::date <= f.end_time::date)) OR (('{start_date}'::date <= f.start_time::date) " \
+            f"AND ('{end_date}'::date >= f.end_time::date) )) " \
+            f"AND (st_contains(ST_GeomFromText('{poly}'),f.{size_getters[size]}) " \
+            f"OR st_overlaps(ST_GeomFromText('{poly}'),f.{size_getters[size]}))"
     resp = make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "starttime": start_time,
@@ -313,9 +317,10 @@ def fire_with_id():
     size = request_json['size']
     size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
                     4: "geom_center"}
-    query = f"SELECT id, name, if_sequence, agency, state, start_time, end_time,st_asgeojson({size_getters[
-        size]}) as geom, st_asgeojson(st_envelope({size_getters[
-        size]})) as bbox, max_area FROM fire_merged where id = {id}"
+    query = f"SELECT " \
+            f"id, name, if_sequence, agency, state, start_time, end_time, st_asgeojson({size_getters[size]}) as geom," \
+            f" st_asgeojson(st_envelope({size_getters[size]})) as bbox, " \
+            f"max_area FROM fire_merged where id = {id}"
     resp = make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
@@ -338,9 +343,10 @@ def fire_with_id_seperated():
     size = request_json['size']
     size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
                     4: "geom_center"}
-    query = f"SELECT f.id, f.name, f.if_sequence, f.agency, f.state, f.time,st_asgeojson(f.{size_getters[
-        size]}) as geom, st_asgeojson(st_envelope(m.{size_getters[
-        size]})) as bbox, f.area FROM fire_merged m, fire f where f.id = {id} and m.id = f.id"
+    query = f"SELECT " \
+            f"f.id, f.name, f.if_sequence, f.agency, f.state, f.time,st_asgeojson(f.{size_getters[size]}) as geom," \
+            f" st_asgeojson(st_envelope(m.{size_getters[size]})) as bbox," \
+            f" f.area FROM fire_merged m, fire f where f.id = {id} and m.id = f.id"
     resp = make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
@@ -351,4 +357,5 @@ def fire_with_id_seperated():
                                    }
                                   for fid, name, if_sequence, agency, state, time, geom, bbox, max_area in
                                   Connection.sql_execute(query)]))
+
     return resp

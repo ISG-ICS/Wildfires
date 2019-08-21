@@ -14,18 +14,13 @@ export class FireService {
     }
 
     searchFirePolygon(id, size): Observable<object> {
-        return this.http.post('http://127.0.0.1:5000/data/fire-with-id', JSON.stringify({
-            id: id,
-            size: size,
-        }));
+        return this.http.post('http://127.0.0.1:5000/data/fire-with-id', JSON.stringify({id, size}));
     }
 
     searchSeparatedFirePolygon(id, size): Observable<object> {
         return this.http.post('http://127.0.0.1:5000/data/fire-with-id-seperated', JSON.stringify({
-            id: id,
-            size: size,
+            id, size,
         })).pipe(map(data => {
-            console.log('fire-polygon DATA ', data);
             return {type: 'FeatureCollection', features: data};
         }));
     }

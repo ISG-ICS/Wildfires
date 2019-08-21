@@ -6,7 +6,7 @@ import 'leaflet-velocity-ts';
 declare let L;
 
 export class FireEventLayer {
-    private fireEvent
+    private fireEvent;
 
     constructor(private mainControl, private mapService: MapService, private map) {
     }

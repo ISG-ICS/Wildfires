@@ -9,6 +9,13 @@ import {FireService} from '../../services/fire-service/fire.service';
 declare let L;
 
 export class FireRegionLayer {
+
+
+    constructor(private mainControl, private mapService: MapService, private map, private fireService: FireService) {
+        this.mapService.sendFireToFront.subscribe(this.sendFireToFrontHandler);
+        this.map.on('zoomend, moveend', this.getFirePolygonOnceMoved);
+    }
+
     private firePolygon;
     private dateStartInISO;
     private dateEndInISO;
@@ -17,9 +24,24 @@ export class FireRegionLayer {
     private fireZoomOutPopup;
 
 
-    constructor(private mainControl, private mapService: MapService, private map, private fireService: FireService) {
-        this.mapService.sendFireToFront.subscribe(this.sendFireToFrontHandler);
-        this.map.on('zoomend, moveend', this.getFirePolygonOnceMoved);
+    private static formatPopUpContent(fireObject) {
+        return '\n <div class="fire">\n '
+            + '      <span class="name" style=\'color: #ff8420;\'> '
+            + 'Fire Name: ' + fireObject.properties.name
+            + '      </span><br> '
+            + '      <span class="fire-starttime" style=\'color: #ff8420;\'>'
+            + 'Fire Start Time: ' + fireObject.properties.starttime
+            + '      </span><br>\n	 '
+            + '      <span class="fire-endtime" style=\'color: #ff8420;\'>'
+            + 'Fire End Time: ' + fireObject.properties.endtime
+            + '      </span><br>\n	 '
+            + '      <span class="fire-area" style=\'color: #ff8420;\'>'
+            + 'Fire Area: ' + fireObject.properties.area + ' acres'
+            + '      </span><br>\n	 '
+            + '<span class="fire-agency" style=\'color: #ff8420;\'>'
+            + 'Fire Agency: ' + fireObject.properties.agency
+            + '      </span><br>\n	 '
+            + '</div>\n';
     }
 
     timeRangeChangeFirePolygonHandler = (event, data) => {
@@ -40,7 +62,7 @@ export class FireRegionLayer {
         } else {
             size = 2;
         }
-        // TODO: replace polygon with fire icon in some conditions
+
         const bound = this.map.getBounds();
         const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
         const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
@@ -90,29 +112,16 @@ export class FireRegionLayer {
         // creates css style for the pop up content
         const fireInfoTemplate = $('<div />');
         // tslint:disable-next-line:max-line-length
-        fireInfoTemplate.html('<button href="#" class="button-action" style="color: #ff8420; font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom In</button><br>').on('click',
-            '.button-action', () => {
-                // when the fire pop up is triggered, go into firePolygonZoomInDataHandler which handels the zoom in
-                this.fireObjectInfo = fireObject;
-                this.fireService.searchFirePolygon(fireObject.id, 2).subscribe(this.firePolygonZoomInDataHandler);
-            });
-        const content = '\n <div class="fire">\n '
-            + '      <span class="name" style=\'color: #ff8420;\'> '
-            + 'Fire Name: ' + fireObject.properties.name
-            + '      </span><br> '
-            + '      <span class="fire-starttime" style=\'color: #ff8420;\'>'
-            + 'Fire Start Time: ' + fireObject.properties.starttime
-            + '      </span><br>\n	 '
-            + '      <span class="fire-endtime" style=\'color: #ff8420;\'>'
-            + 'Fire End Time: ' + fireObject.properties.endtime
-            + '      </span><br>\n	 '
-            + '      <span class="fire-area" style=\'color: #ff8420;\'>'
-            + 'Fire Area: ' + fireObject.properties.area + ' acres'
-            + '      </span><br>\n	 '
-            + '<span class="fire-agency" style=\'color: #ff8420;\'>'
-            + 'Fire Agency: ' + fireObject.agency
-            + '      </span><br>\n	 '
-            + '</div>\n';
+        fireInfoTemplate.html('<button href="#" class="button-action" ' +
+            'style="color: #ff8420; font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom In</button><br>')
+            .on('click',
+                '.button-action', () => {
+                    // when the fire pop up is triggered, go into firePolygonZoomInDataHandler which handels the zoom in
+                    this.fireObjectInfo = fireObject;
+                    this.fireService.searchFirePolygon(fireObject.id, 2).subscribe(this.firePolygonZoomInDataHandler);
+                });
+
+        const content = FireRegionLayer.formatPopUpContent(fireObject);
         fireInfoTemplate.append(content);
         return fireInfoTemplate[0];
     };
@@ -137,40 +146,28 @@ export class FireRegionLayer {
         const fireInfoTemplate = $('<div />');
         const fireReplaceTemplate = $('<div />');
         // tslint:disable-next-line:max-line-length
-        fireInfoTemplate.html('<button href="#" class="button-action" style="color: #ff8420; font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom Out</button><br>').on('click',
-            '.button-action', () => {
-                this.map.setView([33.64, -117.84], 5);
-            });
+        fireInfoTemplate.html('<button href="#" class="button-action" style="color: #ff8420; ' +
+            'font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom Out</button><br>')
+            .on('click',
+                '.button-action', () => {
+                    this.map.setView([33.64, -117.84], 5);
+                });
         // tslint:disable-next-line:max-line-length
-        fireReplaceTemplate.html('<button href="#" class="button-replace" style="color: #ff8420; font-family: "Dosis", Arial, Helvetica, sans-serif">Show Fire for Each Day</button><br>').on('click',
-            '.button-replace', () => {
-                this.fireService.searchSeparatedFirePolygon(fireObject.id, 2).subscribe(this.firePolygonDataHandler);
-            });
-        const content = '\n <div class="fire">\n '
-            + '      <span class="name" style=\'color: #ff8420;\'> '
-            + 'Fire Name: ' + fireObject.properties.name
-            + '      </span><br> '
-            + '      <span class="fire-starttime" style=\'color: #ff8420;\'>'
-            + 'Fire Start Time: ' + fireObject.properties.starttime
-            + '      </span><br>\n	 '
-            + '      <span class="fire-endtime" style=\'color: #ff8420;\'>'
-            + 'Fire End Time: ' + fireObject.properties.endtime
-            + '      </span><br>\n	 '
-            + '      <span class="fire-area" style=\'color: #ff8420;\'>'
-            + 'Fire Area: ' + fireObject.properties.area + ' acres'
-            + '      </span><br>\n	 '
-            + '<span class="fire-agency" style=\'color: #ff8420;\'>'
-            + 'Fire Agency: ' + fireObject.properties.agency
-            + '      </span><br>\n	 '
-            + '</div>\n';
+        fireReplaceTemplate.html('<button href="#" class="button-replace" style="color: #ff8420; ' +
+            'font-family: "Dosis", Arial, Helvetica, sans-serif">Show Fire for Each Day</button><br>')
+            .on('click',
+                '.button-replace', () => {
+                    this.fireService.searchSeparatedFirePolygon(fireObject.id, 2)
+                        .subscribe(this.firePolygonDataHandler);
+                });
+        const content = FireRegionLayer.formatPopUpContent(fireObject);
         fireInfoTemplate.append(fireReplaceTemplate);
         fireInfoTemplate.append(content);
         return fireInfoTemplate[0];
     };
 
-
     getFirePolygonOnceMoved = () => {
-        // calls this everytime the map is moved
+        // calls this every time the map is moved
         if (this.dateStartInISO && this.dateEndInISO) {
             this.getFirePolygon(this.dateStartInISO, this.dateEndInISO);
         }

@@ -20,7 +20,7 @@ export class LocationMarkerLayer {
         const centerLatlng = value[0];
         const userInput = value[1];
         const zoom = this.map.getZoom();
-        console.log('userInput', userInput);
+
         if (this.theSearchMarker) {
             // removes previous marker
             this.map.removeControl(this.theSearchMarker);

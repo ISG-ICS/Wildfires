@@ -16,7 +16,6 @@ export class LocationBoundaryLayer {
     }
 
     getBoundary = () => {
-        console.log('here in location get bound');
         // gets the screen bounds and zoom level to get the corresponding geo boundaries from database
         const zoom = this.map.getZoom();
         const bound = this.map.getBounds();

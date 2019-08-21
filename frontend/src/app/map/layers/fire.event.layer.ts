@@ -12,23 +12,16 @@ export class FireEventLayer {
     }
 
     timeRangeChangeFireEventHandler = (event, data) => {
-        console.log('series, event', data);
-        console.log('series, data', data);
         const dateStartInISO = new Date(data.timebarStart);
 
         const dateEndInISO = new Date(data.timebarEnd);
 
-        console.log('series, data1', dateStartInISO);
-        console.log('series, data2', dateEndInISO);
-
         this.getFireEvent(dateStartInISO, dateEndInISO);
     };
     getFireEvent = (start, end) => {
-        console.log('here in get fire event');
         const bound = this.map.getBounds();
         const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
         const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
-        console.log('latlng', boundSW);
         this.mapService.getWildfirePredictionData(boundNE, boundSW, start, end).subscribe(this.fireEventHandler);
     };
 

@@ -382,8 +382,6 @@ export class HeatmapComponent implements OnInit {
 
 
     clickPointHandler = (data) => {
-        console.log(data);
-
         const cntTime = [];
         const cntValue = [];
         for (const tweetcnt of data.cnt_tweet) {
@@ -495,7 +493,6 @@ export class HeatmapComponent implements OnInit {
             for (const region of this.tempRegionsMax) {
                 region.addTo(this.map);
             }
-            console.log(this.tempRegionsMax);
         }
     }
 
@@ -506,11 +503,9 @@ export class HeatmapComponent implements OnInit {
         const listWithFixedLL = [];
         if (data) {
             // list will be converted because of the lat and lon are misplaced
-            console.log(data.coordinates[0]);
             for (const item of data.coordinates[0]) {
                 listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
             }
-            console.log('listWithFixedLL', listWithFixedLL);
             this.map.fitBounds(listWithFixedLL); // fits map according to the given fixed boundary list
             const centerLatLng = this.getPolygonCenter(listWithFixedLL);
             this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);

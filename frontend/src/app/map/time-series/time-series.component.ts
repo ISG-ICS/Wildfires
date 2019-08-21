@@ -16,6 +16,7 @@ export class TimeSeriesComponent implements OnInit {
     @Output() timeRangeChange = new EventEmitter();
     private halfUnit = 86400000 / 2;
     private currentTick = undefined;
+    private hasPlotBand = false;
 
     constructor(private mapService: MapService, private timeService: TimeService) {
     }
@@ -55,7 +56,7 @@ export class TimeSeriesComponent implements OnInit {
                         const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
                         // @ts-ignore
                         const tick = event.xAxis[0].axis.ticks[dateInMs];
-                        if (this.currentTick === undefined) {
+                        if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
                                 from: dateInMs - this.halfUnit,
                                 to: dateInMs + this.halfUnit,
@@ -68,6 +69,7 @@ export class TimeSeriesComponent implements OnInit {
                                 });
                             }
                             this.currentTick = tick;
+                            this.hasPlotBand = true;
                             this.timeService.setCurrentDate(dateSelectedInYMD);
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
@@ -97,6 +99,7 @@ export class TimeSeriesComponent implements OnInit {
                                 });
                             }
                             this.currentTick = undefined;
+                            this.hasPlotBand = false;
                             this.timeService.setCurrentDate(undefined);
                         }
 
@@ -138,6 +141,7 @@ export class TimeSeriesComponent implements OnInit {
                             'Start: ' + Highcharts.dateFormat('%Y-%m-%d', event.min) +
                             ', End: ' + Highcharts.dateFormat('%Y-%m-%d', event.max));
                         $(window).trigger('timeRangeChange');
+
                     }
                 }
             },

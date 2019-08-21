@@ -14,7 +14,7 @@ export class SearchService {
     }
 
     getSearch(userInput): Observable<object> {
-        return this.http.get<object>('http://0.0.0.0:2334/search', {params: new HttpParams().set('keyword', userInput)});
+        return this.http.get<object>('http://cloudberry05.ics.uci.edu:2334/search', {params: new HttpParams().set('keyword', userInput)});
     }
 
 }

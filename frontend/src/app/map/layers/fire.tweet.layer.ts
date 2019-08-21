@@ -4,6 +4,7 @@ import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import {of} from 'rxjs';
 import {Tweet} from '../../models/tweet.model';
+import {TimeService} from '../../services/time/time.service';
 
 declare let L;
 
@@ -19,10 +20,19 @@ export class FireTweetLayer {
     private tempDataWithID = [];
     private timer = null;
 
-    constructor(private mainControl, private mapService: MapService, private map) {
-
+    constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
-        this.map.on('mousemove', e => this.onMapMouseMove(e));
+        this.map.on('overlayadd', (event) => {
+            if (event.name === 'Fire tweet') {
+                this.map.on('mousemove', e => this.onMapMouseMove(e));
+            }
+        });
+        this.map.on('overlayremove', (event) => {
+            if (event.name === 'Fire tweet') {
+                this.map.removeLayer(this.currentMarker);
+                this.currentMarker = undefined;
+            }
+        });
     }
 
     // TODO: REWRITE IT!!!!!!
@@ -141,16 +151,16 @@ export class FireTweetLayer {
 
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
-
+        this.timeRangeChangeHandler();
     }
 
-    timeRangeChangeHandler = (event, data) => {
+    timeRangeChangeHandler = () => {
         const tempData = [];
         this.tempDataWithID = [];
-
+        const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
         this.tweetData.forEach(tweet => {
             const time = new Date(tweet.create_at).getTime();
-            if (time > data.timebarStart && time < data.timebarEnd) {
+            if (time > startDateInMs && time < endDateInMs) {
                 tempData.push([tweet.lat, tweet.long]);
                 this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
             }
@@ -170,15 +180,17 @@ export class FireTweetLayer {
     }
 
     onMapMouseMove(event) {
-        const duration = 250;
-        if (this.timer !== null) {
-            clearTimeout(this.timer);
-            this.timer = null;
+        if (this.map.hasLayer(this.tweetLayer)) {
+            const duration = 250;
+            if (this.timer !== null) {
+                clearTimeout(this.timer);
+                this.timer = null;
+            }
+            this.timer = setTimeout(L.Util.bind(() => {
+                of(event).subscribe((ev) => this.onMapMouseIntent(ev));
+                this.timer = null;
+            }, this), duration);
         }
-        this.timer = setTimeout(L.Util.bind(() => {
-            of(event).subscribe((ev) => this.onMapMouseIntent(ev));
-            this.timer = null;
-        }, this), duration);
     }
 
     onMapMouseIntent(e) {

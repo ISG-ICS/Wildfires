@@ -15,6 +15,7 @@ import {LocationBoundaryLayer} from '../layers/location.boundary.layer';
 import {LocationMarkerLayer} from '../layers/location.marker';
 import {Component, OnInit} from '@angular/core';
 
+import {TimeService} from '../../services/time/time.service';
 
 declare let L;
 
@@ -59,7 +60,8 @@ export class HeatmapComponent implements OnInit {
     private tempMax = 36;
     private tempMin = 0;
 
-    constructor(private mapService: MapService, private searchService: SearchService, private fireService: FireService) {
+    constructor(private mapService: MapService, private searchService: SearchService,
+                private fireService: FireService, private timeService: TimeService) {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
@@ -171,12 +173,13 @@ export class HeatmapComponent implements OnInit {
         this.mapService.getTemperatureData().subscribe(tempSubject);
 
         // Get tweets data from service
-        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map);
+        this.fireTweetLayer = new FireTweetLayer(this.mainControl, this.mapService, this.map, this.timeService);
 
         // Get fire events data from service
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
-        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map, this.fireService);
+        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map,
+            this.fireService, this.timeService);
 
         this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
 
@@ -191,7 +194,7 @@ export class HeatmapComponent implements OnInit {
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
         $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
-        $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
+        // $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -293,6 +296,7 @@ export class HeatmapComponent implements OnInit {
         //         oldGroup.addTo(this.map);
         //     }
         // }
+        let aggregatedDataSubInBound;
 
         function mouseMoveChangeRadius(event) {
             const newRadius = distance(circle._latlng, event.latlng);
@@ -338,7 +342,7 @@ export class HeatmapComponent implements OnInit {
 
                 this.map.on('mouseup', (event) => {
                     const newRadius = distance(circle._latlng, event.latlng);
-                    this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, '2019-08-12T15:37:27Z', 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
+                    aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
                         .subscribe(this.clickPointHandler);
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
@@ -360,14 +364,18 @@ export class HeatmapComponent implements OnInit {
         this.marker = marker;
         this.group = L.layerGroup([marker, circle, localBound]);
 
+        // TODO: change marker from global var since it only specify one.
+        const aggregatedDataSub = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
+            .subscribe(this.clickPointHandler);
 
         marker.getPopup().on('remove', () => {
             group.remove();
+            aggregatedDataSub.unsubscribe();
+            if (aggregatedDataSubInBound !== undefined) {
+                aggregatedDataSubInBound.unsubscribe();
+            }
         }); // Remove popup fire remove all (default is not sticky)
 
-        // TODO: change marker from global var since it only specify one.
-        this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, '2019-08-19T15:37:27Z', 7)
-            .subscribe(this.clickPointHandler);
     }
 
     judgeDistance(event, group) {

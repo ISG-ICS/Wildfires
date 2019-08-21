@@ -79,23 +79,23 @@ export class LocationBoundaryLayer {
     getColor = (density) => {
         // color for the boundary layers
         // TODO: remove this func
-        switch (true) {
-            case (density > 1000):
-                return '#fd3208';
-            case (density > 500):
-                return '#f40031';
-            case (density > 200):
-                return '#f74d1a';
-            case (density > 100):
-                return '#fc5a0a';
-            case (density > 50):
-                return '#fd810b';
-            case (density > 20):
-                return '#fe046a';
-            default:
-                return '#fe0b2e';
+        // switch (true) {
+        //     case (density > 1000):
+        //         return '#fd3208';
+        //     case (density > 500):
+        //         return '#f40031';
+        //     case (density > 200):
+        //         return '#f74d1a';
+        //     case (density > 100):
+        //         return '#fc5a0a';
+        //     case (density > 50):
+        //         return '#fd810b';
+        //     case (density > 20):
+        //         return '#fe046a';
+        //     default:
+        return 'rgba(255,255,255,0.25)';
 
-        }
+        // }
 
     };
 

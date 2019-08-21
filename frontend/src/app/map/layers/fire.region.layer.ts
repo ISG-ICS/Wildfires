@@ -16,12 +16,12 @@ export class FireRegionLayer {
                 private fireService: FireService, private timeService: TimeService) {
         this.mapService.sendFireToFront.subscribe(this.sendFireToFrontHandler);
         this.map.on('zoomend, moveend', this.getFirePolygonOnceMoved);
+        this.timeRangeChangeFirePolygonHandler();
     }
 
     private firePolygon;
     private dateStartInISO;
     private dateEndInISO;
-    private fireLabelLayer;
     private fireObjectInfo;
     private fireZoomOutPopup;
 
@@ -48,13 +48,12 @@ export class FireRegionLayer {
 
     timeRangeChangeFirePolygonHandler = () => {
         // processes given time data from time-series
-        console.log('time service', this.timeService);
         const [dateStartInMs, dateEndInMs] = this.timeService.getRangeDate();
         this.dateStartInISO = new Date(dateStartInMs).toISOString();
         this.dateEndInISO = new Date(dateEndInMs).toISOString();
         this.getFirePolygon(this.dateStartInISO, this.dateEndInISO);
-
     };
+
     getFirePolygon = (start, end) => {
         // sends request to the map service based on the start/end time and the current screen map boundaries
         const zoom = this.map.getZoom();
@@ -73,17 +72,15 @@ export class FireRegionLayer {
         this.mapService.getFirePolygonData(boundNE, boundSW, size, start, end).subscribe(this.firePolygonDataHandler);
     };
 
-
     firePolygonDataHandler = (data) => {
         // adds the fire polygon to the map, the accuracy is based on the zoom level
+        if (!this.map.hasLayer(this.firePolygon) && this.firePolygon) {
+            return;
+        }
+
         if (this.firePolygon) {
             this.map.removeLayer(this.firePolygon);
             this.mainControl.removeLayer(this.firePolygon);
-        }
-        if (this.fireLabelLayer) {
-            this.map.removeLayer(this.fireLabelLayer);
-            this.mainControl.removeLayer(this.fireLabelLayer);
-
         }
         if (this.map.getZoom() < 8) {
             const fireLabelList = [];
@@ -97,9 +94,10 @@ export class FireRegionLayer {
                 const marker = L.marker(latlng, {icon: fireIcon}).bindPopup(this.popUpContentZoomIn(fireObject));
                 fireLabelList.push(marker);
             }
-            this.fireLabelLayer = L.layerGroup(fireLabelList);
-            this.mainControl.addOverlay(this.fireLabelLayer, 'Fire polygon');
-            this.map.addLayer(this.fireLabelLayer);
+            this.firePolygon = L.layerGroup(fireLabelList);
+            this.mainControl.addOverlay(this.firePolygon, 'Fire polygon');
+            this.map.addLayer(this.firePolygon);
+            this.firePolygon.bringToFront();
         } else {
             this.firePolygon = L.geoJson(data, {
                 style: this.style,
@@ -111,6 +109,7 @@ export class FireRegionLayer {
         }
 
     };
+
 
     popUpContentZoomIn = (fireObject) => {
         // creates css style for the pop up content

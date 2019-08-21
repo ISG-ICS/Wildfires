@@ -5,12 +5,15 @@ import rootpath
 import wget
 import os
 import datetime
+import logging
 import shutil
+import urllib
 rootpath.append()
 
 from paths import FIRE_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 
+logger = logging.getLogger('TaskManager')
 
 class FireCrawler(CrawlerBase):
     """
@@ -93,9 +96,14 @@ class FireCrawler(CrawlerBase):
                 if not foldername in used_folder_names:
                     used_folder_names.add(foldername)
                     os.makedirs(FIRE_DATA_DIR + "/" + foldername)
-                    print("Downloading: {}...".format(foldername))
                 outpath = FIRE_DATA_DIR + "/" + foldername + "/"
-                wget.download(url=url_to_crawl + "/" + f, out=outpath)
+                while True:
+                    try:
+                        wget.download(url=url_to_crawl + "/" + f, out=outpath)
+                    except urllib.error.URLError:
+                        continue
+                    break
+
         return
 
     def cleanup(self):
@@ -105,7 +113,6 @@ class FireCrawler(CrawlerBase):
         on the server
         :return:
         """
-        print("Cleaning up the temp folder...")
         foldersToRemove = [os.path.join(FIRE_DATA_DIR, f) for f in os.listdir(FIRE_DATA_DIR)]
         for f in foldersToRemove:
             if f.__contains__(".DS"):

@@ -74,12 +74,11 @@ export class SearchComponent implements OnInit {
     };
 
     userInputCheckHandler = ([[data], value]) => {
-        console.log('data here is it null', data);
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
         if (data) {
-            console.log('data', data);
+
         } else {
-            console.log('here, no data');
+
             (document.getElementById('search-input-id') as HTMLInputElement).value = '';
 
             (document.getElementById('placeholder') as HTMLInputElement).innerHTML = 'Please enter again';
@@ -92,7 +91,7 @@ export class SearchComponent implements OnInit {
         // FIXME: county id are all set to 6 due to the lack of county id data
         // passes the id and location name to search component
         if (id) {
-            console.log('here in selected with id');
+
             this.searchService.getSearch(id).subscribe((data) => {
                 this.searchService.searchDataLoaded.emit([data, value]);
             });

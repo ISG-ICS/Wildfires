@@ -29,11 +29,10 @@
     -ms-flex-negative: 0;
     flex-shrink: 0;
     background-size: 32px 32px;
-    background-repeat: no-repeat;
     width: 32px;
     height: 32px;
     overflow: hidden;
-    background: #e2e2e2;
+    background: #e2e2e2 no-repeat;
 }
 
 .tweet-user-photo img {
@@ -89,7 +88,7 @@
 }
 
 
-/*For the popup box of clickbox*/
+/*For the popup box of click box*/
 .leaflet-popup-content {
     width: 240px;
 }

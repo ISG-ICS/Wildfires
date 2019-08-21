@@ -20,19 +20,19 @@ export class FireTweetLayer {
     private timer = null;
 
     constructor(private mainControl, private mapService: MapService, private map) {
-        console.log(this)
+
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
         this.map.on('mousemove', e => this.onMapMouseMove(e));
     }
 
     // TODO: REWRITE IT!!!!!!
     static translateTweetDataToShow(tweetJSON) {
-        // still need username, userPhotoUrl,imageurl from database
+        // still need username, userPhotoUrl, image url from database
         let tweetid = '';
         try {
             tweetid = tweetJSON.id;
         } catch (e) {
-            // tweetid missing in this Tweet.
+            // tweet id missing in this Tweet.
         }
 
         let userName = '';
@@ -142,7 +142,7 @@ export class FireTweetLayer {
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
 
-    };
+    }
 
     timeRangeChangeHandler = (event, data) => {
         const tempData = [];
@@ -156,7 +156,7 @@ export class FireTweetLayer {
             }
         });
         this.tweetLayer.setData(tempData);
-    };
+    }
 
     idOverPoint(x, y) {
         for (let i = 0; i < this.tempDataWithID.length; i += 1) {
@@ -219,10 +219,8 @@ export class FireTweetLayer {
     }
 
     recentTweetLoadHandler(data) {
-        console.log(this)
-        // console.log(data);
         const fireEventList = [];
-        for (const ev of  data.slice(0, 150)) {
+        for (const ev of data.slice(0, 150)) {
             const point = [ev.lat, ev.long];
             const size = 12.5;
             const fireIcon = L.icon({

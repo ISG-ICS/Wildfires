@@ -279,7 +279,7 @@ def points_in_us(pnts: List[Dict[str, float]], accuracy=0.001):
         return result
 
 
-@bp.route("/fire", methods=['POST'])
+@bp.route("/fire-polygon", methods=['POST'])
 def fire():
     # return a json of all fire name, fire time, and fire geometry inside the bounding box
     request_json = flask_request.get_json(force=True)
@@ -290,15 +290,72 @@ def fire():
     size = request_json['size']
     start_date = request_json['startDate'][:10]
     end_date = request_json['endDate'][:10]
-    size_getters = {0: "get_fire_geom_full", 1: "get_fire_geom_1e4", 2: "get_fire_geom_1e3", 3: "get_fire_geom_1e2",
-                    4: "get_center"}
+    size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
+                    4: "geom_center"}
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
-    query = f"SELECT * from {size_getters[size]}('{poly}','{start_date}','{end_date}') "
-
+    query = f"SELECT id, name, agency,start_time, end_time, st_asgeojson({size_getters[size]}) as geom, max_area FROM " \
+            f"fire_merged f WHERE ((('{start_date}'::date <= f.end_time::date) AND " \
+            f"('{start_date}'::date >= f.start_time::date)) OR (('{end_date}'::date >= f.start_time::date) " \
+            f"AND ('{end_date}'::date <= f.end_time::date)) OR (('{start_date}'::date <= f.start_time::date) " \
+            f"AND ('{end_date}'::date >= f.end_time::date) )) " \
+            f"AND (st_contains(ST_GeomFromText('{poly}'),f.{size_getters[size]}) " \
+            f"OR st_overlaps(ST_GeomFromText('{poly}'),f.{size_getters[size]}))"
     resp = make_response(jsonify([{"type": "Feature",
-                                   "id": "01",
-                                   "properties": {"name": name, "agency": agency, "datetime": dt, "density": 520},
-                                   "geometry": geom}
-                                  for name, agency, dt, geom in Connection.sql_execute(query)]))
+                                   "id": fid,
+                                   "properties": {"name": name, "agency": agency, "starttime": start_time,
+                                                  "endtime": end_time, "density": 520, "area": max_area},
+                                   "geometry": json.loads(geom)}
+                                  for fid, name, agency, start_time, end_time, geom, max_area in
+                                  Connection.sql_execute(query)]))
+    return resp
+
+
+@bp.route("/fire-with-id", methods=['POST'])
+def fire_with_id():
+    request_json = flask_request.get_json(force=True)
+    id = request_json['id']
+    size = request_json['size']
+    size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
+                    4: "geom_center"}
+    query = f"SELECT " \
+            f"id, name, if_sequence, agency, state, start_time, end_time, st_asgeojson({size_getters[size]}) as geom," \
+            f" st_asgeojson(st_envelope({size_getters[size]})) as bbox, " \
+            f"max_area FROM fire_merged where id = {id}"
+    resp = make_response(jsonify([{"type": "Feature",
+                                   "id": fid,
+                                   "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
+                                                  "starttime": start_time,
+                                                  "endtime": end_time, "density": 520, "area": max_area,
+                                                  "state": state},
+                                   "geometry": json.loads(geom),
+                                   "bbox": json.loads(bbox)
+                                   }
+                                  for fid, name, if_sequence, agency, state, start_time, end_time, geom, bbox, max_area
+                                  in
+                                  Connection.sql_execute(query)]))
+    return resp
+
+
+@bp.route("/fire-with-id-seperated", methods=['POST'])
+def fire_with_id_seperated():
+    request_json = flask_request.get_json(force=True)
+    id = request_json['id']
+    size = request_json['size']
+    size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
+                    4: "geom_center"}
+    query = f"SELECT " \
+            f"f.id, f.name, f.if_sequence, f.agency, f.state, f.time,st_asgeojson(f.{size_getters[size]}) as geom," \
+            f" st_asgeojson(st_envelope(m.{size_getters[size]})) as bbox," \
+            f" f.area FROM fire_merged m, fire f where f.id = {id} and m.id = f.id"
+    resp = make_response(jsonify([{"type": "Feature",
+                                   "id": fid,
+                                   "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
+                                                  "time": time,
+                                                  "density": 520, "area": max_area, "state": state},
+                                   "geometry": json.loads(geom),
+                                   "bbox": json.loads(bbox)
+                                   }
+                                  for fid, name, if_sequence, agency, state, time, geom, bbox, max_area in
+                                  Connection.sql_execute(query)]))
 
     return resp

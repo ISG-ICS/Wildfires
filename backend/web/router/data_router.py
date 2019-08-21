@@ -47,8 +47,40 @@ def aggregation():
     date_series = gen_date_series(days, timestamp_str)
 
     query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
-    query2_temp = 'SELECT * from aggregate_temperature(%s, %s, %s, TIMESTAMP %s, %s)'
-    query3_mois = 'SELECT * from aggregate_moisture(%s, %s, %s, TIMESTAMP %s, %s)'
+    query2_tmax = '''
+        select rft."date", avg(prism.tmax) from prism,
+        (
+            SELECT rft."date" from prism_info rft
+            where rft."date" <= TIMESTAMP %s -- UTC timezong
+            -- returning PDT without timezong label
+            and rft."date" > TIMESTAMP %s - ( %s || ' day')::interval
+        ) as rft,
+        (
+            select mesh.gid from us_mesh mesh 
+            WHERE st_dwithin(st_makepoint(%s, %s),mesh.geom, %s)
+        ) as gids
+        where prism.gid=gids.gid
+        and prism."date" = rft."date"
+        and prism.tmax != FLOAT 'NaN'
+        GROUP BY rft."date"
+    '''
+    query3_vpdmax = '''
+        select rft."date", avg(prism.vpdmax) from prism,
+        (
+            SELECT rft."date" from prism_info rft
+            where rft."date" <= TIMESTAMP %s -- UTC timezong
+            -- returning PDT without timezong label
+            and rft."date" > TIMESTAMP %s - ( %s || ' day')::interval
+        ) as rft,
+        (
+            select mesh.gid from us_mesh mesh 
+            WHERE st_dwithin(st_makepoint(%s, %s),mesh.geom, %s)
+        ) as gids
+        where prism.gid=gids.gid
+        and prism."date" = rft."date"
+        and prism.vpdmax != FLOAT 'NaN'
+        GROUP BY rft."date"
+    '''
     query4_ppt = '''
         select rft."date", avg(prism.ppt) from prism,
         (
@@ -73,11 +105,11 @@ def aggregation():
         cur.execute(query_tweet, (lng, lat, radius, timestamp_str, days))  # lng lat +-180
         tweet = cur.fetchall()
         tweet_series = fill_series(date_series, tweet)
-        # temp, mois from NOAA
-        cur.execute(query2_temp, (lng, lat, radius, timestamp_str, days))
+        # temp, mois from NOAA( NO! now is PRISM)
+        cur.execute(query2_tmax, (timestamp_str, timestamp_str, days, lng, lat, radius))
         temp = cur.fetchall()
         temp_series = fill_series(date_series, temp)
-        cur.execute(query3_mois, (lng, lat, radius, timestamp_str, days))
+        cur.execute(query3_vpdmax, (timestamp_str, timestamp_str, days, lng, lat, radius))
         mois = cur.fetchall()
         mois_series = fill_series(date_series, mois)
         # ppt from PRISM

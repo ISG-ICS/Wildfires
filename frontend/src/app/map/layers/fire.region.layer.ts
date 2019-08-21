@@ -4,6 +4,7 @@ import 'leaflet-maskcanvas';
 import 'leaflet-velocity-ts';
 import * as $ from 'jquery';
 import {FireService} from '../../services/fire-service/fire.service';
+import {TimeService} from '../../services/time/time.service';
 
 
 declare let L;
@@ -11,7 +12,8 @@ declare let L;
 export class FireRegionLayer {
 
 
-    constructor(private mainControl, private mapService: MapService, private map, private fireService: FireService) {
+    constructor(private mainControl, private mapService: MapService, private map,
+                private fireService: FireService, private timeService: TimeService) {
         this.mapService.sendFireToFront.subscribe(this.sendFireToFrontHandler);
         this.map.on('zoomend, moveend', this.getFirePolygonOnceMoved);
     }
@@ -44,10 +46,12 @@ export class FireRegionLayer {
             + '</div>\n';
     }
 
-    timeRangeChangeFirePolygonHandler = (event, data) => {
+    timeRangeChangeFirePolygonHandler = () => {
         // processes given time data from time-series
-        this.dateStartInISO = new Date(data.timebarStart);
-        this.dateEndInISO = new Date(data.timebarEnd);
+        console.log('time service', this.timeService);
+        const [dateStartInMs, dateEndInMs] = this.timeService.getRangeDate();
+        this.dateStartInISO = new Date(dateStartInMs).toISOString();
+        this.dateEndInISO = new Date(dateEndInMs).toISOString();
         this.getFirePolygon(this.dateStartInISO, this.dateEndInISO);
 
     };

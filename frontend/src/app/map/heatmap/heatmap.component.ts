@@ -178,7 +178,8 @@ export class HeatmapComponent implements OnInit {
         // Get fire events data from service
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
-        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map, this.fireService);
+        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map,
+            this.fireService, this.timeService);
 
         this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
 
@@ -193,7 +194,7 @@ export class HeatmapComponent implements OnInit {
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
         $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
-        $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
+        // $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
 
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);

@@ -6,6 +6,7 @@ import 'leaflet-velocity-ts';
 import * as Highcharts from 'highcharts';
 
 import {SearchService} from '../../services/search/search.service';
+import {FireService} from '../../services/fire-service/fire.service';
 import {FireTweetLayer} from '../layers/fire.tweet.layer';
 import {WindLayer} from '../layers/wind.layer';
 import {FireEventLayer} from '../layers/fire.event.layer';
@@ -30,16 +31,13 @@ export class HeatmapComponent implements OnInit {
     private locationBoundaryLayer;
     private mainControl;
     private map;
-    private theSearchMarker;
-    private theHighlightMarker;
-    private geojsonLayer;
     private fireTweetLayer;
     private windLayer;
     private fireEventLayer;
     private fireRegionLayer;
     private locationMarkerLayer;
 
-    constructor(private mapService: MapService, private searchService: SearchService) {
+    constructor(private mapService: MapService, private searchService: SearchService, private fireService: FireService) {
     }
 
 
@@ -172,9 +170,6 @@ export class HeatmapComponent implements OnInit {
             $('#mousePosition').html('Lat: ' + Math.round(lat * 100) / 100 + ' Lng: ' + Math.round(lng * 100) / 100);
         });
 
-        // get boundary on init
-        // this.getBoundary();
-
         // Get temperature data from service
         const tempSubject = new Subject();
         tempSubject.subscribe(this.dotMapDataHandler);
@@ -187,7 +182,7 @@ export class HeatmapComponent implements OnInit {
         // Get fire events data from service
         this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
-        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map);
+        this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map, this.fireService);
 
         this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
 
@@ -514,7 +509,6 @@ export class HeatmapComponent implements OnInit {
     boundaryDataHandler = ([[data], value]) => {
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
         // not plotting anything, only zooming in
-        console.log(data);
         const listWithFixedLL = [];
         if (data) {
             // list will be converted because of the lat and lon are misplaced
@@ -522,13 +516,13 @@ export class HeatmapComponent implements OnInit {
             for (const item of data.coordinates[0]) {
                 listWithFixedLL.push([parseFloat(item[1]), parseFloat(item[0])]);
             }
+            console.log('listWithFixedLL', listWithFixedLL);
             this.map.fitBounds(listWithFixedLL); // fits map according to the given fixed boundary list
             const centerLatLng = this.getPolygonCenter(listWithFixedLL);
             this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);
             // sends the center of the polygon to the location.boundary layer
-
         }
-    };
+    }
 
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array

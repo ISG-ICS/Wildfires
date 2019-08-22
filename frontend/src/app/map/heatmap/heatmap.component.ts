@@ -259,7 +259,7 @@ export class HeatmapComponent implements OnInit {
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    }
+    };
 
     dotMapDataHandler = (data) => {
         const latLongBins = [];
@@ -286,7 +286,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    }
+    };
 
     onMapClick(e) {
         // const oldMarker = this.marker;
@@ -407,7 +407,7 @@ export class HeatmapComponent implements OnInit {
             if (avgtmp[1] === null) {
                 tmpValue.push(0);
             } else {
-                tmpValue.push(avgtmp[1] - 273.15);  // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
+                tmpValue.push(avgtmp[1]);  // PRISM data: unit Celsius
             }
         }
 
@@ -418,7 +418,7 @@ export class HeatmapComponent implements OnInit {
             if (avgsoilw[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
+                soilwValue.push(avgsoilw[1]); // PRISM data: unit %
             }
         }
 
@@ -448,7 +448,7 @@ export class HeatmapComponent implements OnInit {
         // if (this.marker.isSticky) {
         //     this.group.addTo(this.map);
         // }
-    }
+    };
 
     // stickyBotton = () => {
     //     const clickboxContents = $('<div />');
@@ -502,7 +502,7 @@ export class HeatmapComponent implements OnInit {
                 region.addTo(this.map);
             }
         }
-    }
+    };
 
 
     boundaryDataHandler = ([[data], value]) => {
@@ -519,7 +519,7 @@ export class HeatmapComponent implements OnInit {
             this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);
             // sends the center of the polygon to the location.boundary layer
         }
-    }
+    };
 
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
@@ -531,7 +531,7 @@ export class HeatmapComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    }
+    };
 
     onMapHold(event) {
         const duration = 1000;

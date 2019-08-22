@@ -300,7 +300,11 @@ export class HeatmapComponent implements OnInit {
         let aggregatedDataSubInBound;
 
         function mouseMoveChangeRadius(event) {
-            const newRadius = distance(circle._latlng, event.latlng);
+            let newRadius = distance(circle._latlng, event.latlng);
+            if (newRadius > 2 * 111000) {
+                newRadius = 2 * 111000;
+                console.log('Reaches the upper bound of radius (2 degree)')
+            }
             localBound.setRadius(newRadius);
             circle.setRadius(newRadius);
         }
@@ -342,9 +346,13 @@ export class HeatmapComponent implements OnInit {
                 this.map.on('mousemove', mouseMoveChangeRadius);
 
                 this.map.on('mouseup', (event) => {
-                    const newRadius = distance(circle._latlng, event.latlng);
+                    let newRadius = distance(circle._latlng, event.latlng);
+                    if (newRadius > 2 * 111000) {
+                        newRadius = 2 * 111000;
+                    }
                     aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
                         .subscribe(this.clickPointHandler);
+
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
                     setTimeout(() => {

@@ -60,6 +60,7 @@ class DataFromFire(Runnable):
         logger.info(f"Recent records: {recent_records}")
         to_crawl = recent_records + to_crawl
         logger.info(f"Total number of fire urls needed to be crawled: {len(to_crawl)}")
+        logger.info(f"To be crawled urls:{to_crawl}")
         self.crawler.cleanup()
         errors = []
         fire_id = 0 if self.dumper.get_latest_fire_id() == None else int(self.dumper.get_latest_fire_id() + 1)
@@ -68,7 +69,7 @@ class DataFromFire(Runnable):
             logger.info(f"Now working on: {entry}")
             if len(entry) == 4:
                 fire_id = entry[0]
-                year =  entry[1]
+                year = entry[1]
                 state = entry[2]
                 urlname = entry[3]
                 logger.info(f"Updating recent fire: old fire id:{fire_id}, year: {year}, state:{state}, urlname:{urlname}.")
@@ -110,5 +111,7 @@ class DataFromFire(Runnable):
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
     DataFromFire().run()
 

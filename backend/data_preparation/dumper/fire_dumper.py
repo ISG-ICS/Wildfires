@@ -9,10 +9,7 @@ from backend.data_preparation.connection import Connection
 logger = logging.getLogger('TaskManager')
 
 class FireDumper(DumperBase):
-    """
-    Table 1(fire_crawl_history): fireyear state firename
-    Table 2(fire_geoms): firename firetime firegeom
-    """
+
     # code for checking
     sql_check_if_fire_table_exists = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire\''
 
@@ -51,8 +48,8 @@ class FireDumper(DumperBase):
                                   'geom_full = excluded.geom_full,geom_1e4 = Excluded.geom_1e4,geom_1e3 = Excluded.geom_1e3,' \
                                   'geom_1e2 = Excluded.geom_1e2, geom_center = EXCLUDED.geom_center,max_area=EXCLUDED.max_area'
 
-    sql_update_fire_info = 'UPDATE fire SET id = %(id)s WHERE name = %(name)s AND time >= %(end_time)s::timestamp AND ' \
-                           'time <= %(start_time)s::timestamp;'
+    sql_update_fire_info = 'UPDATE fire SET id = %(id)s WHERE name = %(name)s AND time >= %(start_time)s::timestamp AND ' \
+                           'time <= %(end_time)s::timestamp;'
 
     # code for accessing
     sql_retrieve_all_fires = 'SELECT year,state,name FROM fire_history'
@@ -126,16 +123,16 @@ class FireDumper(DumperBase):
 
     def insert_history(self,year,name,state,id, current_year):
         with Connection() as connect:
-            urlyear = ""
             if year == current_year:
                 urlyear = 'current_year'
             else:
                 urlyear = str(year)
-            info = {"year":year,"firename":name, "state":state, "id":id, "url":f"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/{urlyear}_fire_data/{state}/{name}/"}
+            info = {"year":year,"firename":name, "state":state, "id":id,
+                    "url":f"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/{urlyear}_fire_data/{state}/{name}/"}
             cur = connect.cursor()
             cur.execute(self.sql_insert_fire_history, info)
             connect.commit()
-            cur.close
+            cur.close()
 
     def get_latest_fire_id(self):
         with Connection() as connect:
@@ -161,30 +158,16 @@ class FireDumper(DumperBase):
             result = cur.fetchall()
         return result
 
-    # def check_if_aggregation_exist(self, id):
-    #     """
-    #     check if the record with an id exist in aggregation table
-    #     if yes then delete it
-    #     :param id:
-    #     :return:
-    #     """
-    #     with Connection() as conn:
-    #         cur = conn.cursor()
-    #         cur.execute(f"SELECT * FROM fire_merged f WHERE f.id = {id}")
-    #         table = cur.fetchall()
-    #         if len(table) != 0:
-    #             logger.info("Record exists, deleting")
-    #             cur.execute(f'DELETE from fire_merged where id = {id}')
-    #             conn.commit()
-    #             logger.info("deleted")
-
-
     def after_inserting_into_fire_info(self, id:int,year,name,state,current_year):
-        """
-        Procedure to be execute after inserting a set of fire into fire_info
-        :param id: int
+        '''
+
+        :param id:
+        :param year:
+        :param name:
+        :param state:
+        :param current_year:
         :return:
-        """
+        '''
         with Connection() as conn:
             cur = conn.cursor()
             # check if fire_aggregate table exist
@@ -196,8 +179,8 @@ class FireDumper(DumperBase):
                 conn.commit()
             cur.execute(self.sql_get_latest_aggregation.format(id))
             aggregated_with_id = cur.fetchall()
-            if aggregated_with_id == []:
-                self.insert_history(year,name,state,id,current_year)
+            if len(aggregated_with_id) == 0:
+                self.insert_history(year, name, state, id, current_year)
                 return id
             new_id = id
             for i in range(len(aggregated_with_id)):
@@ -216,14 +199,13 @@ class FireDumper(DumperBase):
                         "geom_center": aggregated_with_id[i][11],
                         "max_area": aggregated_with_id[i][12]
                         }
-                info_tuple = [ i for i  in info.values()]
+                info_tuple = [i for i in info.values()]
                 # update their id in fire_info
                 cur.execute(self.sql_update_fire_info, info)
                 # insert this set in fire_aggregate
-                cur.execute(self.sql_insert_fire_into_merged,info_tuple)
-
+                cur.execute(self.sql_insert_fire_into_merged, info_tuple)
                 conn.commit()
                 # insert this set into fire_crawl_history
-                self.insert_history(year,name,state,id,current_year)
+                self.insert_history(year, name, state, id, current_year)
         return new_id
 

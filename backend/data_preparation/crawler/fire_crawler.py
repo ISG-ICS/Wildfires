@@ -1,4 +1,3 @@
-from zipfile import ZipFile
 import re
 import requests
 import rootpath
@@ -15,40 +14,31 @@ from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 
+
 class FireCrawler(CrawlerBase):
-    """
-             @          Layer 0
-        / /  |  \  \
-        1 2  3  4  c    Layer 1
-        | |  |  |  |
-        C C  C  C  C    Layer 2(determined)
-        /\/\ /\ /\ /\
-       f ffff ff ff f   Nodes
 
-    Step 1: Get Layer 1: Layer 1 pattern: year_fire_data, current_fire_data
-            add the absolute link into to_check
-    Step 2: Get Nodes: Nodes pattern: fire_name
-
-    """
     def __init__(self, states):
+        """
+        Initialization for the crawler.
+        :param states: list of states that the crawler needs to crawl
+        """
         super().__init__()
         self.baseDir = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
         self.years = []
         self.states = states
-        self.explored_year = set()
-        self.explored_fire = set()
-        self.to_check = []
 
     def start(self):
         """
-        Start the crawler
+        Start the crawler, not used.
+        Keep it here to satisfy crawlerbase abstract method.
         :return:
         """
+        return
 
     def extract_all_fires(self):
         """
-        extract all fires on the website and return :
-        tuples of (trueyear,firename)
+        Extract all fires on the website and return.
+        The returned value is a list of tuples:(year:int, state:string, fire's name in its url)
         :return: list of tuples
         """
         current_year = datetime.datetime.now().date().year
@@ -60,32 +50,45 @@ class FireCrawler(CrawlerBase):
         fire = []
         for year_node in year_nodes:
             true_year = current_year if year_node == "current_year_fire_data" else int(year_node.split("_")[0])
+            # to change "current_year" to the real year as an integer
             for state in self.states:
                 list_of_state_fires = requests.get(url=f"{self.baseDir}{year_node}/{state}").content.decode("utf-8")
-                re_formula = r'<A .*?>(\w*?)</A>'
+                re_formula = r'<A .*?>(.*?)</A>'
                 fires = re.findall(re_formula, list_of_state_fires, re.S | re.M)
                 fire += list(map(lambda f: (true_year, state, f), fires))
+        # to delete exceptions: "[To Parent Directory]" "whatever.zip"
+        for i in fire[:]:
+            if "." in i[2] or "[To Parent Directory]" == i[2]:
+                fire.remove(i)
         return fire
 
-    def generate_url_from_tuple(self, year_of_t, state_of_t, name_of_t, current_year:int):
+    def generate_url_from_tuple(self, year_of_t, state_of_t, name_of_t, current_year):
+        """
+        Take year, state, and url name and convert the entry to the url
+        :param year_of_t: int
+        :param state_of_t: str
+        :param name_of_t: str
+        :param current_year: int
+        :return: str
+        """
         yearstring = "current_year" if year_of_t == current_year else str(year_of_t)
         url = f"{self.baseDir}{yearstring}_fire_data/{state_of_t}/{name_of_t}"
         return url
 
     def crawl(self, url_to_crawl):
         """
-        takes the url string of one fire and start to crawl all files
+        Takes the url string of one fire and start to crawl all files
         :param url_to_crawl: str
         :return: none
         """
         if "ActivePerim" in url_to_crawl:
             return
+        # ActivePerim is useless link which contains metadata over the year, existing in links before 2016 Skip it
         used_folder_names = set()
         # grab all firenames in the page
         fire_page = requests.get(url=url_to_crawl).content.decode("utf-8")
         res = r'<A .*?>(ca_.+?)</A>'
         filenames = re.findall(res, fire_page, re.S | re.M)
-
         # download useful files
         for f in filenames:
             if ".zip" == f[-4:]:
@@ -103,14 +106,11 @@ class FireCrawler(CrawlerBase):
                     except urllib.error.URLError:
                         continue
                     break
-
         return
 
     def cleanup(self):
         """
-        clean up the temp data folder
-        Haven't been test yet since I don't know what right the runnable have
-        on the server
+        Clean up the temp data folder
         :return:
         """
         foldersToRemove = [os.path.join(FIRE_DATA_DIR, f) for f in os.listdir(FIRE_DATA_DIR)]

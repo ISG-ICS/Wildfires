@@ -408,7 +408,7 @@ export class HeatmapComponent implements OnInit {
             if (avgtmp[1] === null) {
                 tmpValue.push(0);
             } else {
-                tmpValue.push(avgtmp[1] - 273.15);  // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
+                tmpValue.push(avgtmp[1]);  // PRISM data: unit Celsius
             }
         }
 
@@ -419,7 +419,7 @@ export class HeatmapComponent implements OnInit {
             if (avgsoilw[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
+                soilwValue.push(avgsoilw[1]); // PRISM data: unit %
             }
         }
 

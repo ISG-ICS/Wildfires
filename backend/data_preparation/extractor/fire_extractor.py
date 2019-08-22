@@ -10,33 +10,24 @@ from shapely.geometry.multipolygon import MultiPolygon
 
 logger = logging.getLogger('TaskManager')
 
+
 class FireExtractor(ExtractorBase):
     def __init__(self):
+        """
+        Initialize FireExtractor.
+        """
         super().__init__()
-
 
     def extract(self, path, record, if_sequence, id, state):
         """
-        Extract useful information of a fire from a path
-        :param path: str, path of the files of this fire
-        :param record: str, the name of this record(stage)
-        :param if_sequence: bool, if the stage belongs to a sequence of fire
-        :param id: int, id of the aggregated fire
-        :return: result: dict, all values needed
+        Extractor's main feature function, read a set of records and return the contents
+        :param path: str, path of the folder
+        :param record: str, name of the record
+        :param if_sequence: bool, if this fire is a sequence of fire
+        :param id: int
+        :param state: str
+        :return: dict of all information in the record
         """
-        # The original data is not clean, field names are different each year
-        # this dictionary is for the extractor to get the exactly year's field names
-        # fieldsbyyear = {2010:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2011:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2012:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2013:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2014:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2015:("FIRE_NAME", "DATE_", "TIME_", "AGENCY"),
-        #                 2016:("fireName", "perDatTime", "agency"),
-        #                 2017:("fireName", "perDatTime", "agency"),
-        #                 2018:("fireName", "perDatTime", "agency"),
-        #                 2019:("FIRENAME", "DATECRNT","AGENCY")}
-        # extract the year number from record and convert it to an int
         try:
             year = int(re.search(r"\d{8}",record).group()[:4])
         except AttributeError:

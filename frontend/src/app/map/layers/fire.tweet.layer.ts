@@ -172,7 +172,7 @@ export class FireTweetLayer {
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
         this.timeRangeChangeHandler();
-    };
+    }
 
     timeRangeChangeHandler = () => {
         /**
@@ -192,7 +192,7 @@ export class FireTweetLayer {
             }
         });
         this.tweetLayer.setData(tempData);
-    };
+    }
 
     idOverPoint(x, y) {
         /**

@@ -36,6 +36,7 @@ export class HeatmapComponent implements OnInit {
     private fireEventLayer;
     private fireRegionLayer;
     private locationMarkerLayer;
+    private isFirstTime;
 
     private pinRadius = 40000;
     // For what to present when click event happens
@@ -156,10 +157,11 @@ export class HeatmapComponent implements OnInit {
             '<span style =\'color:red\'>Streets</span>': streets,
             '<span style =\'color:black\'>Dark</span>': dark
         };
+        const command = L.control;
+        this.mainControl = command.layers(baseLayers).addTo(this.map);
 
-        this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
-        // Generate coordinate in sidebar
+        // Generate coordinate   in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;
             const lng = ev.latlng.lng;
@@ -179,7 +181,7 @@ export class HeatmapComponent implements OnInit {
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
         this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map,
-            this.fireService, this.timeService);
+            this.fireService, this.timeService, this.isFirstTime = true);
 
         this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
 
@@ -190,10 +192,9 @@ export class HeatmapComponent implements OnInit {
         // Get boundary data from service to draw it on map
         this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
 
-
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
-        $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
+        // $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
         // $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
 
         // Send temp range selected from service
@@ -259,7 +260,7 @@ export class HeatmapComponent implements OnInit {
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    }
+    };
 
     dotMapDataHandler = (data) => {
         const latLongBins = [];
@@ -286,7 +287,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    }
+    };
 
     onMapClick(e) {
         // const oldMarker = this.marker;
@@ -448,7 +449,7 @@ export class HeatmapComponent implements OnInit {
         // if (this.marker.isSticky) {
         //     this.group.addTo(this.map);
         // }
-    }
+    };
 
     // stickyBotton = () => {
     //     const clickboxContents = $('<div />');
@@ -502,7 +503,7 @@ export class HeatmapComponent implements OnInit {
                 region.addTo(this.map);
             }
         }
-    }
+    };
 
 
     boundaryDataHandler = ([[data], value]) => {
@@ -519,7 +520,7 @@ export class HeatmapComponent implements OnInit {
             this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);
             // sends the center of the polygon to the location.boundary layer
         }
-    }
+    };
 
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
@@ -531,7 +532,7 @@ export class HeatmapComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    }
+    };
 
     onMapHold(event) {
         const duration = 1000;

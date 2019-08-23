@@ -5,8 +5,18 @@ import {Injectable} from '@angular/core';
 @Injectable({
     providedIn: 'root'
 })
+
+/**
+ * TimeService as one separate service that allows other components to get time.
+ *
+ * Initial current time range from previous 6 months to present.
+ *
+ * @param {string} currentDateInYMD    Current date in yyyy-mm-dd, used in click event in time series.
+ * @param {number} rangeStartDateInMS  Range start time in millisecond, used in selection event in time series.
+ * @param {number} rangeEndDateInMS    Range end time in millisecond, used in selection event in time series.
+ *
+ */
 export class TimeService {
-    // Date are in format "yyyy-mm-dd"
     private currentDateInYMD = undefined;
     private rangeStartDateInMS = new Date().getTime() - 6 * 30 * 24 * 3600 * 1000;
     private rangeEndDateInMS = new Date().getTime();

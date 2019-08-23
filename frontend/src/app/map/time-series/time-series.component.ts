@@ -25,7 +25,15 @@ export class TimeSeriesComponent implements OnInit {
         this.mapService.getFireTweetData().subscribe(data => this.drawTimeSeries(data));
     }
 
-    // Draw time series
+    /**
+     * Using tweet data to draw a time series reflecting daily tweet information
+     *
+     * Get data from backend and do the data retrieval of time to a specific date.
+     * Count wildfire related tweets and draw it as a time series chart to visualize.
+     *
+     * @param {array} tweets tweet data crawled using tweet api
+     *
+     */
     drawTimeSeries = (tweets: Tweet[]) => {
         const chartData = [];
         const dailyCount = {};
@@ -50,16 +58,12 @@ export class TimeSeriesComponent implements OnInit {
                 events: {
                     click: event => {
                         // @ts-ignore
-                        const clickValue = event.xAxis[0].value;
-                        let dateInMs = clickValue - clickValue % this.halfUnit;
-                        dateInMs += dateInMs % (this.halfUnit * 2);
-                        const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
-                        // @ts-ignore
-                        const tick = event.xAxis[0].axis.ticks[dateInMs];
+                        const [leftBandStart, bandCenter, rightBandEnd, tick] = this.closestTickNearClick(event.xAxis[0]);
+                        const dateSelectedInYMD = new Date(bandCenter).toISOString().substring(0, 10);
                         if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - this.halfUnit,
-                                to: dateInMs + this.halfUnit,
+                                from: leftBandStart,
+                                to: rightBandEnd,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
@@ -74,8 +78,8 @@ export class TimeSeriesComponent implements OnInit {
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - this.halfUnit,
-                                to: dateInMs + this.halfUnit,
+                                from: leftBandStart,
+                                to: rightBandEnd,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
@@ -151,5 +155,46 @@ export class TimeSeriesComponent implements OnInit {
         });
     }
 
-
+    /**
+     *  Generate information needed for click event
+     *
+     *  Receive a event axis with click value to measure the distance on time series.
+     *
+     *  @param {Object} eventAxis Click event fire information of axis.
+     *
+     *  @return [leftBandStart, bandCenter, rightBandEnd, tick] which will be used in
+     *  time series click event.
+     */
+    closestTickNearClick(eventAxis): [number, number, number, any] {
+        const halfUnitDistance = 43200000;
+        const xAxis = eventAxis.axis;
+        const dateClickedInMs = eventAxis.value;
+        let distanceToTheLeft;
+        let distanceToTheRight;
+        let minValue;
+        let minKey;
+        if (xAxis.ordinalPositions === undefined) {
+            // Ticks evenly distributed with unit distance 43200000*2
+            minValue = dateClickedInMs - dateClickedInMs % halfUnitDistance;
+            minValue += minValue % (halfUnitDistance * 2);
+            distanceToTheLeft = halfUnitDistance;
+            distanceToTheRight = halfUnitDistance;
+        } else {
+            // Ticks distributed with different distance
+            xAxis.ordinalPositions.forEach((value, index ) => {
+                if (minValue === undefined || Math.abs(dateClickedInMs - value) < Math.abs(dateClickedInMs - minValue)) {
+                    minValue = value;
+                    minKey = index;
+                }
+            });
+            if (minKey === 0 || minKey === xAxis.ordinalPositions.length - 1) {
+                distanceToTheLeft = 0;
+                distanceToTheRight = 0;
+            } else {
+                distanceToTheLeft = (xAxis.ordinalPositions[minKey] - xAxis.ordinalPositions[minKey - 1]) / 2;
+                distanceToTheRight = (xAxis.ordinalPositions[minKey + 1] - xAxis.ordinalPositions[minKey]) / 2;
+            }
+        }
+        return [minValue - distanceToTheLeft, minValue, distanceToTheRight + minValue, xAxis.ticks[minValue]];
+    }
 }

@@ -40,6 +40,7 @@ export class HeatmapComponent implements OnInit {
     private fireEventLayer;
     private fireRegionLayer;
     private locationMarkerLayer;
+    private isFirstTime;
 
     private pinRadius = 40000;
     // For what to present when click event happens
@@ -168,8 +169,9 @@ export class HeatmapComponent implements OnInit {
             '<span style =\'color:red\'>Streets</span>': streets,
             '<span style =\'color:black\'>Dark</span>': dark
         };
+        const command = L.control;
+        this.mainControl = command.layers(baseLayers).addTo(this.map);
 
-        this.mainControl = L.control.layers(baseLayers).addTo(this.map);
 
         // Generate coordinate in sidebar
         this.map.addEventListener('mousemove', (ev) => {
@@ -191,7 +193,7 @@ export class HeatmapComponent implements OnInit {
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
 
         this.fireRegionLayer = new FireRegionLayer(this.mainControl, this.mapService, this.map,
-            this.fireService, this.timeService);
+            this.fireService, this.timeService, this.isFirstTime = true);
 
         this.locationBoundaryLayer = new LocationBoundaryLayer(this.mainControl, this.mapService, this.map);
 
@@ -202,10 +204,9 @@ export class HeatmapComponent implements OnInit {
         // Get boundary data from service to draw it on map
         this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
 
-
         // Add event Listener when user specify a time range on time series
         $(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
-        $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
+        // $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
         // $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
 
         // Send temp range selected from service
@@ -279,7 +280,7 @@ export class HeatmapComponent implements OnInit {
         // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    };
+    }
 
     dotMapDataHandler = (data) => {
         /**
@@ -314,7 +315,7 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    };
+    }
 
     onMapClick(e) {
         /**
@@ -602,7 +603,7 @@ export class HeatmapComponent implements OnInit {
                 region.addTo(this.map);
             }
         }
-    };
+    }
 
     boundaryDataHandler = ([[data], value]) => {
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label

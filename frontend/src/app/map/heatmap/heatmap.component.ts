@@ -65,6 +65,8 @@ export class HeatmapComponent implements OnInit {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
+        // Define format of the highcharts in clickbox, Each chart has 2 y axises for 2 plots : y1, y2
+        // y1 color is set static, y2 color takes as a parameter
         Highcharts.chart(name, {
             title: {
                 text: '',
@@ -257,7 +259,7 @@ export class HeatmapComponent implements OnInit {
             }
         };
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-        heatmapLayer.setData({max: 680, data});
+        heatmapLayer.setData({max: 680, data});   // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
     };
 
@@ -267,7 +269,7 @@ export class HeatmapComponent implements OnInit {
         for (let t = 0; t < this.tempBreaks.length - 1; t++) {
             const points = [];
             for (const point of data) {
-                if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {
+                if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {   // one list for one small temp interval
                     points.push([Number(point.lat), Number(point.long)]);
                 }
             }
@@ -289,6 +291,7 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapClick(e) {
+        // TODO: Add old clickbox according to Sticky botton
         // const oldMarker = this.marker;
         // const oldGroup = this.group;
         // if (oldMarker !== null) {
@@ -296,11 +299,14 @@ export class HeatmapComponent implements OnInit {
         //         oldGroup.addTo(this.map);
         //     }
         // }
-        let aggregatedDataSubInBound;
+
+        let aggregatedDataSubInBound; // To unsubscribe later
 
         function mouseMoveChangeRadius(event) {
+            // to set radius of circle and bound together when the drag event happens
             let newRadius = distance(circle._latlng, event.latlng);
             if (newRadius > 2 * 111000) {
+                // Set upper bound of radius of clickbox (2 degree); 2 degree = 2 * 111000 meter
                 newRadius = 2 * 111000;
                 console.log('Reaches the upper bound of radius (2 degree)')
             }
@@ -314,12 +320,15 @@ export class HeatmapComponent implements OnInit {
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
 
-        const clickIcon = L.icon({
+        const clickIcon = L.icon({ // customize icon's look using local image(.gif)
             iconUrl: 'assets/image/pin6.gif',
             iconSize: [26, 30],
         });
         const marker = L.marker(e.latlng, {draggable: false, icon: clickIcon});
-        marker.isSticky = false;
+
+        // TODO: Add isSticky switch for clickbox
+        // marker.isSticky = false;
+
         const circle = L.circle(e.latlng, {
             stroke: false,
             fillColor: 'white',
@@ -333,6 +342,7 @@ export class HeatmapComponent implements OnInit {
             fill: false,
             bubblingMouseEvents: false,
         })
+        // change bound color when mouse on to tell user your mouse is on
             .on('mouseover', () => {
                 localBound.setStyle({color: '#919191'});
             })
@@ -340,16 +350,19 @@ export class HeatmapComponent implements OnInit {
                 localBound.setStyle({color: 'white'});
             })
             .on('mousedown', () => {
+                // deal with drag event when mouseon circle bound
                 this.map.removeEventListener('click');
                 this.map.dragging.disable();
                 this.map.on('mousemove', mouseMoveChangeRadius);
-
+                // send changed radius to backend with mousedown/mouseup
                 this.map.on('mouseup', (event) => {
                     let newRadius = distance(circle._latlng, event.latlng);
                     if (newRadius > 2 * 111000) {
+                        // upper bound of radius
                         newRadius = 2 * 111000;
                     }
-                    aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
+                    // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
+                    aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
                         .subscribe(this.clickPointHandler);
 
                     this.map.dragging.enable();
@@ -360,13 +373,18 @@ export class HeatmapComponent implements OnInit {
                     }, 500);
                 }, this);
             });
+
+        // group 3 item as a group, so they can be added or removed together
         const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
 
+        // First popup generated, with geolocation info
         marker.bindPopup('You clicked the map at ' + e.latlng.toString(), {
             closeOnClick: false,
             autoClose: true,
         }).openPopup();
 
+        // when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
+        // we aimed to remove the whole clickbox when user do a common click
         this.map.on('mousedown', (e) => this.judgeDistance(e, group));
 
         this.marker = marker;
@@ -376,17 +394,21 @@ export class HeatmapComponent implements OnInit {
         const aggregatedDataSub = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
             .subscribe(this.clickPointHandler);
 
+        // Remove popup fire remove all (default is not sticky)
         marker.getPopup().on('remove', () => {
             group.remove();
             aggregatedDataSub.unsubscribe();
             if (aggregatedDataSubInBound !== undefined) {
+                // unsubscribe when backend data was sending but frontend clickbox was closed by user, otherwise backend data has no place to display
                 aggregatedDataSubInBound.unsubscribe();
             }
-        }); // Remove popup fire remove all (default is not sticky)
+        });
 
     }
 
+    // TODO: Add Sticky feature for clickbox later
     judgeDistance(event, group) {
+        // judge if the mousedown and mouseup as the same coordinate location, if not, then remove clickbox
         this.map.on('mouseup', (e) => {
             if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
                 // if (!that.marker.isSticky) {
@@ -398,6 +420,8 @@ export class HeatmapComponent implements OnInit {
 
 
     clickPointHandler = (data) => {
+        // convert data to fit drawchart function
+        // deal with null values
         const cntTime = [];
         const cntValue = [];
         for (const tweetcnt of data.cnt_tweet) {
@@ -440,7 +464,7 @@ export class HeatmapComponent implements OnInit {
                 pptValue.push(avgppt[1]);
             }
         }
-
+        // Second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
         this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
         HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
             'Moisture', soilwValue, '%', '#d9db9c');
@@ -449,6 +473,7 @@ export class HeatmapComponent implements OnInit {
         HeatmapComponent.drawChart('container3', pptTime, 'Tweet counts', cntValue, 'tweets',
             'Precipitation', pptValue, 'mm', '#9fc7c3');
 
+        // if popup closed, remove the whole clickbox
         this.marker.getPopup().on('remove', () => {
             this.group.remove();
         });
@@ -458,6 +483,7 @@ export class HeatmapComponent implements OnInit {
         // }
     };
 
+    // TODO: Add Sticky botton for clickbox later
     // stickyBotton = () => {
     //     const clickboxContents = $('<div />');
     //     clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
@@ -542,6 +568,7 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapHold(event) {
+        // fire clickbox if mouse down hold for  > 1000ms
         const duration = 1000;
         if (this.timer !== null) {
             clearTimeout(this.timer);
@@ -561,18 +588,14 @@ export class HeatmapComponent implements OnInit {
 
 
     clickboxContentsToShow() {
+        // HTML for the 3 highcharts
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
             '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
 
-
-        const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
-            '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="hh2" style="width: 200px; height: 100px; margin: 0px; float: right;"></div>\n' +
-            '    <div id="hh3" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="hh4" style="width: 200px; height: 100px; margin: 0px;float: right;;"></div>\n';
-
+        // HTML for the tabs inside clickbox
+        // Inside style is CSS content
         const clickboxContents = '<style>' +
             `.leaflet-popup-content {
                 width: 400px;

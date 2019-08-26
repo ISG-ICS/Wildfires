@@ -31,13 +31,16 @@ export class TimeSeriesComponent implements OnInit {
      * Get data from backend and do the data retrieval of time to a specific date.
      * Count wildfire related tweets and draw it as a time series chart to visualize.
      *
-     * @param {array} tweets tweet data crawled using tweet api
+     * @param tweets tweet data crawled using tweet api
      *
      */
     drawTimeSeries = (tweets: Tweet[]) => {
+        /**
+         *  Refine tweet data to count related to 'wildfire' in each DAY,
+         *  storing in charData.
+         */
         const chartData = [];
         const dailyCount = {};
-
         for (const tweet of tweets) {
             const createAt = tweet.create_at.split('T')[0];
             if (dailyCount.hasOwnProperty(createAt)) {
@@ -46,16 +49,23 @@ export class TimeSeriesComponent implements OnInit {
                 dailyCount[createAt] = 1;
             }
         }
-        // time bar
         Object.keys(dailyCount).sort().forEach(key => {
             chartData.push([new Date(key).getTime(), dailyCount[key]]);
         });
+        /**
+         *  Plotting format of time-series.
+         */
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
                 height: 150,
                 backgroundColor: undefined,
                 zoomType: 'x',
                 events: {
+                    /**
+                     *  Tow things to check on a click event:
+                     *  1. Plot band: transparent orange box drew on time-series.
+                     *  2. Ticks (x-axis label): color the x-axis if it is labeled.
+                     */
                     click: event => {
                         // @ts-ignore
                         const [leftBandStart, bandCenter, rightBandEnd, tick] = this.closestTickNearClick(event.xAxis[0]);
@@ -139,6 +149,10 @@ export class TimeSeriesComponent implements OnInit {
                 type: 'datetime',
                 range: 6 * 30 * 24 * 3600 * 1000, // six months
                 events: {
+                    /**
+                     *  This event allow both selections on time-series and navigator,
+                     *  updating information of date.
+                     */
                     setExtremes: (event) => {
                         this.timeService.setRangeDate(event.min + this.halfUnit, event.max);
                         $('#report').html('Date Range => ' +
@@ -160,7 +174,7 @@ export class TimeSeriesComponent implements OnInit {
      *
      *  Receive a event axis with click value to measure the distance on time series.
      *
-     *  @param {Object} eventAxis Click event fire information of axis.
+     *  @param eventAxis Click event fire information of axis.
      *
      *  @return [leftBandStart, bandCenter, rightBandEnd, tick] which will be used in
      *  time series click event.

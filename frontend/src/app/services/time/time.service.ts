@@ -11,9 +11,9 @@ import {Injectable} from '@angular/core';
  *
  * Initial current time range from previous 6 months to present.
  *
- * @param {string} currentDateInYMD    Current date in yyyy-mm-dd, used in click event in time series.
- * @param {number} rangeStartDateInMS  Range start time in millisecond, used in selection event in time series.
- * @param {number} rangeEndDateInMS    Range end time in millisecond, used in selection event in time series.
+ * @param currentDateInYMD    Current date in yyyy-mm-dd, used in click event in time series.
+ * @param rangeStartDateInMS  Range start time in millisecond, used in selection event in time series.
+ * @param rangeEndDateInMS    Range end time in millisecond, used in selection event in time series.
  *
  */
 export class TimeService {
@@ -28,16 +28,16 @@ export class TimeService {
         this.currentDateInYMD = dateInYMD;
     }
 
-    getCurrentDate() {
+    getCurrentDate(): string {
         return this.currentDateInYMD !== undefined ? this.currentDateInYMD : new Date().toISOString().substring(0, 10);
     }
 
-    setRangeDate(startInMs, endInMs) {
+    setRangeDate(startInMs: number, endInMs: number) {
         this.rangeStartDateInMS = startInMs;
         this.rangeEndDateInMS = endInMs;
     }
 
-    getRangeDate() {
+    getRangeDate(): [number, number] {
         return [this.rangeStartDateInMS, this.rangeEndDateInMS];
     }
 }

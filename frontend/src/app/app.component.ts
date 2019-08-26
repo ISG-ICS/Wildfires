@@ -9,5 +9,5 @@ import '../../node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.
     styleUrls: ['./app.component.css']
 })
 export class AppComponent {
-    title = 'wildfires-frontend';
+    title = 'Wildfire Map';
 }

@@ -13,9 +13,17 @@ logger = logging.getLogger('TaskManager')
 
 
 class ImageClassification(Runnable):
+    """
+    Runnable class for tweet images classification. Uses either VGG model or Resnet model to classify each image.
+    And dumps classification result into database.
+    """
 
     def run(self, model_type: str = ImageClassifier.RESNET_MODEL):
-        """get image_id and image_url from database and dump prediction results into database"""
+        """
+        Gets image_id and image_url from database and dump prediction results into database.
+        :param model_type: different model will be used according to model type.
+        :return: none
+        """
         # set up image classifier
         image_classifier = ImageClassifier(model_type)
 
@@ -38,6 +46,6 @@ class ImageClassification(Runnable):
 
 if __name__ == '__main__':
     image_classification = ImageClassification()
-    # model type can be specified to VGG or ResNet
+    # model type can be specified to VGG or ResNet, choose one to run
     image_classification.run(model_type=ImageClassifier.VGG_MODEL)
     image_classification.run(model_type=ImageClassifier.RESNET_MODEL)

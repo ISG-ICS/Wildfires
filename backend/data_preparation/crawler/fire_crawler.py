@@ -53,6 +53,7 @@ class FireCrawler(CrawlerBase):
             # to change "current_year" to the real year as an integer
             for state in self.states:
                 list_of_state_fires = requests.get(url=f"{self.baseDir}{year_node}/{state}").content.decode("utf-8")
+                # crawl the all fires in this state
                 re_formula = r'<A .*?>(.*?)</A>'
                 fires = re.findall(re_formula, list_of_state_fires, re.S | re.M)
                 fire += list(map(lambda f: (true_year, state, f), fires))

@@ -16,10 +16,15 @@ class ImgClassificationDumper(DumperBase):
 
     def insert(self, model_type: str, image_url: str, data: Tuple[float, float]) -> None:
         """
-        data: image prediction result -- probability of being wildfire and not wildfire
-        insert image prediction result into images table
+        Inserts image prediction result into images table.
+        :param model_type: vgg or resnet for image classification model.
+        :param image_url: image's url that identify each distinct image.
+        :param data: image prediction result -- probability of being wildfire and not wildfire.
         """
+        # extract data to be dumped
         prob_not_wildfire, prob_wildfire = data
+
+        # for vgg model
         if model_type == ImageClassifier.VGG_MODEL:
             try:
                 Connection().sql_execute_commit(
@@ -28,6 +33,8 @@ class ImgClassificationDumper(DumperBase):
 
             except Exception:
                 logger.error("error: " + traceback.format_exc())
+
+        # for resnet model
         elif model_type == ImageClassifier.RESNET_MODEL:
             try:
                 Connection().sql_execute_commit(

@@ -236,9 +236,17 @@ export class HeatmapComponent implements OnInit {
     // };
 
     heatmapDataHandler = (data) => {
-        // use heatmapOverlay from leaflet-heatmap
-        // Documentation for details in change of custom parameter
-        // https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
+        /**
+         *  Display temp data as a heatmap with color scale.
+         *
+         *  Receive data with geolocation and temp value as points with value;
+         *  showed as different color with customized color scale;
+         *  use heatmapOverlay class from leaflet-heatmap.
+         *
+         *  @param {Object} geolocation value and temp value
+         *
+         *  @link https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
+         */
         const heatmapConfig = {
             radius: 1,
             maxOpacity: 0.63,
@@ -268,11 +276,20 @@ export class HeatmapComponent implements OnInit {
             }
         };
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
-        heatmapLayer.setData({max: 680, data});   // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
+        // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
+        heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
     };
 
     dotMapDataHandler = (data) => {
+        /**
+         *  Assign 14 different color layers for all temp data.
+         *
+         *  Classify points for different temp into different list
+         *  Assign a different color and a layer for each small temperature interval, and push these layer
+         *
+         *  @param {Object} geolocation value and temp value
+         */
         const latLongBins = [];
         // Classify points for different temp into different list
         for (let t = 0; t < this.tempBreaks.length - 1; t++) {
@@ -284,7 +301,7 @@ export class HeatmapComponent implements OnInit {
             }
             latLongBins.push(points);
         }
-        // Assign a different color and a layer for each small temperature interval
+        // Assign different color for each temperature interval
         for (let i = 0; i < this.colorList.length; i++) {
             this.tempLayer = L.TileLayer.maskCanvas({
                 radius: 5,
@@ -537,6 +554,16 @@ export class HeatmapComponent implements OnInit {
     // };
 
     rangeSelectHandler = (event) => {
+        /**
+         *  Add dotmap layers satisfy the temp range user selected
+         *
+         *  Respond to the input range of temperature from the range selector in side bar;
+         *  used a varint to always keep the latest input Max/Min temperature;
+         *  pushed layers in selected range into list tempRegionsMax;
+         *  added new canvas layers in the updated list tempRegionsMax to Map
+         *
+         *  @param {Object} a list with current lower and upper temp bound that user gives
+         */
         const inRange = (min: number, max: number, target: number) => {
             return target < max && target >= min;
         };

@@ -30,7 +30,7 @@ class DataFromNoaa(Runnable):
 
     def run(self) -> None:
         """
-        The key function called by task manager
+        The key function called by task manager.
         :return: None
         """
         for arg in sys.argv:

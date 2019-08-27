@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import datetime
 import logging
 import traceback
@@ -16,12 +19,20 @@ logger = logging.getLogger('TaskManager')
 
 
 class SoilMoisDumper(DumperBase):
+    """
+    This class is responsible for dumping extracted NASAGrace data into database
+    """
     TIME_FORMAT = "%Y%m%d"
     INSERT_SOIL_MOISTURE = "INSERT INTO env_soil_moisture (gid, datetime, soil_moisture) " \
                            "VALUES (%s, %s, %s) ON CONFLICT (gid, datetime) DO UPDATE " \
                            "SET soil_moisture = excluded.soil_moisture"
 
-    def insert(self, date_str: str, weekly_soil_mois: np.array):
+    def insert(self, date_str: str, weekly_soil_mois: np.array) -> None:
+        """
+        :param date_str: current data's datetime
+        :param weekly_soil_mois: data
+        :return: None
+        """
         flattened_data = weekly_soil_mois.flatten()
 
         with Connection() as conn:

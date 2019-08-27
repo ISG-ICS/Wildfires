@@ -65,8 +65,14 @@ export class HeatmapComponent implements OnInit {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
-        // Define format of the highcharts in clickbox, Each chart has 2 y axises for 2 plots : y1, y2
-        // y1 color is set static, y2 color takes as a parameter
+        /**
+         *  Static format for popup chart content
+         *
+         *  Define format of the highcharts in clickbox, Each chart has 2 y axises for 2 plots : y1, y2
+         *  y1 color is set static, y2 color takes as a parameter
+         *
+         *  @param {Type} inputs including name,list of value, and units for each plots
+         */
         Highcharts.chart(name, {
             title: {
                 text: '',
@@ -206,7 +212,6 @@ export class HeatmapComponent implements OnInit {
 
     }
 
-
     // fireEventHandler = (data) => {
     //
     //     const fireEventList = [];
@@ -291,19 +296,33 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapClick(e) {
-        // TODO: Add old clickbox according to Sticky botton
-        // const oldMarker = this.marker;
-        // const oldGroup = this.group;
-        // if (oldMarker !== null) {
-        //     if (oldMarker.isSticky) {
-        //         oldGroup.addTo(this.map);
-        //     }
-        // }
+        /**
+         *  The major function to generate pin with a simple popup after click-hold event
+         *
+         *  Include several sub-functions which would be explained seperately.
+         *  Despite separated functions, it generate customize icon marker, also group the circle together
+         *  change bound color when mouse on to tell user your mouse is on, with an upper bound of radius
+         *  when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
+         *
+         *  @param event with geolocation value
+         */
+            // TODO: Add old clickbox according to Sticky botton
+            // const oldMarker = this.marker;
+            // const oldGroup = this.group;
+            // if (oldMarker !== null) {
+            //     if (oldMarker.isSticky) {
+            //         oldGroup.addTo(this.map);
+            //     }
+            // }
 
         let aggregatedDataSubInBound; // To unsubscribe later
 
         function mouseMoveChangeRadius(event) {
-            // to set radius of circle and bound together when the drag event happens
+            /**
+             *  To set radius of circle and bound together when the drag event happens
+             *
+             *  @param event of mouseup with geolocation value
+             */
             let newRadius = distance(circle._latlng, event.latlng);
             if (newRadius > 2 * 111000) {
                 // Set upper bound of radius of clickbox (2 degree); 2 degree = 2 * 111000 meter
@@ -314,9 +333,12 @@ export class HeatmapComponent implements OnInit {
             circle.setRadius(newRadius);
         }
 
-
         function distance(center, pt) {
-            // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
+            /**
+             *  convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
+             *
+             *  @param (center of circle, latlng of current location)
+             */
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
 
@@ -408,7 +430,11 @@ export class HeatmapComponent implements OnInit {
 
     // TODO: Add Sticky feature for clickbox later
     judgeDistance(event, group) {
-        // judge if the mousedown and mouseup as the same coordinate location, if not, then remove clickbox
+        /**
+         *  Judge if the mousedown and mouseup as the same coordinate location, if not, then remove clickbox
+         *
+         *  @param event with geolocation value, and the grouped components: marker, circle, bound
+         */
         this.map.on('mouseup', (e) => {
             if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
                 // if (!that.marker.isSticky) {
@@ -418,10 +444,19 @@ export class HeatmapComponent implements OnInit {
         });
     }
 
-
     clickPointHandler = (data) => {
-        // convert data to fit drawchart function
-        // deal with null values
+        /**
+         *  Handle the aggregated data got from backend and display as charts
+         *
+         *  First, convert data to fit drawchart function
+         *  Also, deal with null values
+         *  Then, second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
+         *
+         *  @param 3 lists of environmental data (Moisture, Temperature, Precipitation) with time, and value
+         */
+
+            // convert data to fit drawchart function
+            // deal with null values
         const cntTime = [];
         const cntValue = [];
         for (const tweetcnt of data.cnt_tweet) {
@@ -538,7 +573,6 @@ export class HeatmapComponent implements OnInit {
         }
     };
 
-
     boundaryDataHandler = ([[data], value]) => {
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
         // not plotting anything, only zooming in
@@ -568,7 +602,11 @@ export class HeatmapComponent implements OnInit {
     };
 
     onMapHold(event) {
-        // fire clickbox if mouse down hold for  > 1000ms
+        /**
+         *  Fire clickbox if mouse down hold for  > 1000ms
+         *
+         *  @param event with geolocation
+         */
         const duration = 1000;
         if (this.timer !== null) {
             clearTimeout(this.timer);
@@ -586,9 +624,13 @@ export class HeatmapComponent implements OnInit {
         }, this), duration);
     }
 
-
     clickboxContentsToShow() {
-        // HTML for the 3 highcharts
+        /**
+         *  Format of clickbox with 3 tabs structured
+         *
+         *  Three Highcharts added under first tab
+         */
+            // HTML for the 3 highcharts
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
             '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +

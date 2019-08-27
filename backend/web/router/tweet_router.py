@@ -19,7 +19,10 @@ api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
 
 @bp.route("/live-tweet")
 def send_live_tweet():
-    # TODO: replace source of live tweets to db
+    """
+    (unused)(deprecated)
+    :return:
+    """
     # Simulate request from a mac browser
     headers = {
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -92,6 +95,14 @@ def send_recent_tweet_data():
 
 @bp.route('/region-tweet')
 def region_tweet():
+    """
+    tweet count within specific administrative boundary
+
+    @:param tweet_id: integer
+    @:param timestamp: ISO string
+    @:param days: integer
+    :return: [ [date, count], ... ]
+    """
     region_id = int(flask_request.args.get('region_id'))
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
@@ -133,6 +144,12 @@ def region_tweet():
 
 @bp.route("/tweet-from-id", methods=['GET'])
 def tweet_from_id():
+    """
+    get detail of specific tweet
+
+    @:param tweet_id: integer
+    :return: JSON {"id", "create_at", "text", "user", "profilePic", "image"}
+    """
     tweet_id = int(flask_request.args.get('tweet_id'))
 
     query = '''

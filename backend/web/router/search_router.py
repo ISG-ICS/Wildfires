@@ -12,10 +12,14 @@ bp = Blueprint('search', __name__, url_prefix='/search')
 
 @bp.route('', methods=['GET'])
 def search_administrative_boundaries():
+    """
+    search administrative boundaries
+    support region_id as integer, full-name as string and abbreviated state name as 2-letter string
+    :return:
+    """
     keyword = flask_request.args.get('keyword')
 
     # if kw is an id, get geometry directly
-
     if keyword.isdigit():
         region_id = int(keyword)
         # is a region_id
@@ -39,7 +43,6 @@ def search_administrative_boundaries():
         # load abbreviation
         keyword = us_states_abbr.get(keyword, keyword)
 
-        # TODO: implement autocomplete in keyword selection, replace LIMIT 1
         search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"
         search_county = "SELECT st_asgeojson(t.geom) from us_counties t where lower(county_name)=lower(%s) limit 1"
         search_city = "SELECT st_asgeojson(t.geom) from us_cities t where lower(city_name)=lower(%s) limit 1"
@@ -63,6 +66,10 @@ def search_administrative_boundaries():
 
 @bp.route("/boundaries", methods=['POST'])
 def send_boundaries_data():
+    """
+    get administrative boundaries within specific bounding box
+    :return:
+    """
     request_json = flask_request.get_json(force=True)
     states = request_json['states']
     cities = request_json['cities']

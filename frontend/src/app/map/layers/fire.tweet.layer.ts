@@ -24,6 +24,7 @@ export class FireTweetLayer {
     private timer = null;
 
     constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
+        // This is the overlay controller defined in constructor
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
         this.map.on('overlayadd', (event) => {
             if (event.name === 'Fire tweet') {
@@ -40,7 +41,17 @@ export class FireTweetLayer {
 
     // TODO: REWRITE IT!!!!!!
     static translateTweetDataToShow(tweetJSON) {
-        // try to read info and catch if not exist
+        /**
+         *  Static format for each tweet's popup
+         *
+         *  First try to read info and catch if not exist;
+         *  then presents all the content of a tweet with format
+         *
+         *  @param {Object} one single tweet object with id, user, user profile, text, time,and image
+         *
+         *  @return a html string which give format and customized look of the popup
+         */
+            // read info and catch err
         let tweetid = '';
         try {
             tweetid = tweetJSON.id;
@@ -134,9 +145,14 @@ export class FireTweetLayer {
         return tweetTemplate;
     }
 
-
     tweetDataHandler = (tweets: Tweet[]) => {
-        // Add the tweet layer, shows each individual tweet as a red dot on canvas
+        /**
+         *  Display current tweet data as red dots on canvas
+         *
+         *  Just used geolocation property of the objects given to display
+         *
+         *  @param {Object} list of tweet object with geolocation, time of tweet, id of tweet
+         */
         this.tweetData = tweets;
         this.tweetLayer = L.TileLayer.maskCanvas({
             radius: 10,
@@ -159,8 +175,12 @@ export class FireTweetLayer {
     };
 
     timeRangeChangeHandler = () => {
-        // filter out tweets which not satisfy the time range selection
-        // store qualified tweets with their id in list 'tempDataWithID' for later content display usage
+        /**
+         *  Set tweetLayer data satisfy the time range
+         *
+         *  Filter out tweets which not satisfy the time range selection;
+         *  store qualified tweets with their id in list 'tempDataWithID' for later content display usage
+         */
         const tempData = [];
         this.tempDataWithID = [];
         const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
@@ -175,12 +195,22 @@ export class FireTweetLayer {
     };
 
     idOverPoint(x, y) {
-        // scan the list 'tempDataWithID' to check which dot is the mouse on
+        /**
+         *  Determine if the mouse on a tweet, if so, return id
+         *
+         *  Store qualified tweets with their id in list 'tempDataWithID' for later content display usage;
+         *  scan the list 'tempDataWithID' to check which dot is the mouse on;
+         *  identify is the mouse almost over a tweet dot;
+         *  rescale the distance between mouse and the dot, since no user can mouse on exactly the pixel of the dot
+         *
+         *  @param {type} lat,long of current mouse location
+         *
+         *  @return [int,id] a list gives a index of this tweet and the id of this tweet, if mouse not over the tweet, return [-1, null]
+         */
         for (let i = 0; i < this.tempDataWithID.length; i += 1) {
             const distX = Math.abs((this.tempDataWithID[i][0] - x) / this.scaleX);
             const distY = Math.abs((this.tempDataWithID[i][1] - y) / this.scaleY);
-            // idenify is the mouse almost over a tweet dot,
-            // use this to rescale the distance between mouse and the dot, since no user can mouse on exactly the pixel of the dot
+            // if the mouse almost over a tweet dot, use this to rescale the distance
             if (distX <= 0.001 && distY <= 0.001) {
                 return [i, this.tempDataWithID[i][2]];
             }
@@ -189,7 +219,13 @@ export class FireTweetLayer {
     }
 
     onMapMouseMove(event) {
-        // if mouse hang over a dot for over 250ms, fire 'onMapMouseIntent' function
+        /**
+         *  Timer to determine mouseon time
+         *
+         *  If mouse hang over a dot for over 250ms, fire 'onMapMouseIntent' function
+         *
+         *  @param {object} lat,long of current mouse location
+         */
         if (this.map.hasLayer(this.tweetLayer)) {
             const duration = 250;
             if (this.timer !== null) {
@@ -204,7 +240,14 @@ export class FireTweetLayer {
     }
 
     onMapMouseIntent(e) {
-        // This function generate a red circle marker on the selected tweet dot
+        /**
+         *  Generate a red circle marker on the selected tweet dot
+         *
+         *  First make sure the scale metrics are updated;
+         *  if mouse over a new point, show the Popup Tweet, if previous Marker is not null, destroy;
+         *
+         *  @param {object} lat,long of current mouse location
+         */
 
         // make sure the scale metrics are updated
         if (this.currentBounds === null || this.scaleX === 0 || this.scaleY === 0) {
@@ -238,12 +281,20 @@ export class FireTweetLayer {
     }
 
     IntentTweetPopup(data) {
-        // make the red circle marker clickable to show a popup tweet content
+        /**
+         *  Make current red circle marker clickable to show a popup tweet content
+         *
+         *  @param {object} one tweet object with id, user, user profile, text, time,and image
+         */
         this.currentMarker.bindPopup(FireTweetLayer.translateTweetDataToShow(data));
     }
 
     recentTweetLoadHandler(data) {
-        // shows recent tweet within several days as an animated bird marker
+        /**
+         *  Shows recent tweet within several days as an animated bird marker
+         *
+         *  @param {list} a list of tweet object with id, user, user profile, text, time,and image
+         */
         const fireEventList = [];
         for (const ev of data.slice(0, 150)) {
             const point = [ev.lat, ev.long];

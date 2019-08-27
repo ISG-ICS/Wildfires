@@ -1,3 +1,11 @@
+/**
+ * @Summary: Time chart that can be used to select time range.
+ *
+ * @Author: (Hugo) Qiaonan Huang, Yang Cao
+ *
+ * Last modified  : 2019-08-27 15:31:40
+ */
+
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
 import * as $ from 'jquery';
 import {MapService} from '../../services/map-service/map.service';
@@ -53,11 +61,7 @@ export class TimeSeriesComponent implements OnInit {
         Object.keys(dailyCount).sort().forEach(key => {
             chartData.push([new Date(key).getTime(), dailyCount[key]]);
         });
-        /**
-         *  Plotting format of time-series.
-         *
-         *  Author: (Hugo) Qiaonan Huang
-         */
+        /** Plotting format of time-series. */
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
                 height: 150,
@@ -176,8 +180,6 @@ export class TimeSeriesComponent implements OnInit {
      *  Summary: Generate information needed for click event.
      *
      *  Description: Receive a event axis with click value to measure the distance on time series.
-     *
-     *  Author: (Hugo) Qiaonan Huang
      *
      *  @param eventAxis Click event fire information of axis.
      *

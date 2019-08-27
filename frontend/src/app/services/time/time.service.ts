@@ -1,3 +1,13 @@
+/**
+ * @Summary: TimeService as one separate service that allows other components to get time.
+ *
+ * @Description: Initial current time range from previous 6 months to present.
+ *
+ * @Author: (Hugo) Qiaonan Huang
+ *
+ * Last modified  : 2019-08-27 15:31:40
+ */
+
 import {Injectable} from '@angular/core';
 // import {Observable, Subject, BehaviorSubject} from 'rxjs';
 // import {HttpClient, HttpParams} from '@angular/common/http';
@@ -7,12 +17,6 @@ import {Injectable} from '@angular/core';
 })
 
 /**
- * Summary: TimeService as one separate service that allows other components to get time.
- *
- * Description: Initial current time range from previous 6 months to present.
- *
- * Author: (Hugo) Qiaonan Huang
- *
  * @param currentDateInYMD    Current date in yyyy-mm-dd, used in click event in time series.
  * @param rangeStartDateInMS  Range start time in millisecond, used in selection event in time series.
  * @param rangeEndDateInMS    Range end time in millisecond, used in selection event in time series.

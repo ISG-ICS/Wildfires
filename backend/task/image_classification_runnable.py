@@ -1,3 +1,6 @@
+"""
+@author: Yutong Wang
+"""
 import logging
 import traceback
 
@@ -29,7 +32,7 @@ class ImageClassification(Runnable):
 
         image_classifier.set_model()
 
-        # set up event2mindDumper
+        # set up image classification dumper
         img_classification_dumper = ImgClassificationDumper()
 
         # loop every image in database

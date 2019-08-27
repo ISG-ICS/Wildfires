@@ -1,3 +1,4 @@
+// This file is currently unused, prepared to move clickbox feature from heatmap file to this file
 import 'leaflet/dist/leaflet.css';
 import {MapService} from '../../services/map-service/map.service';
 import * as $ from 'jquery';

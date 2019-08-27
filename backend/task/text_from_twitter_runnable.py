@@ -1,3 +1,6 @@
+'''
+@author: Tingxuan Gu
+'''
 import logging
 
 import rootpath
@@ -12,6 +15,9 @@ logger = logging.getLogger('TaskManager')
 
 
 class TextFromTwitter(Runnable):
+    """
+    This class is responsible for crawling texts from twitter, extracting them and dumping them into database
+    """
     def __init__(self):
         self.crawler = TweetCrawler()
         self.extractor = TweetExtractor()

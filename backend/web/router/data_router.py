@@ -66,6 +66,7 @@ def aggregation():
     # generate date series. values are set to None/null
     date_series = gen_date_series(days, timestamp_str)
 
+    # aggregate_tweet stored procedure, (6b. point_aggr_tweet.sql)
     query_tweet = 'SELECT * from aggregate_tweet(%s, %s, %s, TIMESTAMP %s, %s)'
     query2_tmax = '''
         select rft."date", avg(prism.tmax) from prism,

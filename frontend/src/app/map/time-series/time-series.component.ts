@@ -22,6 +22,7 @@ export class TimeSeriesComponent implements OnInit {
     }
 
     ngOnInit() {
+        /** Subscribe tweet data related to wildfire in service. */
         this.mapService.getFireTweetData().subscribe(data => this.drawTimeSeries(data));
     }
 
@@ -54,6 +55,8 @@ export class TimeSeriesComponent implements OnInit {
         });
         /**
          *  Plotting format of time-series.
+         *
+         *  Author: (Hugo) Qiaonan Huang
          */
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
@@ -170,9 +173,11 @@ export class TimeSeriesComponent implements OnInit {
     }
 
     /**
-     *  Generate information needed for click event
+     *  Summary: Generate information needed for click event.
      *
-     *  Receive a event axis with click value to measure the distance on time series.
+     *  Description: Receive a event axis with click value to measure the distance on time series.
+     *
+     *  Author: (Hugo) Qiaonan Huang
      *
      *  @param eventAxis Click event fire information of axis.
      *
@@ -188,20 +193,21 @@ export class TimeSeriesComponent implements OnInit {
         let minValue;
         let minKey;
         if (xAxis.ordinalPositions === undefined) {
-            // Ticks evenly distributed with unit distance 43200000*2
+            /** Ticks evenly distributed with unit distance 43200000*2. */
             minValue = dateClickedInMs - dateClickedInMs % halfUnitDistance;
             minValue += minValue % (halfUnitDistance * 2);
             distanceToTheLeft = halfUnitDistance;
             distanceToTheRight = halfUnitDistance;
         } else {
-            // Ticks distributed with different distance
-            xAxis.ordinalPositions.forEach((value, index ) => {
+            /** Ticks distributed with different distance. */
+            xAxis.ordinalPositions.forEach((value, index) => {
                 if (minValue === undefined || Math.abs(dateClickedInMs - value) < Math.abs(dateClickedInMs - minValue)) {
                     minValue = value;
                     minKey = index;
                 }
             });
             if (minKey === 0 || minKey === xAxis.ordinalPositions.length - 1) {
+                /** Case when click at the beginning or the end of the range. */
                 distanceToTheLeft = 0;
                 distanceToTheRight = 0;
             } else {

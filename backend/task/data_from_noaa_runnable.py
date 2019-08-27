@@ -21,7 +21,7 @@ logger = logging.getLogger('TaskManager')
 
 class DataFromNoaa(Runnable):
     """
-    This class is responsible for crawling data from NOAA, extracting them and dumping them into db
+    This class is responsible for crawling data from NOAA, extracting them and dumping them into db.
     """
 
     def __init__(self):

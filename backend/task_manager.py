@@ -1,4 +1,6 @@
 import ctypes
+import glob
+import importlib
 import inspect
 import json
 import logging.config
@@ -7,28 +9,37 @@ import threading
 import time
 import traceback
 from logging import Logger
-from typing import Callable, List
+from typing import Callable, List, Dict
 
 import rootpath
 
 rootpath.append()
 from paths import LOG_DIR, LOG_CONFIG_PATH
 
+
 # don't delete these imports because they're called implicitly
-exec("from backend.task import *")
+# exec("from backend.task import *")
 
 
 class Task:
-    def __init__(self, task_name: str, task_func: Callable, task_number: int):
+    def __init__(self, task_name: str, task_func: Callable):
         self.task_name = task_name
         self.task_func = task_func
-        self.task_number = task_number
+        self.used_number = list()  # register which numbers has been used
+
+    def get_next_number(self) -> int:
+        """ get minimum available number """
+        for v in range(1, 100):
+            if v not in self.used_number:
+                return v
 
 
 class RunningThread:
-    def __init__(self, th, th_name, loop):
+    def __init__(self, th, th_name, task_option_id, given_number, loop):
         self.th = th
         self.th_name = th_name
+        self.task_option_id = task_option_id  # we need these 2 field to refer to Task
+        self.given_number = given_number  # we need these 2 field to refer to Task
         self.loop = loop
 
 
@@ -48,21 +59,44 @@ class TaskManager:
     NOTE: Locks,Events,Semaphores etc. have not been taken into consideration
     and may cause unexpected behaviour if used!
      """
+
     exec("from backend.task.runnable import Runnable")
     running_threads: List[RunningThread] = list()
-    task_options = dict()
-    # use 'Runnable' as parent class' name and get all the subclasses' names
-    for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
-        task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run, 1)
+    task_options: Dict[int, Task] = dict()
     task_option_id = 1
 
     TASK_MODE = 0
     KILL_MODE = 1
     QUIT_MODE = 2
+    RELOAD_MODE = 3
+
+    @classmethod
+    def load_runnables(cls):
+        """
+        tasks should be stored in relative path 'task'
+        :return:
+        """
+
+        exec("from backend.task.runnable import Runnable")
+        # TODO: remove existing modules
+
+        # find tasks
+        task_dir = os.path.join(os.path.realpath(__file__), '..', 'task')
+        tasks = [os.path.split(file)[-1].strip(".py").strip("./")
+                 for file in glob.glob(os.path.join(task_dir, './*.py'))]
+
+        # load tasks, add to task_options
+        TaskManager.task_options = dict()
+        for t in tasks:
+            importlib.import_module(f'task.{t}')
+        # use 'Runnable' as parent class' name and get all the subclasses' names
+        for i, sub_cls in enumerate(vars()['Runnable'].__subclasses__()):
+            cls.task_options[i + 1] = Task(sub_cls.__name__, sub_cls().run)
 
     def __init__(self):
         self.quit_flag: bool = False
         self.kill_thread_flag: bool = False
+        TaskManager.load_runnables()
 
     @staticmethod
     def initialize_logger() -> Logger:
@@ -79,12 +113,14 @@ class TaskManager:
             date_format = '%m/%d/%Y-%H:%M:%S'
             formatter = logging.Formatter(fmt=info_format, datefmt=date_format)
             handler_names = ['info.log', 'error.log']
-            current_time = time.strftime('%m%d%Y_%H:%M:%S_', time.localtime(time.time()))
+            current_time = time.strftime('%m%d%Y_%H-%M-%S_', time.localtime(time.time()))
             for handler_name in handler_names:
                 file_name = os.path.join(LOG_DIR, current_time + handler_name)
                 # create log file in advance
                 if not os.path.exists(file_name):
-                    os.system(r"touch {}".format(file_name))
+                    # `touch` only works on *nix systems, not cross-platform. using open()
+                    with open(file_name, 'w'):
+                        pass
                 file_handler = logging.FileHandler(file_name, mode='a', encoding=None, delay=False)
                 file_handler.setLevel(
                     logging.DEBUG if 'info' in handler_name else logging.ERROR)
@@ -93,16 +129,16 @@ class TaskManager:
         return logger
 
     @classmethod
-    def add_task_option(cls, task_name: str, task_func: Callable, task_number: int) -> None:
+    def add_task_option(cls, task_name: str, task_func: Callable) -> None:
         """
         :param task_name: name of this task option
         :param task_func: the runnable of this task
-        :param task_number: id of this next task eg. let's say we had a wind_crawler-1 is running, to make our second
+        (DEPRECATED):param task_number: id of this next task eg. let's say we had a wind_crawler-1 is running, to make our second
                             wind crawler's name unique
                             we increment this number, so next wind crawler task will be called wind_crawler-2
         :return: None
         """
-        cls.task_options[cls.task_option_id] = Task(task_name, task_func, task_number)
+        cls.task_options[cls.task_option_id] = Task(task_name, task_func)
         cls.task_option_id += 1
 
     @classmethod
@@ -118,10 +154,9 @@ class TaskManager:
         :return: formated tasks in the current task option dictionary
         """
         to_return = ""
-        task_template = " [%d]: %s-%d \n"
         for option in cls.task_options:
-            to_return += task_template % (
-                option, cls.task_options[option].task_name, cls.task_options[option].task_number)
+            to_return += f" [{option}]: {cls.task_options[option].task_name}-" \
+                f"{cls.task_options[option].get_next_number()} \n"
         return to_return
 
     @classmethod
@@ -136,13 +171,16 @@ class TaskManager:
 
         if args is None:
             args = []
-        th_name = cls.task_options[task_option_id].task_name + str(cls.task_options[task_option_id].task_number)
+        th_name = cls.task_options[task_option_id].task_name + str(cls.task_options[task_option_id].get_next_number())
         th = threading.Thread(target=cls._thread_runner_,
                               args=(cls.task_options[task_option_id].task_func, th_name, interval, args),
                               name=th_name)
         logger.info('A new task will be running!')
         th.setDaemon(True)
-        cls.running_threads.append(RunningThread(th, th_name, loop))
+        cls.running_threads.append(RunningThread(th, th_name, task_option_id,
+                                                 cls.task_options[task_option_id].get_next_number(), loop))
+        # register task number
+        cls.task_options[task_option_id].used_number.append(cls.task_options[task_option_id].get_next_number())
         th.start()
 
     @classmethod
@@ -150,6 +188,8 @@ class TaskManager:
         """Removes all threads that return FALSE on isAlive() from the running_threads list """
         for running_th in cls.running_threads[:]:
             if not running_th.th.isAlive():
+                # un-register task number
+                cls.task_options[running_th.task_option_id].used_number.remove(running_th.given_number)
                 cls.running_threads.remove(running_th)
 
     @classmethod
@@ -166,6 +206,9 @@ class TaskManager:
                     ctypes.pythonapi.PyThreadState_SetAsyncExc(cls.running_threads[i].th.ident, None)
                     raise SystemError("PyThreadState_SetAsyncExc failed")
                 logger.info('TASK ' + str(cls.running_threads[i].th_name) + ' KILLED!')
+                # un-register task number
+                cls.task_options[cls.running_threads[i].task_option_id] \
+                    .used_number.remove(cls.running_threads[i].given_number)
                 cls.running_threads.remove(cls.running_threads[i])
                 break
 
@@ -266,6 +309,10 @@ class TaskManager:
             elif task_mode == TaskManager.QUIT_MODE:
                 print("bye bye")
                 break
+            elif task_mode == TaskManager.RELOAD_MODE:
+
+                TaskManager.load_runnables()
+                continue
             else:
                 self.run_a_task(selected_task)
 
@@ -286,8 +333,6 @@ class TaskManager:
             try:
                 args = self.pass_arguments(task_prompt)
                 self.run(task_option_id=task_prompt, loop=task_loop, interval=int(interval_prompt), args=args)
-                # Increment number of user specified task
-                self.task_options[task_prompt].task_number += 1
                 print("Task " + str(self.task_options[task_prompt].task_name) + " has been started!\n")
                 break
             except:
@@ -323,13 +368,15 @@ class TaskManager:
             try:
                 task_prompt = self.lower_case_prompt(
                     "\nWhich task would you like to run:\n" + self.task_option_to_string()
-                    + " [k]: kill a running thread\n [q]: QUIT\n")
+                    + " [k]: kill a running thread\n [q]: QUIT\n [r]: Reload\n")
                 if task_prompt == 'k':
                     return None, TaskManager.KILL_MODE
                 elif task_prompt == 'q':
                     if self.lower_case_prompt("Are you sure you want to quit? [Y/N]") not in ['y', 'yes']:
                         continue
                     return None, TaskManager.QUIT_MODE
+                elif task_prompt == 'r':
+                    return None, TaskManager.RELOAD_MODE
                 else:
                     selected_task = int(task_prompt)
                     # to test whether this is a legal task
@@ -342,6 +389,7 @@ class TaskManager:
 
 if __name__ == "__main__":
     logger = TaskManager.initialize_logger()
+    logger.addHandler(logging.StreamHandler())
     logger.info('Task manager is running now!')
     try:
         task_manager = TaskManager()

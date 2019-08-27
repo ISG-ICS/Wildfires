@@ -1,3 +1,7 @@
+/**
+ * @author Yuan Fu <yuanf9@uci.edu>
+ * @author (Hugo) Qiaonan Huang <qiaonanh@uci.edu>
+ */
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';

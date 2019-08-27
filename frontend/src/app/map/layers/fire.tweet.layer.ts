@@ -1,3 +1,6 @@
+/**
+ * @author Yuan Fu <yuanf9@uci.edu>
+ */
 import 'leaflet/dist/leaflet.css';
 import {MapService} from '../../services/map-service/map.service';
 import 'leaflet-maskcanvas';

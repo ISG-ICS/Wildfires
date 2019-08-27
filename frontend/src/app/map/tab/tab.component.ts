@@ -1,3 +1,6 @@
+/**
+ * @author Yuan Fu <yuanf9@uci.edu>
+ */
 import {Component, OnInit} from '@angular/core';
 
 @Component({
@@ -7,6 +10,7 @@ import {Component, OnInit} from '@angular/core';
 })
 export class TabGroupComponent implements OnInit {
     public link: string;
+
     constructor() {
     }
 

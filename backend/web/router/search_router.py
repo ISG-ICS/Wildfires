@@ -41,6 +41,7 @@ def search_administrative_boundaries():
 
     else:
         # load abbreviation
+        # default value is keyword itself if not found in dict
         keyword = us_states_abbr.get(keyword, keyword)
 
         search_state = "SELECT st_asgeojson(t.geom) from us_states t where lower(state_name)=lower(%s)"

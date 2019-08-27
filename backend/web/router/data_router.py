@@ -23,6 +23,7 @@ bp = Blueprint('data', __name__, url_prefix='/data')
 def gen_date_series(days: int, timestamp_str: str) -> List[Tuple[date, None]]:
     """
     generate a list [ (date, None), ... ]
+    values from DB will replace None in the list later
 
     :param days: number of days we want
     :param timestamp_str: start date

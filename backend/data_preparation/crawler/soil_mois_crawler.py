@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import logging
 import os
 from datetime import datetime, date
@@ -16,6 +19,9 @@ logger = logging.getLogger('TaskManager')
 
 
 class SoilMoisCrawler(CrawlerBase):
+    """
+    This class is responsible for collecting data from NASAGrace
+    """
     TIME_FORMAT = "%Y%m%d"
 
     def __init__(self):
@@ -23,10 +29,11 @@ class SoilMoisCrawler(CrawlerBase):
         self.baseDir = 'https://nasagrace.unl.edu/GRACE'
         self.select_exists = 'select datetime from env_soil_moisture group by datetime having count(*) = 872505'
 
-    def start(self):
-        pass
-
     def crawl(self, date_stamp: date) -> Optional[str]:
+        """
+        :param date_stamp: the date stamp of the file which is being crawled
+        :return: crawled file's path if file exists on NASAGrace, else None
+        """
         formatted_date_stamp = date_stamp.strftime('%Y%m%d')
         file_url = f'{self.baseDir}/{formatted_date_stamp}/sfsm_perc_0125deg_US_{formatted_date_stamp}.tif'
         if not os.path.isdir(SOIL_MOIS_DATA_DIR):
@@ -41,7 +48,7 @@ class SoilMoisCrawler(CrawlerBase):
             return os.path.join(SOIL_MOIS_DATA_DIR, formatted_date_stamp + '.tif')
 
     def get_exists(self) -> set:
-        """get how far we went last time"""
+        """gets how far we went last time"""
         return set(Connection.sql_execute(self.select_exists))
 
 

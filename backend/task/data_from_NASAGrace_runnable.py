@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import glob
 import logging
 import os
@@ -17,13 +20,23 @@ logger = logging.getLogger('TaskManager')
 
 
 class DataFromNASAGrace(Runnable):
+    """
+    This class is responsible for collecting data from NASAGrace
+    """
+
     def __init__(self):
         self.crawler = SoilMoisCrawler()
         self.extractor = TiffExtractor()
         self.dumper = SoilMoisDumper()
         self.end_time = datetime.strptime('20160104', '%Y%m%d')
 
-    def run(self, begin_time_str=datetime.today().strftime('%Y%m%d')):
+    def run(self, begin_time_str=datetime.today().strftime('%Y%m%d')) -> None:
+        """
+        The function that can be referenced in task manager
+        Crawl, extract and dump data from NASAGrace
+        :param begin_time_str: the earliest needed data's time
+        :return: None
+        """
         # get data from nasagrace
         begin_time = datetime.strptime(begin_time_str, '%Y%m%d')
         # make it a datetime object
@@ -64,7 +77,12 @@ class DataFromNASAGrace(Runnable):
                 os.rmdir(root)
         logger.info(f'all data from {begin_time_str} to {self.end_time.strftime("%Y%m%d")}  processing finished')
 
-    def extract_and_dump(self, file_path: str):
+    def extract_and_dump(self, file_path: str) -> None:
+        """
+        Using the file_path provided to extract the information needed and dump it into the database
+        :param file_path: the data to be processed
+        :return: None
+        """
         data = self.extractor.extract(file_path)
         formatted_date_stamp = file_path.split('/')[-1].split('.')[0].split('/')[-1]
         logger.info(f'{formatted_date_stamp} extraction finished')

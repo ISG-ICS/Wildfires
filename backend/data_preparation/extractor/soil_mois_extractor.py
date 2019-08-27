@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import json
 import logging
 import os
@@ -23,11 +26,16 @@ logger = logging.getLogger('TaskManager')
 
 
 class TiffExtractor(ExtractorBase):
+    """
+    This class is responsible for extracting data from tiff file
+    """
+
     def __init__(self):
         super().__init__()
         self.data = []
 
     def extract(self, file_path: str) -> np.ndarray:
+        """Uses file path to extract data"""
         temp_new_res_image_path = os.path.join(SOIL_MOIS_DATA_DIR,
                                                os.path.basename(file_path).split('.')[-2] + '_new_res.tif')
         temp_masked_image_path = os.path.join(SOIL_MOIS_DATA_DIR,
@@ -58,12 +66,20 @@ class TiffExtractor(ExtractorBase):
         return self.data
 
     def export(self, file_type: str, file_name) -> None:  # json
+        """This is just an abstract method that has to be implemented, not carefully done yet"""
         if file_type == 'json':
             json.dump(self.data, open(file_name, 'w'))
         # TODO: support other file format like CSV
 
     @staticmethod
-    def mask_by_us_shape(src_path, dest_path):
+    def mask_by_us_shape(src_path, dest_path) -> None:
+        """
+        Uses the shape file to mask the tiff file, saving this method just in case
+        US shape file is provided in `US_SHAPE_PATH`
+        :param src_path: the path to the source tiff file
+        :param dest_path: the path to save the masked tiff file
+        :return: None
+        """
         # this can be removed if the function is not going to be used
         with fiona.open(US_SHAPE_PATH, "r") as shapefile:
             features = [feature["geometry"] for feature in shapefile]
@@ -100,6 +116,7 @@ if __name__ == '__main__':
 
     zip_file_path = crawler.crawl(datetime.strptime(target_date, '%Y%m%d'))
 
+    # the NDVI data is in a zip file so the unzipping has to be done first
     zf = zipfile.ZipFile(zip_file_path)
     for file in zf.namelist():
         if file.split('.')[-4] == 'VI_NDVI' and file.split('.')[-1] == 'tif':

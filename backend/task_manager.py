@@ -21,6 +21,7 @@ rootpath.append()
 from paths import LOG_DIR, LOG_CONFIG_PATH, TASK_DIR
 
 
+
 # don't delete these imports because they're called implicitly
 # exec("from backend.task import *")
 
@@ -31,6 +32,7 @@ class Task:
     the number indicates how many tasks of this kind have been run before
     """
 
+    
     def __init__(self, task_name: str, task_func: Callable):
         self.task_name = task_name
         self.task_func = task_func
@@ -98,6 +100,7 @@ class TaskManager:
 
         # find tasks
         task_dir = TASK_DIR
+
         tasks = [os.path.split(file)[-1].strip(".py").strip("./")
                  for file in glob.glob(os.path.join(task_dir, './*.py'))]
 

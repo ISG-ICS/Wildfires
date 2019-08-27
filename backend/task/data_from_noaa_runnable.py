@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import logging
 import os
 import sys
@@ -17,11 +20,19 @@ logger = logging.getLogger('TaskManager')
 
 
 class DataFromNoaa(Runnable):
+    """
+    This class is responsible for crawling data from NOAA, extracting them and dumping them into db.
+    """
+
     def __init__(self):
         self.crawler = NOAACrawler()
         self.dumper = NOAADumper()
 
-    def run(self):
+    def run(self) -> None:
+        """
+        The key function called by task manager.
+        :return: None
+        """
         for arg in sys.argv:
             if arg == '-j':
                 self.crawler.useJavaConverter = True  # use java version of grib2json, if '-j' appeared

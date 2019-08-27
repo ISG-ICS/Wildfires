@@ -128,7 +128,7 @@ def aggregation():
         cur.execute(query_tweet, (lng, lat, radius, timestamp_str, days))  # lng lat +-180
         tweet = cur.fetchall()
         tweet_series = fill_series(date_series, tweet)
-        # temp, mois from NOAA( NO! now is PRISM)
+        # tmax, vpdmax from PRISM
         cur.execute(query2_tmax, (timestamp_str, timestamp_str, days, lng, lat, radius))
         temp = cur.fetchall()
         temp_series = fill_series(date_series, temp)
@@ -148,6 +148,11 @@ def aggregation():
 
 @bp.route('region-temp', methods=['GET'])
 def region_temp():
+    """
+    (unused) average temperature in a administrative boundary
+    from NOAA table
+    :return:
+    """
     region_id = int(flask_request.args.get('region_id'))
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
@@ -189,6 +194,11 @@ def region_temp():
 
 @bp.route('region-moisture', methods=['GET'])
 def region_moisture():
+    """
+    (unused) average soil moisture in a administrative boundary
+    from NOAA table
+    :return:
+    """
     region_id = int(flask_request.args.get('region_id'))
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
@@ -230,6 +240,11 @@ def region_moisture():
 
 @bp.route("/temp", methods=['POST'])
 def temperature_in_screen():
+    """
+    (unused) temperature within user screen
+    from NOAA table
+    :return:
+    """
     request_json = flask_request.get_json(force=True)
     north = request_json['northEast']['lat']
     east = request_json['northEast']['lon']
@@ -252,6 +267,11 @@ def temperature_in_screen():
 
 @bp.route("/soilw", methods=['POST'])
 def soil_moisture_in_screen():
+    """
+    (unused) soil moisture within user screen
+    from NOAA table
+    :return:
+    """
     request_json = flask_request.get_json(force=True)
     north = request_json['northEast']['lat']
     east = request_json['northEast']['lon']
@@ -273,6 +293,10 @@ def soil_moisture_in_screen():
 
 @bp.route("/wind")
 def wind():
+    """
+    global wind. from a static file
+    :return:
+    """
     # TODO: replace source of wind data to db
     resp = make_response(send_from_directory('static/data', 'latest.json'))
     return resp
@@ -280,6 +304,9 @@ def wind():
 
 @bp.route("/rain_fall")
 def rainfall():
+    """
+    (unused) rain fall data from a static .csv file
+    """
     # TODO: replace source of rain fall data to db
     resp = make_response(send_from_directory('data', 'rain_fall_sample.csv'))
     return resp

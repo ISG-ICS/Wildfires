@@ -41,4 +41,6 @@ class TextFromTwitter(Runnable):
 
 
 if __name__ == '__main__':
+    # TODO:
+    # add comments to explain usage of fetch_from_db parameter 
     TextFromTwitter().run(fetch_from_db=False)

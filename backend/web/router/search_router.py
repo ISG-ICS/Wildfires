@@ -68,6 +68,7 @@ def search_administrative_boundaries():
 def send_boundaries_data():
     """
     get administrative boundaries within specific bounding box
+    will DB stored procedure (1b. 2b. 3b. boundaries)
     :return:
     """
     request_json = flask_request.get_json(force=True)

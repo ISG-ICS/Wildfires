@@ -25,11 +25,15 @@ class DataFromPRISM(Runnable):
 
     def run(self, end_clause: int = 7):
         """
-            end_clause: number of days we want to crawl
-            default = 7
+        PRISM crawling routine
+
+        :param end_clause: number of days we want to crawl. default = 7
+        :return: None
         """
         current_date = datetime.now(timezone.utc).date()
         end_date = current_date - timedelta(days=end_clause)
+
+        # get exist_list from DB
         with Connection() as conn:
             cur = conn.cursor()
             cur.execute('select date, ppt, tmax, vpdmax from prism_info')
@@ -39,6 +43,7 @@ class DataFromPRISM(Runnable):
             for date, ppt, tmax, vpdmax in exist_list:
                 exist_dict[date] = (ppt, tmax, vpdmax)
 
+        # crawl backward from today
         date = current_date - timedelta(days=1)
         while date >= end_date:
 
@@ -63,6 +68,7 @@ class DataFromPRISM(Runnable):
 
 
 if __name__ == '__main__':
+    # these 2 lines enables logger output to stdout
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     while True:

@@ -1,3 +1,6 @@
+"""
+@author: Yutong Wang
+"""
 import logging
 from typing import Optional, Union
 
@@ -13,11 +16,20 @@ logger = logging.getLogger('TaskManager')
 
 
 class Event2MindClassification(Runnable):
-    PAGE_SIZE = 500
-    LIMIT_SIZE = 10
+    """
+    Runnable class for event2mind classification. Uses model from Allennlp and get respective reactions and intents for each tweet.
+    And dumps results into database.
+    """
+    PAGE_SIZE = 500  # page size for batch insert
+    LIMIT_SIZE = 10  # selection size with limit to selecting 10 records each time
 
     def run(self, target: Optional[int] = None, model: Union[object, str] = None, batch_insert: bool = False):
-        """get records from database and dump prediction results into database"""
+        """
+        Gets records from database and dump prediction results into database.
+        :param target: type of reactions or intents to be inserted into database.
+        :param model: model path. if none, use default path of e2m model.
+        :param batch_insert: do batch insertion or not.
+        """
         # set up event2mind classifier
         event2mind_classifier = Event2MindClassifier()
 

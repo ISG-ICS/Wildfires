@@ -85,6 +85,8 @@ class FireDumper(DumperBase):
     # so id in fire table need to be updated with a larger number
 
     # code for requesting fire information
+    # retrieve all fire information
+    SQL_RETRIEVE_ALL_FIRES = 'SELECT year,state,name FROM fire_history'
     # get the last id from fire_history table
     SQL_GET_LASTEST_ID = 'SELECT MAX(id) FROM fire_history'
     # get the recent fire whose last record is within 10 days of the current date
@@ -110,13 +112,13 @@ class FireDumper(DumperBase):
         # check if the fire_history table exists
         # if the pipeline is run for the first time
         # then the fire_history table will not exist
-        cur.execute(self.sql_check_if_history_table_exists)
+        cur.execute(self.SQL_CHECK_IF_HISTORY_TABLE_EXISTS)
         tables = cur.fetchall()
         # table is the result of the statement: sql_check_if_history_table_exists
         if len(tables) == 0:
             # if table is empty, which means the fire_history table does not exists
             logger.info("No history table exists. Creating a new one.")
-            cur.execute(FireDumper.sql_create_history_table)
+            cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
             # create the fire_history table
             conn.commit()
             # commit the transaction so the change will be saved
@@ -137,13 +139,13 @@ class FireDumper(DumperBase):
         # check if the fire_history table exists
         # if the pipeline is run for the first time
         # then the fire_history table will not exist
-        cur.execute(self.sql_check_if_fire_table_exists)
+        cur.execute(self.SQL_CHECK_IF_FIRE_TABLE_EXISTS)
         tables = cur.fetchall()
         # table is the result of the statement: sql_check_if_history_table_exists
         if len(tables) == 0:
             # if table is empty, which means the fire_history table does not exists
             logger.info("No fire table exists. Creating a new one.")
-            cur.execute(FireDumper.sql_create_fire_table)
+            cur.execute(FireDumper.SQL_CREATE_FIRE_TABLE)
             # create the fire_history table
             conn.commit()
             # commit the transaction so the change will be saved
@@ -167,10 +169,10 @@ class FireDumper(DumperBase):
         # cur.execute(self.sql_check_if_fire_merged_table_exists)
         # tables = cur.fetchall()
         # table is the result of the statement: sql_check_if_history_table_exists
-        if len(list(Connection.sql_execute(self.sql_check_if_fire_merged_table_exists))) == 0:
+        if len(list(Connection.sql_execute(self.SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS))) == 0:
             # if table is empty, which means the fire_history table does not exists
             logger.info("No fire_merged table exists. Creating a new one.")
-            cur.execute(FireDumper.sql_create_history_table)
+            cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
             # create the fire_history table
             conn.commit()
             # commit the transaction so the change will be saved
@@ -189,7 +191,7 @@ class FireDumper(DumperBase):
             # if not exist, executing sql_retrieve_all_fires will return an error
             self.create_history_table(connect)
             # retrieve all fires in fire_history
-            result = set(Connection.sql_execute(self.sql_retrieve_all_fires))
+            result = set(Connection.sql_execute(self.SQL_RETRIEVE_ALL_FIRES))
             # result now is a set of tuples: (year, state, urlname)
             # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
             # the history tuple is : (2015, California, Deer_Horn_2)
@@ -208,15 +210,15 @@ class FireDumper(DumperBase):
             # create cursor
             cur = connect.cursor()
             # execute insert statement
-            cur.execute(self.sql_insert_fire, data)
+            cur.execute(self.SQL_INSERT_FIRE, data)
             connect.commit()
             # commit transaction
             # count number of records
-            self.inserted_count = cur.rowcount()
+            # self.inserted_count = cur.rowcount
             cur.close()
         # print logging message for debugging
         logger.info(f"Finished inserting file: {data['firename']}{data['datetime']}")
-        logger.info(f"record count:{self.inserted_count}")
+        # logger.info(f"record count:{self.inserted_count}")
 
     def insert_history(self, year: int, name: str, state: str, id: int, current_year: int) -> None:
         """
@@ -241,7 +243,7 @@ class FireDumper(DumperBase):
             # create the cursor
             cur = connect.cursor()
             # execute insert statement
-            cur.execute(self.sql_insert_fire_history, data)
+            cur.execute(self.SQL_INSERT_FIRE_HISTORY, data)
             # commit transaction
             connect.commit()
             # close connection
@@ -254,7 +256,7 @@ class FireDumper(DumperBase):
         """
         # execute select statement
         # the latest fire id is the first and only entry of the result
-        return Connection.sql_execute(self.sql_get_lastest_id).__next__()[0]
+        return Connection.sql_execute(self.SQL_GET_LASTEST_ID).__next__()[0]
 
     def get_recent_records(self) -> List[tuple]:
         """
@@ -267,15 +269,15 @@ class FireDumper(DumperBase):
             # execute select statement to see if fire_merged table exists
             # if it doesn't exist, create one
             # if it exists, do nothing
-            if len(list(Connection.sql_execute(self.sql_check_if_fire_merged_table_exists))) == 0:
+            if len(list(Connection.sql_execute(self.SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS))) == 0:
                 logger.info("No aggregated table exists. Creating a new one.")
-                cur.execute(FireDumper.sql_create_fire_merged_table)
+                cur.execute(FireDumper.SQL_CREATE_FIRE_MERGED_TABLE)
                 conn.commit()
                 logger.info("Aggregated table created successfully.")
             # execute select statement, get the fire ids of those fire whose end_date is within 10 days
             # these are fires that might update these days
             logger.info("Retrieving recent fires...")
-            result = list(Connection.sql_execute(self.sql_get_latest_fire))
+            result = list(Connection.sql_execute(self.SQL_GET_LATEST_FIRE))
             logger.info(f"Fires updated within 10 days:{result}")
             # result is a list of tuples (id, year, state, urlname)
         return result
@@ -316,7 +318,7 @@ class FireDumper(DumperBase):
         :param current_year: int
         :return:
         """
-        aggregated_with_id = list(Connection.sql_execute(self.sql_get_latest_aggregation.format(id)))
+        aggregated_with_id = list(Connection.sql_execute(self.SQL_GET_LATEST_AGGREGATION.format(id)))
         if len(aggregated_with_id) == 0:
             logger.warning(f"Record {id} is an empty record. Skipping...")
             # if this id is an empty record, then there is no aggregated fire records
@@ -364,9 +366,9 @@ class FireDumper(DumperBase):
                                                                                         new_id)
                 # update their id in fire_info
                 # here, if the new_id is different from id, the fire with that name will be updated with the new id
-                cur.execute(self.sql_update_fire_info, fire_info_update_params)
+                cur.execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
                 # insert this set in fire_aggregate
-                cur.execute(self.sql_insert_fire_into_merged, fire_merged_insert_params)
+                cur.execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
                 # commit the transaction
                 conn.commit()
                 # insert this set into fire_crawl_history, mark it as crawled

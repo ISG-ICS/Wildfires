@@ -13,7 +13,7 @@ def dropBox():
     """
     auto-completion relies on this API.
     frontend send user types through userInput,
-    this API perform DB query through stored procedure (12b. autocomplete.sql)
+    this API perform DB query through stored procedure (autocomplete.sql)
 
     return a list/array: [ (city, county, state, id), ... ]
     :return:

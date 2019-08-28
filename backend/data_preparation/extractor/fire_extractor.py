@@ -23,11 +23,6 @@ class IncompleteShapefile(Exception):
 
 
 class FireExtractor(ExtractorBase):
-    def __init__(self):
-        """
-        Initializes FireExtractor.
-        """
-        super().__init__()
 
     def extract(self, path: str, record: str, if_sequence: bool, id: int, state: str) -> Dict[str, str]:
         """

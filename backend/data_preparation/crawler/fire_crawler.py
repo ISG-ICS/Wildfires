@@ -1,3 +1,8 @@
+"""
+@author: Scarlett Zhang
+This file contains 1 classes:
+1. class FireCrawler: the crawler class for fire information
+"""
 import re
 import requests
 import rootpath
@@ -127,12 +132,10 @@ class FireCrawler(CrawlerBase):
                 if folder_name not in used_folder_names:
                     used_folder_names.add(folder_name)
                     os.makedirs(os.path.join(FIRE_DATA_DIR,folder_name))
-                    # os.makedirs(FIRE_DATA_DIR + "/" + folder_name)
-                outpath = os.path.join(FIRE_DATA_DIR, folder_name)
-                # outpath = FIRE_DATA_DIR + "/" + folder_name + "/"
+                out_path = os.path.join(FIRE_DATA_DIR, folder_name)
                 for attempts in range(10):
                     try:
-                        wget.download(url=url_to_crawl + "/" + file, out=outpath)
+                        wget.download(url=url_to_crawl + "/" + file, out=out_path)
                     except urllib.error.URLError:
                         logger.warning(f"Cannot download {url_to_crawl} in crawl()")
                         logger.warning(f"Attempting a second time... Remaining attempts:{10 - attempts}")

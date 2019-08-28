@@ -21,7 +21,7 @@ pygrib
 requests
 python-twitter
 pandas
-nltk==3.4.3
+nltk==3.4.5
 numpy==1.16.4
 psycopg2==2.8.3
 timeout-decorator

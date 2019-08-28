@@ -32,11 +32,19 @@ class PRISMCrawler(CrawlerBase):
         self.buffer: List[bytes] = list()
 
     def crawl(self, target_date: date, variable: str) -> Optional[str]:
-        """this func will download a single file"""
+        """
+        this func will download a single file
+
+        :param target_date: date
+        :param variable: ppt, tmax or vpdmax
+        :return: full-path of downloaded file. None if not crawled
+        """
         if not os.path.exists(PRISM_DATA_PATH):
             os.makedirs(PRISM_DATA_PATH)
 
         self.ftp.cwd(f'/daily/{variable}/{target_date.strftime("%Y")}')
+
+        # stage name varies with time. we have to try
         for stage in PRISMCrawler.STAGES:
             filename = f'PRISM_{variable}_{stage}_{PRISMCrawler.ADDITIONAL_CODES[variable]}' \
                        f'_{target_date.strftime("%Y%m%d")}_bil.zip'
@@ -44,6 +52,7 @@ class PRISMCrawler(CrawlerBase):
                 self.ftp.retrbinary(f"RETR {filename}", lambda content: self.buffer.append(content))
             except error_perm as e:
                 logger.info(e)
+                # try another stage name
                 continue
             else:
                 zip_content = b''.join(self.buffer)

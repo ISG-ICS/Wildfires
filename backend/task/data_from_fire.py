@@ -125,7 +125,7 @@ class DataFromFire(Runnable):
                 # insert the merged record into fire into fire_merged and fire_history
                 # update the fire_id, since if there are actually multiple records,
                 # fire_id need to increment more than 1
-                fire_id = self.dumper.after_inserting_into_fire_info(fire_id,year,urlname,state,current_year)
+                fire_id = self.dumper.merge_fire_and_insert_history(fire_id,year,urlname,state,current_year)
             except psycopg2.errors.InternalError_:
                 # Seldomly there is an InternalError_, when Union of geometry cause a self-intersection error
                 logger.error(f"Internal Error: {fire_id}, {year}, {urlname}")

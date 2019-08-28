@@ -61,7 +61,7 @@ class DataFromFire(Runnable):
                 all_fire_tuples.remove(year_state_name_tuples)
         # retrieve all historical links from fire_history table
         logger.info("Retrieving historical fires...")
-        crawled = set(self.dumper.retrieve_all_fires())
+        crawled = self.dumper.retrieve_all_fires()
         logger.info(f"Num of historical links: {len(crawled)}")
         # get the difference between all links and crawled
         to_crawl = sorted(list(set(all_fire_tuples).difference(crawled)))

@@ -328,7 +328,7 @@ class FireDumper(DumperBase):
                     f"there are {len(aggregated_with_id)} aggregated records in this id")
         return aggregated_with_id
 
-    def after_inserting_into_fire_info(self, id: int, year: int, name: str, state: str, current_year: int) -> int:
+    def merge_fire_and_insert_history(self, id: int, year: int, name: str, state: str, current_year: int) -> int:
         '''
          A sequence of operations after inserting all records of a fire into fire table
          including insertion into fire_merged, fire_history

@@ -8,6 +8,8 @@
 **Wildfires** applies machine learning approach to detecting wildfire events based on social media and environmental data. 
 It also plays as a great visualization platform for wildfires with environmental variables as well as social media information.
 
+![](./images/wildfires_readme.jpg)
+
 
 
 # More information

@@ -264,8 +264,12 @@ def rainfall():
 
 @bp.route("/recent-temp")
 def send_temperature_data():
-    # This sql gives the second lastest data for temperature within ractangle around US,
-    # since the most lastest data is always updating (not completed)
+    """
+        This func gives the second lastest data for temperature within ractangle around US,
+        since the most lastest data is always updating (not completed)
+
+        :returns: a list of temp objects, with lat, long, and temp value
+    """
     temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t "
                                                  "where t.endtime = (select max(t.endtime) from recent_temperature t"
                                                  " where t.endtime <(select max(t.endtime) from recent_temperature t))")

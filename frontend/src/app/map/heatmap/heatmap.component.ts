@@ -1,3 +1,7 @@
+/**
+ * @author Yuan Fu <yuanf9@uci.edu>
+ * @author (Hugo) Qiaonan Huang <qiaonanh@uci.edu>
+ */
 import * as $ from 'jquery';
 import HeatmapOverlay from 'leaflet-heatmap/leaflet-heatmap.js';
 import {MapService} from '../../services/map-service/map.service';
@@ -65,6 +69,14 @@ export class HeatmapComponent implements OnInit {
     }
 
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
+        /**
+         *  Static format for popup chart content
+         *
+         *  Define format of the highcharts in clickbox, Each chart has 2 y axises for 2 plots : y1, y2
+         *  y1 color is set static, y2 color takes as a parameter
+         *
+         *  @param {Type} inputs including name,list of value, and units for each plots
+         */
         Highcharts.chart(name, {
             title: {
                 text: '',
@@ -204,7 +216,6 @@ export class HeatmapComponent implements OnInit {
 
     }
 
-
     // fireEventHandler = (data) => {
     //
     //     const fireEventList = [];
@@ -225,9 +236,17 @@ export class HeatmapComponent implements OnInit {
     // };
 
     heatmapDataHandler = (data) => {
-        // use heatmapOverlay from leaflet-heatmap
-        // Documentation for details in change of custom parameter
-        // https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
+        /**
+         *  Display temp data as a heatmap with color scale.
+         *
+         *  Receive data with geolocation and temp value as points with value;
+         *  showed as different color with customized color scale;
+         *  use heatmapOverlay class from leaflet-heatmap.
+         *
+         *  @param {Object} geolocation value and temp value
+         *
+         *  @link https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
+         */
         const heatmapConfig = {
             radius: 1,
             maxOpacity: 0.63,
@@ -257,23 +276,32 @@ export class HeatmapComponent implements OnInit {
             }
         };
         const heatmapLayer = new HeatmapOverlay(heatmapConfig);
+        // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
         heatmapLayer.setData({max: 680, data});
         this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
-    }
+    };
 
     dotMapDataHandler = (data) => {
+        /**
+         *  Assign 14 different color layers for all temp data.
+         *
+         *  Classify points for different temp into different list
+         *  Assign a different color and a layer for each small temperature interval, and push these layer
+         *
+         *  @param {Object} geolocation value and temp value
+         */
         const latLongBins = [];
         // Classify points for different temp into different list
         for (let t = 0; t < this.tempBreaks.length - 1; t++) {
             const points = [];
             for (const point of data) {
-                if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {
+                if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {   // one list for one small temp interval
                     points.push([Number(point.lat), Number(point.long)]);
                 }
             }
             latLongBins.push(points);
         }
-        // Assign a different color and a layer for each small temperature interval
+        // Assign different color for each temperature interval
         for (let i = 0; i < this.colorList.length; i++) {
             this.tempLayer = L.TileLayer.maskCanvas({
                 radius: 5,
@@ -286,36 +314,64 @@ export class HeatmapComponent implements OnInit {
             this.tempLayer.setData(latLongBins[i]);
             this.tempLayers.push(this.tempLayer);
         }
-    }
+    };
 
     onMapClick(e) {
-        // const oldMarker = this.marker;
-        // const oldGroup = this.group;
-        // if (oldMarker !== null) {
-        //     if (oldMarker.isSticky) {
-        //         oldGroup.addTo(this.map);
-        //     }
-        // }
-        let aggregatedDataSubInBound;
+        /**
+         *  The major function to generate pin with a simple popup after click-hold event
+         *
+         *  Include several sub-functions which would be explained seperately.
+         *  Despite separated functions, it generate customize icon marker, also group the circle together
+         *  change bound color when mouse on to tell user your mouse is on, with an upper bound of radius
+         *  when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
+         *
+         *  @param event with geolocation value
+         */
+            // TODO: Add old clickbox according to Sticky botton
+            // const oldMarker = this.marker;
+            // const oldGroup = this.group;
+            // if (oldMarker !== null) {
+            //     if (oldMarker.isSticky) {
+            //         oldGroup.addTo(this.map);
+            //     }
+            // }
+
+        let aggregatedDataSubInBound; // To unsubscribe later
 
         function mouseMoveChangeRadius(event) {
-            const newRadius = distance(circle._latlng, event.latlng);
+            /**
+             *  To set radius of circle and bound together when the drag event happens
+             *
+             *  @param event of mouseup with geolocation value
+             */
+            let newRadius = distance(circle._latlng, event.latlng);
+            if (newRadius > 2 * 111000) {
+                // Set upper bound of radius of clickbox (2 degree); 2 degree = 2 * 111000 meter
+                newRadius = 2 * 111000;
+                console.log('Reaches the upper bound of radius (2 degree)')
+            }
             localBound.setRadius(newRadius);
             circle.setRadius(newRadius);
         }
 
-
         function distance(center, pt) {
-            // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
+            /**
+             *  convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
+             *
+             *  @param (center of circle, latlng of current location)
+             */
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
 
-        const clickIcon = L.icon({
+        const clickIcon = L.icon({ // customize icon's look using local image(.gif)
             iconUrl: 'assets/image/pin6.gif',
             iconSize: [26, 30],
         });
         const marker = L.marker(e.latlng, {draggable: false, icon: clickIcon});
-        marker.isSticky = false;
+
+        // TODO: Add isSticky switch for clickbox
+        // marker.isSticky = false;
+
         const circle = L.circle(e.latlng, {
             stroke: false,
             fillColor: 'white',
@@ -329,6 +385,7 @@ export class HeatmapComponent implements OnInit {
             fill: false,
             bubblingMouseEvents: false,
         })
+        // change bound color when mouse on to tell user your mouse is on
             .on('mouseover', () => {
                 localBound.setStyle({color: '#919191'});
             })
@@ -336,14 +393,21 @@ export class HeatmapComponent implements OnInit {
                 localBound.setStyle({color: 'white'});
             })
             .on('mousedown', () => {
+                // deal with drag event when mouseon circle bound
                 this.map.removeEventListener('click');
                 this.map.dragging.disable();
                 this.map.on('mousemove', mouseMoveChangeRadius);
-
+                // send changed radius to backend with mousedown/mouseup
                 this.map.on('mouseup', (event) => {
-                    const newRadius = distance(circle._latlng, event.latlng);
-                    aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)  // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
+                    let newRadius = distance(circle._latlng, event.latlng);
+                    if (newRadius > 2 * 111000) {
+                        // upper bound of radius
+                        newRadius = 2 * 111000;
+                    }
+                    // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
+                    aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
                         .subscribe(this.clickPointHandler);
+
                     this.map.dragging.enable();
                     this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
                     setTimeout(() => {
@@ -352,13 +416,18 @@ export class HeatmapComponent implements OnInit {
                     }, 500);
                 }, this);
             });
+
+        // group 3 item as a group, so they can be added or removed together
         const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
 
+        // First popup generated, with geolocation info
         marker.bindPopup('You clicked the map at ' + e.latlng.toString(), {
             closeOnClick: false,
             autoClose: true,
         }).openPopup();
 
+        // when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
+        // we aimed to remove the whole clickbox when user do a common click
         this.map.on('mousedown', (e) => this.judgeDistance(e, group));
 
         this.marker = marker;
@@ -368,17 +437,25 @@ export class HeatmapComponent implements OnInit {
         const aggregatedDataSub = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
             .subscribe(this.clickPointHandler);
 
+        // Remove popup fire remove all (default is not sticky)
         marker.getPopup().on('remove', () => {
             group.remove();
             aggregatedDataSub.unsubscribe();
             if (aggregatedDataSubInBound !== undefined) {
+                // unsubscribe when backend data was sending but frontend clickbox was closed by user, otherwise backend data has no place to display
                 aggregatedDataSubInBound.unsubscribe();
             }
-        }); // Remove popup fire remove all (default is not sticky)
+        });
 
     }
 
+    // TODO: Add Sticky feature for clickbox later
     judgeDistance(event, group) {
+        /**
+         *  Judge if the mousedown and mouseup as the same coordinate location, if not, then remove clickbox
+         *
+         *  @param event with geolocation value, and the grouped components: marker, circle, bound
+         */
         this.map.on('mouseup', (e) => {
             if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
                 // if (!that.marker.isSticky) {
@@ -388,8 +465,19 @@ export class HeatmapComponent implements OnInit {
         });
     }
 
-
     clickPointHandler = (data) => {
+        /**
+         *  Handle the aggregated data got from backend and display as charts
+         *
+         *  First, convert data to fit drawchart function
+         *  Also, deal with null values
+         *  Then, second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
+         *
+         *  @param 3 lists of environmental data (Moisture, Temperature, Precipitation) with time, and value
+         */
+
+            // convert data to fit drawchart function
+            // deal with null values
         const cntTime = [];
         const cntValue = [];
         for (const tweetcnt of data.cnt_tweet) {
@@ -407,7 +495,7 @@ export class HeatmapComponent implements OnInit {
             if (avgtmp[1] === null) {
                 tmpValue.push(0);
             } else {
-                tmpValue.push(avgtmp[1] - 273.15);  // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
+                tmpValue.push(avgtmp[1]);  // PRISM data: unit Celsius
             }
         }
 
@@ -418,7 +506,7 @@ export class HeatmapComponent implements OnInit {
             if (avgsoilw[1] === null) {
                 soilwValue.push(0);
             } else {
-                soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
+                soilwValue.push(avgsoilw[1]); // PRISM data: unit %
             }
         }
 
@@ -432,7 +520,7 @@ export class HeatmapComponent implements OnInit {
                 pptValue.push(avgppt[1]);
             }
         }
-
+        // Second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
         this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
         HeatmapComponent.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets',
             'Moisture', soilwValue, '%', '#d9db9c');
@@ -441,6 +529,7 @@ export class HeatmapComponent implements OnInit {
         HeatmapComponent.drawChart('container3', pptTime, 'Tweet counts', cntValue, 'tweets',
             'Precipitation', pptValue, 'mm', '#9fc7c3');
 
+        // if popup closed, remove the whole clickbox
         this.marker.getPopup().on('remove', () => {
             this.group.remove();
         });
@@ -448,8 +537,9 @@ export class HeatmapComponent implements OnInit {
         // if (this.marker.isSticky) {
         //     this.group.addTo(this.map);
         // }
-    }
+    };
 
+    // TODO: Add Sticky botton for clickbox later
     // stickyBotton = () => {
     //     const clickboxContents = $('<div />');
     //     clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
@@ -464,6 +554,16 @@ export class HeatmapComponent implements OnInit {
     // };
 
     rangeSelectHandler = (event) => {
+        /**
+         *  Add dotmap layers satisfy the temp range user selected
+         *
+         *  Respond to the input range of temperature from the range selector in side bar;
+         *  used a varint to always keep the latest input Max/Min temperature;
+         *  pushed layers in selected range into list tempRegionsMax;
+         *  added new canvas layers in the updated list tempRegionsMax to Map
+         *
+         *  @param {Object} a list with current lower and upper temp bound that user gives
+         */
         const inRange = (min: number, max: number, target: number) => {
             return target < max && target >= min;
         };
@@ -502,8 +602,7 @@ export class HeatmapComponent implements OnInit {
                 region.addTo(this.map);
             }
         }
-    }
-
+    };
 
     boundaryDataHandler = ([[data], value]) => {
         // given the boundary data after the keyword search, fits the map according to the boundary and shows the name label
@@ -519,7 +618,7 @@ export class HeatmapComponent implements OnInit {
             this.mapService.searchMarkerLoaded.emit([centerLatLng, value]);
             // sends the center of the polygon to the location.boundary layer
         }
-    }
+    };
 
     getPolygonCenter = (coordinateArr) => {
         // gets the center point when given a coordinate array
@@ -531,9 +630,14 @@ export class HeatmapComponent implements OnInit {
         const minY = Math.min.apply(null, y);
         const maxY = Math.max.apply(null, y);
         return [(minX + maxX) / 2, (minY + maxY) / 2];
-    }
+    };
 
     onMapHold(event) {
+        /**
+         *  Fire clickbox if mouse down hold for  > 1000ms
+         *
+         *  @param event with geolocation
+         */
         const duration = 1000;
         if (this.timer !== null) {
             clearTimeout(this.timer);
@@ -551,20 +655,20 @@ export class HeatmapComponent implements OnInit {
         }, this), duration);
     }
 
-
     clickboxContentsToShow() {
+        /**
+         *  Format of clickbox with 3 tabs structured
+         *
+         *  Three Highcharts added under first tab
+         */
+            // HTML for the 3 highcharts
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
             '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
 
-
-        const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
-            '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="hh2" style="width: 200px; height: 100px; margin: 0px; float: right;"></div>\n' +
-            '    <div id="hh3" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
-            '    <div id="hh4" style="width: 200px; height: 100px; margin: 0px;float: right;;"></div>\n';
-
+        // HTML for the tabs inside clickbox
+        // Inside style is CSS content
         const clickboxContents = '<style>' +
             `.leaflet-popup-content {
                 width: 400px;

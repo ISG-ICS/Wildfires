@@ -52,6 +52,13 @@ class PRISMDumper(DumperBase):
     }
 
     def insert(self, date: datetime.date, unflattened_data: np.ndarray, var_type: str):
+        """
+
+        :param date: datetime.date
+        :param unflattened_data: numpy.ndarray
+        :param var_type: string
+        :return: None
+        """
         flattened = unflattened_data.flatten()
         with Connection() as conn:
             cur = conn.cursor()

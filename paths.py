@@ -4,6 +4,7 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # directory for all runnable tasks
+# the task directory should not be changed, otherwise the task manager will crash
 TASK_DIR = os.path.join(ROOT_DIR, 'backend', 'task')
 # directory for all tasks' logs
 LOG_DIR = os.path.join(ROOT_DIR, 'backend', 'logs')

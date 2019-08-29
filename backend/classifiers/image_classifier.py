@@ -1,5 +1,5 @@
 """
-@author: Yutong Wang
+@author: Yutong Wang, (Hugo) Qiaonan Huang
 """
 import logging
 import os
@@ -135,7 +135,18 @@ class ImageClassifier(ClassifierBase):
             return tuple(self.prettify(torch.topk(percentages, 2)))
 
     def train(self, train_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
-        """train ResNet model"""
+        """
+        Trains a CNN model using ResNet50.
+
+        Basic structures:
+            Training Data: Preprocessed data in a format of 32(default) batch size loader
+            Loss function: Cross Entropy Loss
+            Optimizer: rmsprop
+
+        :param train_path: Path of training data
+        :param num_epochs: Number of epochs used to train data.
+        :return: model trained with training data
+        """
         # 1. build data loader for training dataset from the path train_path.
         train_loader = ImageClassifier.load_dataloader(train_path, ImageClassifier.TRAIN_MODE)
 
@@ -166,7 +177,18 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def load_dataloader(dataset_path: str, process_mode: int) -> DATA_LOADER_TYPE:
-        """pre-process dataset as dataloader"""
+        """
+        Preprocesses training or testing data into dataloader.
+
+        Process including:
+            1. Normalization
+            2. RandomResizedCrop
+            3. RandomHorizontalFlip
+
+        :param dataset_path: Path of training or testing data.
+        :param process_mode: Used to distinguished training or testing mode.
+        :return: dataloder which can be used to do training or validating.
+        """
         normalize = transforms.Normalize(mean=[ImageClassifier.NORMALIZE_PARAM_MEAN_0,
                                                ImageClassifier.NORMALIZE_PARAM_MEAN_1,
                                                ImageClassifier.NORMALIZE_PARAM_MEAN_2],
@@ -199,7 +221,12 @@ class ImageClassifier(ClassifierBase):
         return dataloader
 
     def check_accuracy(self, model: RESNET_MODEL_TYPE, val_path: str):
-        """use test data to print out accuracy"""
+        """
+        Uses test data to print out accuracy
+
+        :param model: Trained model used to check accuracy
+        :param val_path: Path of testing data
+        """
         loader = self.load_dataloader(val_path, ImageClassifier.VAL_MODE)
         num_correct = 0
         num_samples = 0
@@ -216,7 +243,12 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def save_model(model: RESNET_MODEL_TYPE, modelname: str):
-        """save the model locally"""
+        """
+        Saves the model locally.
+
+        :param model: Trained model.
+        :param modelname: Trained model name.
+        """
         torch.save(model.state_dict(), paths.MODELS_SAVE_PATH + modelname)
 
     @staticmethod
@@ -292,7 +324,13 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def prettify(tensor_topk) -> list:
-        """transfer tensor object into list of confidence level"""
+        """
+        Transfers tensor object into list of confidence level. From tensor Object to a list, where index
+        representing the class and the value of the index representing the probability.
+
+        :param tensor_topk: Top 2 tensor object which contains the corresponding probability of each class.
+        :return: A list of corresponding probability.
+        """
         result = [0, 0]
         idx = [0, 0]
         prob = [0, 0]

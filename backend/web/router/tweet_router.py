@@ -6,7 +6,6 @@ import requests
 import rootpath
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
-
 from router.data_router import fill_series, gen_date_series
 
 rootpath.append()
@@ -54,6 +53,11 @@ def send_live_tweet():
 
 @bp.route("/fire-tweet")
 def send_fire_tweet_data():
+    """
+        This func gives all historical tweets objects with id
+
+        :returns: a list of tweet objects, each with time, lat, long, id
+    """
     resp = make_response(
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
                  Connection().sql_execute(
@@ -64,6 +68,12 @@ def send_fire_tweet_data():
 
 @bp.route("/recent-tweet")
 def send_recent_tweet_data():
+    """
+        This func gives recent tweets objects which must has a image
+        here the interval is 10 month
+
+        :returns: a list of tweet objects, each with time, lat, long, text, id
+    """
     with Connection() as conn:
         cur = conn.cursor()
         livetweet_query = "select it.create_at, it.top_left_long, it.top_left_lat, it.bottom_right_long, it.bottom_right_lat, it.id, it.text, i.image_url, it.profile_pic, it.user_name " \

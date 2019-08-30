@@ -192,9 +192,6 @@ class DataFromFire(Runnable):
         return
 
 
-
-
-
 if __name__ == '__main__':
     # print logging into console, for debugging ONLY
     # commit it out when run on server

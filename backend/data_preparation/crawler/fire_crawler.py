@@ -38,7 +38,7 @@ class FireCrawler(CrawlerBase):
     # self.start() is removed because it is removed from the crawler base
 
     @staticmethod
-    def get_url(url: str, page_name: str, function_name: str, max_attempts=10,) -> str:
+    def get_url(url: str, page_name: str, function_name: str, max_attempts=10) -> str:
         """
         Helper function for request.get().
         Handles connection errors.
@@ -61,12 +61,14 @@ class FireCrawler(CrawlerBase):
             raise RuntimeError(f"Too many failed attempts in fetching {page_name} page in function {function_name}")
         return response
 
-    def extract_all_fires(self) -> List[tuple]:
+    def extract_all_fires(self, start_year: int) -> List[tuple]:
         """
-        Extract all fires on the website and return.
+        Extracts all fires on the website and return.
         The returned value is a list of tuples:(year:int, state:string, fire's name in its url)
+        :param start_year: int, start year for the crawler. Record before the start year will be deleted.
         :return: list of tuples
         """
+        logger.info("Attempting to get all links...")
         current_year = datetime.datetime.now().date().year
         # fetch all year nodes from the website, may encounter errors
         # add a try-except block, and while loop to keep trying
@@ -80,6 +82,10 @@ class FireCrawler(CrawlerBase):
         for year_node in year_nodes:
             true_year = current_year if year_node == "current_year_fire_data" else int(year_node.split("_")[0])
             # to change "current_year" to the real year as an integer
+            # ignore years that before the start year
+            # filter out links that is too old
+            if true_year < start_year:
+                continue
             for state in self.states:
                 # try except for network errors
                 list_of_state_fires = self.get_url(f"{self.baseDir}{year_node}/{state}",

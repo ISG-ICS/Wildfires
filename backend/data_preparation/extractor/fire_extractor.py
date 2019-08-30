@@ -18,7 +18,7 @@ from shapely.geometry.multipolygon import MultiPolygon
 logger = logging.getLogger('TaskManager')
 
 
-class IncompleteShapefile(Exception):
+class IncompleteShapefileError(Exception):
     pass
 
 
@@ -55,7 +55,7 @@ class FireExtractor(ExtractorBase):
         except shapefile.ShapefileException:
             # if the sub-files of the shapefile is not complete
             # then it is not a valid shapefile, and no result should be returned
-            raise IncompleteShapefile
+            raise IncompleteShapefileError
             # return result
         # fill result dict based on the format for this year
         if year < 2016:

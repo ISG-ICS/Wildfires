@@ -1,7 +1,7 @@
 """
 @author: Scarlett Zhang
 This file contains 2 classes:
-1. class IncompleteShapefile: an Exception to be caught in pipeline main function.
+1. class IncompleteShapefileError: an Exception to be caught in pipeline main function.
 2. class FireExtractor: the object of extractor from shapefile to dictionary with useful information
 """
 import rootpath
@@ -170,4 +170,6 @@ class FireExtractor(ExtractorBase):
         return
 
 
+if __name__ == '__main__':
+    fe = FireExtractor()
 

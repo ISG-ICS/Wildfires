@@ -41,9 +41,18 @@ class TiffExtractor(ExtractorBase):
         temp_masked_image_path = os.path.join(SOIL_MOIS_DATA_DIR,
                                               os.path.basename(file_path).split('.')[-2] + '_masked_image.tif')
         # change resolution of the image, put it into a temporary 'new_res.tif', will be deleted automatically
-        os.system(
-            f'gdalwarp -r bilinear -tr 0.041666667 0.041666667 -t_srs '
-            f'"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" -overwrite {file_path} {temp_new_res_image_path}')
+        if logger.handlers[0].__class__ == logging.StreamHandler:
+            # for the extractor alone's test case, only stream handler will be used
+            # the output of the image processing will be redirected to null, which means this part of output is closed
+            os.system(
+                f'gdalwarp -r bilinear -tr 0.041666667 0.041666667 -t_srs '
+                f'"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" -overwrite {file_path} {temp_new_res_image_path} > /dev/null')
+        else:
+            # if there is a file handler, the output of the command will be redirected to current log file
+            # '>>' means using append
+            os.system(
+                f'gdalwarp -r bilinear -tr 0.041666667 0.041666667 -t_srs '
+                f'"+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs" -overwrite {file_path} {temp_new_res_image_path} >> {logger.handlers[0].baseFilename}')
         logger.info(f"file: {file_path} changed resolution, {temp_new_res_image_path} created")
 
         # use the us bounding box to mask the 'new_res.tif'
@@ -51,8 +60,13 @@ class TiffExtractor(ExtractorBase):
         US_south = 24.083333333335364 - 1 / 48  # y_min
         US_east = -66.5 + 1 / 48  # x_max
         US_north = 49.9166666666687 + 1 / 48  # y_max
-        os.system(
-            f'gdalwarp -te {US_west} {US_south} {US_east} {US_north} {temp_new_res_image_path} {temp_masked_image_path}')
+        if logger.handlers[0].__class__ == logging.StreamHandler:
+            os.system(
+                f'gdalwarp -te {US_west} {US_south} {US_east} {US_north} {temp_new_res_image_path} {temp_masked_image_path} > /dev/null')
+        else:
+            os.system(
+                f'gdalwarp -te {US_west} {US_south} {US_east} {US_north} {temp_new_res_image_path} {temp_masked_image_path} >> {logger.handlers[0].baseFilename}')
+
         logger.info(f"file: {file_path} image cut to US, {temp_masked_image_path} created")
         self.data = np.array(gdal.Open(temp_masked_image_path).ReadAsArray())
         logger.info(f"file: {file_path} data extracted from {temp_masked_image_path}")

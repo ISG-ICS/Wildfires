@@ -1,11 +1,11 @@
 import logging
-import math
 import os
 import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
 
+import math
 import requests
 import rootpath
 
@@ -30,6 +30,11 @@ class NOAACrawler(CrawlerBase):
         self.select_exists = 'select reftime from noaa0p25_reftime'
 
     def start(self, end_clause=None):
+        """
+        (unused) crawling routine is moved to task/data_from_noaa
+        :param end_clause:
+        :return:
+        """
         # verify if both extractor and dumper are set up, raise ExtractorException or DumperException respectively
         if not self.dumper:
             raise DumperException
@@ -52,6 +57,12 @@ class NOAACrawler(CrawlerBase):
             time_t -= timedelta(hours=self.interval)
 
     def crawl(self, t):
+        """
+        this func will download a single file
+
+        :param t: datetime
+        :return: timestamp of crawled file
+        """
         clock = t.timetuple()
         date = t.strftime('%Y%m%d')
         hour = self.round_to_hour(clock.tm_hour, self.interval)

@@ -1,6 +1,7 @@
 import {EventEmitter, Injectable} from '@angular/core';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
+import {environment} from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
@@ -14,7 +15,8 @@ export class SearchService {
     }
 
     getSearch(userInput): Observable<object> {
-        return this.http.get<object>('http://127.0.0.1:5000/search', {params: new HttpParams().set('keyword', userInput)});
+        return this.http.get<object>('http://' + environment.host + ':' + environment.port + '/search',
+            {params: new HttpParams().set('keyword', userInput)});
     }
 
 }

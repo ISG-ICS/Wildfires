@@ -6,8 +6,8 @@ from typing import Generator, Tuple, Any, List
 import psycopg2.pool
 from deprecated import deprecated
 
-from .ini_parser import parse
-from .paths import DATABASE_CONFIG_PATH
+from utilities.ini_parser import parse
+from utilities.paths import DATABASE_CONFIG_PATH
 
 logger = logging.getLogger('TaskManager')
 

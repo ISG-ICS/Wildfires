@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from typing import List, Optional, Dict
 
-from .extractorbase import ExtractorBase
+from data_preparation.extractor.extractorbase import ExtractorBase
 
 
 class TweetExtractor(ExtractorBase):

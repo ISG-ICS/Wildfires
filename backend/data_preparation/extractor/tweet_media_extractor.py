@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 
 from classifiers.url_classifier import URLClassifier, MediaURL
-from .extractorbase import ExtractorBase
+from data_preparation.extractor.extractorbase import ExtractorBase
 
 logger = logging.getLogger('TaskManager')
 

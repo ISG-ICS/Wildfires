@@ -4,8 +4,8 @@ from datetime import timedelta, date
 from ftplib import FTP, error_perm
 from typing import List, Optional
 
+from data_preparation.crawler.crawlerbase import CrawlerBase
 from utilities.paths import PRISM_DATA_PATH
-from .crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 

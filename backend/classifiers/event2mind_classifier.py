@@ -7,8 +7,8 @@ from typing import Union, Dict, List, Tuple, Optional
 import wget
 from allennlp.predictors.predictor import Predictor
 
+from classifiers.classifierbase import ClassifierBase
 from utilities import paths
-from .classifierbase import ClassifierBase
 
 logger = logging.getLogger('TaskManager')
 

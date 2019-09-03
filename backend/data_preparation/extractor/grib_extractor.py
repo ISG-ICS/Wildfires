@@ -5,8 +5,8 @@ from typing import Dict
 
 import pygrib
 
+from data_preparation.extractor.extractorbase import ExtractorBase
 from utilities.paths import GRIB2_DATA_DIR
-from .extractorbase import ExtractorBase
 
 
 class GRIBEnum(Enum):

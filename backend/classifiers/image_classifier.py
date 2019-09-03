@@ -20,9 +20,9 @@ import wget
 from PIL import Image
 from torch.autograd import Variable
 
+from classifiers.classifierbase import ClassifierBase
 from models.cnn_module import CNN
 from utilities import paths
-from .classifierbase import ClassifierBase
 
 logger = logging.getLogger('TaskManager')
 

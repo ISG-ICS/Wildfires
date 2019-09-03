@@ -1,8 +1,8 @@
 import logging
 from typing import Union, List, Dict, Generator, Tuple
 
+from data_preparation.dumper.dumperbase import DumperBase
 from utilities.connection import Connection
-from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 

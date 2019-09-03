@@ -7,8 +7,8 @@ import numpy as np
 import psycopg2.errors
 import psycopg2.extras
 
+from data_preparation.dumper.dumperbase import DumperBase
 from utilities.connection import Connection
-from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 

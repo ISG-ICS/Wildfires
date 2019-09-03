@@ -8,8 +8,8 @@ import requests.cookies
 from dateutil import parser as date_parser
 from lxml import html
 
+from data_preparation.crawler.crawlerbase import CrawlerBase
 from utilities.paths import USGS_DATA_DIR
-from .crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 

@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from .extractorbase import ExtractorBase
+from data_preparation.extractor.extractorbase import ExtractorBase
 
 logger = logging.getLogger('TaskManager')
 

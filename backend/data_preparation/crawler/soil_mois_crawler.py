@@ -9,9 +9,9 @@ from urllib import error
 
 import wget
 
+from data_preparation.crawler.crawlerbase import CrawlerBase
 from utilities.connection import Connection
 from utilities.paths import SOIL_MOIS_DATA_DIR
-from .crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 

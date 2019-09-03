@@ -2,11 +2,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, Union, Optional, List
 
 import numpy as np
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
+from data_preparation.dumper.dumperbase import DumperBase
+from data_preparation.extractor.extractorbase import ExtractorBase
 
 
 class CrawlerBase(ABC):

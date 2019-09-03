@@ -6,15 +6,11 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-import rootpath
-
-rootpath.append()
-
-from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
-from backend.data_preparation.dumper.soil_mois_dumper import SoilMoisDumper
-from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
-from backend.task.runnable import Runnable
-from paths import SOIL_MOIS_DATA_DIR
+from data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
+from data_preparation.dumper.soil_mois_dumper import SoilMoisDumper
+from data_preparation.extractor.soil_mois_extractor import TiffExtractor
+from task.runnable import Runnable
+from utilities.paths import SOIL_MOIS_DATA_DIR
 
 logger = logging.getLogger('TaskManager')
 

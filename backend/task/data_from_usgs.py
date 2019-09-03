@@ -9,11 +9,11 @@ import rootpath
 from dateutil import parser as date_parser
 
 rootpath.append()
-from backend.task.runnable import Runnable
-from backend.data_preparation.crawler.usgs_crawler import USGSCrawler
-from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
-from backend.data_preparation.dumper.prism_dumper import PRISMDumper
-from backend.data_preparation.connection import Connection
+from task.runnable import Runnable
+from data_preparation.crawler.usgs_crawler import USGSCrawler
+from data_preparation.extractor.soil_mois_extractor import TiffExtractor
+from data_preparation.dumper.prism_dumper import PRISMDumper
+from utilities.connection import Connection
 
 logger = logging.getLogger('TaskManager')
 

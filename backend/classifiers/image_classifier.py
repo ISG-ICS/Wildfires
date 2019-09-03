@@ -7,7 +7,6 @@ import traceback
 from typing import Optional, Any
 from urllib.error import HTTPError
 
-import rootpath
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
@@ -21,10 +20,9 @@ import wget
 from PIL import Image
 from torch.autograd import Variable
 
-rootpath.append()
-from backend.classifiers.classifierbase import ClassifierBase
-from backend.models.cnn_module import CNN
-import paths
+from models.cnn_module import CNN
+from utilities import paths
+from .classifierbase import ClassifierBase
 
 logger = logging.getLogger('TaskManager')
 

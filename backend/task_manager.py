@@ -15,11 +15,7 @@ import traceback
 from logging import Logger
 from typing import Callable, List, Dict
 
-import rootpath
-
-rootpath.append()
-from paths import LOG_DIR, LOG_CONFIG_PATH, TASK_DIR
-
+from utilities.paths import LOG_DIR, LOG_CONFIG_PATH, TASK_DIR
 
 
 # don't delete these imports because they're called implicitly
@@ -32,7 +28,6 @@ class Task:
     the number indicates how many tasks of this kind have been run before
     """
 
-    
     def __init__(self, task_name: str, task_func: Callable):
         self.task_name = task_name
         self.task_func = task_func
@@ -77,7 +72,6 @@ class TaskManager:
     and may cause unexpected behaviour if used!
     """
 
-    exec("from backend.task.runnable import Runnable")
     running_threads: List[RunningThread] = list()
     task_options: Dict[int, Task] = dict()
     task_option_id = 1
@@ -95,7 +89,9 @@ class TaskManager:
         :return:
         """
 
-        exec("from backend.task.runnable import Runnable")
+        from task.runnable import Runnable
+        if Runnable:  # keep import from being optimized
+            pass
         # TODO: remove existing modules
 
         # find tasks
@@ -182,7 +178,7 @@ class TaskManager:
         to_return = ""
         for option in cls.task_options:
             to_return += f" [{option}]: {cls.task_options[option].task_name}-" \
-                         f"{cls.task_options[option].get_next_number()} \n"
+                f"{cls.task_options[option].get_next_number()} \n"
         return to_return
 
     @classmethod
@@ -448,5 +444,5 @@ if __name__ == "__main__":
     try:
         task_manager = TaskManager()
         task_manager.main_loop()
-    except:
+    except IOError:
         logger.error('Invalid Input Cause Error')

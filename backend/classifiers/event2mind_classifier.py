@@ -4,13 +4,11 @@
 import logging
 from typing import Union, Dict, List, Tuple, Optional
 
-import rootpath
 import wget
 from allennlp.predictors.predictor import Predictor
 
-rootpath.append()
-from backend.classifiers.classifierbase import ClassifierBase
-import paths
+from utilities import paths
+from .classifierbase import ClassifierBase
 
 logger = logging.getLogger('TaskManager')
 

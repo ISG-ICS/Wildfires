@@ -1,8 +1,0 @@
-[postgresql]
-host =
-database =
-user =
-password =
-port =
-minconn =
-maxconn =

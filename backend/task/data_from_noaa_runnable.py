@@ -10,11 +10,11 @@ from datetime import datetime, timedelta, timezone
 import rootpath
 
 rootpath.append()
-from paths import GRIB2_DATA_DIR
-from backend.task.runnable import Runnable
-from backend.data_preparation.crawler.noaa_crawler import NOAACrawler
-from backend.data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum
-from backend.data_preparation.dumper.noaa_dumper import NOAADumper
+from utilities.paths import GRIB2_DATA_DIR
+from task.runnable import Runnable
+from data_preparation.crawler.noaa_crawler import NOAACrawler
+from data_preparation.extractor.grib_extractor import GRIBExtractor, GRIBEnum
+from data_preparation.dumper.noaa_dumper import NOAADumper
 
 logger = logging.getLogger('TaskManager')
 

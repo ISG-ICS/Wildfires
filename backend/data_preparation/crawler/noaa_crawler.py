@@ -1,22 +1,18 @@
 import logging
-import math
 import os
 import sys
 import time
 import traceback
 from datetime import datetime, timedelta, timezone
 
+import math
 import requests
-import rootpath
 
-from backend.data_preparation.dumper.dumperbase import DumperException
-
-rootpath.append()
-
-from paths import GRIB2_DATA_DIR
-from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.dumper.noaa_dumper import NOAADumper
+from data_preparation.crawler.crawlerbase import CrawlerBase
+from data_preparation.dumper.dumperbase import DumperException
+from data_preparation.dumper.noaa_dumper import NOAADumper
+from utilities.connection import Connection
+from utilities.paths import GRIB2_DATA_DIR
 
 logger = logging.getLogger('TaskManager')
 

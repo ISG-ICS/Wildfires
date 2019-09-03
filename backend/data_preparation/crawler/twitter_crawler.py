@@ -6,19 +6,16 @@ import traceback
 from typing import List, Set, Union, Dict
 
 import requests
-import rootpath
 import twitter
 
-rootpath.append()
-
-from paths import TWITTER_API_CONFIG_PATH
-from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.dumper.twitter_dumper import TweetDumper
-from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
-from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
-from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
+from data_preparation.crawler.crawlerbase import CrawlerBase
+from data_preparation.dumper.dumperbase import DumperBase, DumperException
+from data_preparation.dumper.twitter_dumper import TweetDumper
+from data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
+from data_preparation.extractor.twitter_extractor import TweetExtractor
+from utilities.connection import Connection
 from utilities.ini_parser import parse
+from utilities.paths import TWITTER_API_CONFIG_PATH
 
 logger = logging.getLogger('TaskManager')
 

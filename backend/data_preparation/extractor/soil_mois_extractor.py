@@ -12,15 +12,12 @@ import gdal
 import numpy as np
 import rasterio
 import rasterio.mask
-import rootpath
 
-from backend.data_preparation.crawler.usgs_crawler import USGSCrawler
-
-rootpath.append()
-from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
-from paths import US_SHAPE_PATH
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
-from paths import SOIL_MOIS_DATA_DIR
+from data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
+from data_preparation.crawler.usgs_crawler import USGSCrawler
+from data_preparation.extractor.extractorbase import ExtractorBase
+from utilities.paths import SOIL_MOIS_DATA_DIR
+from utilities.paths import US_SHAPE_PATH
 
 logger = logging.getLogger('TaskManager')
 

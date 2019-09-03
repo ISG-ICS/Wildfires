@@ -3,13 +3,10 @@
 """
 import logging
 
-import rootpath
-
-rootpath.append()
-from backend.data_preparation.crawler.twitter_crawler import TweetCrawler
-from backend.data_preparation.dumper.twitter_dumper import TweetDumper
-from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
-from backend.task.runnable import Runnable
+from data_preparation.crawler.twitter_crawler import TweetCrawler
+from data_preparation.dumper.twitter_dumper import TweetDumper
+from data_preparation.extractor.twitter_extractor import TweetExtractor
+from task.runnable import Runnable
 
 logger = logging.getLogger('TaskManager')
 

@@ -7,10 +7,10 @@ from typing import Optional, Union
 import rootpath
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
-from backend.task.runnable import Runnable
-from backend.classifiers.event2mind_classifier import Event2MindClassifier
-from backend.data_preparation.dumper.event2mind_dumper import Event2MindDumper
+from utilities.connection import Connection
+from task.runnable import Runnable
+from classifiers.event2mind_classifier import Event2MindClassifier
+from data_preparation.dumper.event2mind_dumper import Event2MindDumper
 
 logger = logging.getLogger('TaskManager')
 

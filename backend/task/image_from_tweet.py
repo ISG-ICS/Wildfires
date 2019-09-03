@@ -1,13 +1,10 @@
 import logging
 import traceback
 
-import rootpath
-
-rootpath.append()
-from backend.data_preparation.connection import Connection
-from backend.data_preparation.dumper.url_dumper import URLDumper
-from backend.data_preparation.extractor.tweet_media_extractor import TweetMediaExtractor
-from backend.task.runnable import Runnable
+from data_preparation.dumper.url_dumper import URLDumper
+from data_preparation.extractor.tweet_media_extractor import TweetMediaExtractor
+from task.runnable import Runnable
+from utilities.connection import Connection
 
 logger = logging.getLogger('TaskManager')
 

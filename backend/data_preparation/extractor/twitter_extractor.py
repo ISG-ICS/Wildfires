@@ -3,11 +3,7 @@ import json
 from datetime import datetime
 from typing import List, Optional, Dict
 
-import rootpath
-
-rootpath.append()
-
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
+from .extractorbase import ExtractorBase
 
 
 class TweetExtractor(ExtractorBase):

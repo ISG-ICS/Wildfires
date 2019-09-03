@@ -1,10 +1,8 @@
 # !/usr/bin/python3
 
 import psycopg2
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.connection import Connection
+from utilities.connection import Connection
 
 
 class Labeler:

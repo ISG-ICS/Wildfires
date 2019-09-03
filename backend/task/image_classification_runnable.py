@@ -4,13 +4,10 @@
 import logging
 import traceback
 
-import rootpath
-
-rootpath.append()
-from backend.task.runnable import Runnable
-from backend.data_preparation.connection import Connection
-from backend.classifiers.image_classifier import ImageClassifier
-from backend.data_preparation.dumper.img_classification_dumper import ImgClassificationDumper
+from classifiers.image_classifier import ImageClassifier
+from data_preparation.dumper.img_classification_dumper import ImgClassificationDumper
+from task.runnable import Runnable
+from utilities.connection import Connection
 
 logger = logging.getLogger('TaskManager')
 

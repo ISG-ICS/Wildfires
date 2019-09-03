@@ -4,14 +4,11 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import List
 
-import rootpath
-
-rootpath.append()
-from backend.task.runnable import Runnable
-from backend.data_preparation.connection import Connection
-from backend.data_preparation.crawler.prism_crawler import PRISMCrawler
-from backend.data_preparation.extractor.bil_extractor import BILExtractor, BILFormat
-from backend.data_preparation.dumper.prism_dumper import PRISMDumper
+from data_preparation.crawler.prism_crawler import PRISMCrawler
+from data_preparation.dumper.prism_dumper import PRISMDumper
+from data_preparation.extractor.bil_extractor import BILExtractor, BILFormat
+from task.runnable import Runnable
+from utilities.connection import Connection
 
 logger = logging.getLogger('TaskManager')
 

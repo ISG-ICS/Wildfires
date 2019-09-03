@@ -5,14 +5,11 @@ from typing import Optional
 
 import requests
 import requests.cookies
-import rootpath
 from dateutil import parser as date_parser
 from lxml import html
 
-rootpath.append()
-
-from paths import USGS_DATA_DIR
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase
+from utilities.paths import USGS_DATA_DIR
+from .crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 

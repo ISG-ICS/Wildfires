@@ -7,13 +7,11 @@ from datetime import datetime, date
 from typing import Optional
 from urllib import error
 
-import rootpath
 import wget
 
-rootpath.append()
-from backend.data_preparation.connection import Connection
-from paths import SOIL_MOIS_DATA_DIR
-from backend.data_preparation.crawler.crawlerbase import CrawlerBase
+from utilities.connection import Connection
+from utilities.paths import SOIL_MOIS_DATA_DIR
+from .crawlerbase import CrawlerBase
 
 logger = logging.getLogger('TaskManager')
 

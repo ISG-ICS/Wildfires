@@ -1,14 +1,12 @@
 import json
 import os
-import pygrib
 from enum import Enum, auto
 from typing import Dict
 
-import rootpath
+import pygrib
 
-rootpath.append()
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
-from paths import GRIB2_DATA_DIR
+from utilities.paths import GRIB2_DATA_DIR
+from .extractorbase import ExtractorBase
 
 
 class GRIBEnum(Enum):

@@ -4,10 +4,8 @@ import zipfile
 from typing import Optional
 
 import numpy as np
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
+from .extractorbase import ExtractorBase
 
 logger = logging.getLogger('TaskManager')
 

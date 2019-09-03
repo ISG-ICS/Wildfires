@@ -1,16 +1,18 @@
+import os
+import sys
 
-import rootpath
 from flask import Flask
 from flask_cors import CORS
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))  # append /backend to path
 
 import router.data_router
 import router.dropDownMenu_router
 import router.search_router
 import router.tweet_router
 
-rootpath.append()
 # TODO: change model loading
-from backend.classifiers.nltktest import NLTKTest  # must import NLTKTest before root_router
+from classifiers.nltktest import NLTKTest  # must import NLTKTest before root_router
 
 nl: NLTKTest  # to avoid NLTKTest importation being optimized by IDE
 import router.root_router

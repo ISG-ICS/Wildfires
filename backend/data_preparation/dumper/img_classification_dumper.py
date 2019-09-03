@@ -5,12 +5,9 @@ import logging
 import traceback
 from typing import Tuple
 
-import rootpath
-
-rootpath.append()
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.classifiers.image_classifier import ImageClassifier
-from backend.data_preparation.connection import Connection
+from classifiers.image_classifier import ImageClassifier
+from utilities.connection import Connection
+from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 

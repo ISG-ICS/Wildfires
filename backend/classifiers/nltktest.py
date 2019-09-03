@@ -11,10 +11,8 @@ except LookupError:
     download('stopwords')
 from nltk.classify import NaiveBayesClassifier
 from nltk.corpus import stopwords
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.connection import Connection
+from utilities.connection import Connection
 
 
 class NLTKTest:

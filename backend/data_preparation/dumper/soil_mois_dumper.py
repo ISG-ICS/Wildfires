@@ -6,14 +6,9 @@ import logging
 import traceback
 
 import numpy as np
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
-from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
-
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
+from utilities.connection import Connection
+from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 
@@ -51,6 +46,9 @@ class SoilMoisDumper(DumperBase):
 
 
 if __name__ == '__main__':
+    from data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
+    from data_preparation.extractor.soil_mois_extractor import TiffExtractor
+
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 

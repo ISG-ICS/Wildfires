@@ -3,14 +3,10 @@ import logging
 import traceback
 from typing import List, Dict
 
-import rootpath
 from psycopg2 import extras
 
-rootpath.append()
-
-from backend.data_preparation.connection import Connection
-
-from backend.data_preparation.dumper.dumperbase import DumperBase
+from utilities.connection import Connection
+from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 

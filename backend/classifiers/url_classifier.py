@@ -1,10 +1,7 @@
 from enum import Enum, auto
 
 import requests
-import rootpath
 import timeout_decorator
-
-rootpath.append()
 
 
 class MediaURL(Enum):

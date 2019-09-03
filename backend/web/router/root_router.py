@@ -1,13 +1,11 @@
 import pickle
 import time
 
-import rootpath
 from flask import Blueprint, make_response, jsonify, request as flask_request
 
-rootpath.append()
-from backend.data_preparation.connection import Connection
-from paths import NLTK_MODEL_PATH
-from backend.classifiers.nltktest import NLTKTest
+from classifiers.nltktest import NLTKTest
+from utilities.connection import Connection
+from utilities.paths import NLTK_MODEL_PATH
 
 bp = Blueprint('root', __name__, url_prefix='/')
 nl: NLTKTest = pickle.load(open(NLTK_MODEL_PATH, 'rb'))

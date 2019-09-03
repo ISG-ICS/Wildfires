@@ -5,13 +5,11 @@ import urllib.request
 from typing import Union, List, Dict
 
 import requests
-import rootpath
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-rootpath.append()
-from backend.classifiers.url_classifier import URLClassifier, MediaURL
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
+from classifiers.url_classifier import URLClassifier, MediaURL
+from .extractorbase import ExtractorBase
 
 logger = logging.getLogger('TaskManager')
 

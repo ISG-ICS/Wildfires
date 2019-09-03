@@ -6,13 +6,9 @@ import zipfile
 import numpy as np
 import psycopg2.errors
 import psycopg2.extras
-import rootpath
 
-rootpath.append()
-from backend.data_preparation.connection import Connection
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.crawler.usgs_crawler import USGSCrawler
-from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
+from utilities.connection import Connection
+from .dumperbase import DumperBase
 
 logger = logging.getLogger('TaskManager')
 
@@ -79,6 +75,10 @@ class PRISMDumper(DumperBase):
 
 
 if __name__ == '__main__':
+    from data_preparation.crawler.usgs_crawler import USGSCrawler
+
+    from data_preparation.extractor.soil_mois_extractor import TiffExtractor
+
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 

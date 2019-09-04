@@ -23,6 +23,8 @@ NLTK_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/nltk_model.pickle')
 
 TEXT_CNN_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/text_cnn_classifier.ckpt')
 
+GOOGLE_VOCAB_PATH = os.path.join(ROOT_DIR, 'backend/models/GoogleNews-vectors-negative300.bin')
+
 IMAGE_CLASSIFIER_VGG_PATH = os.path.join(ROOT_DIR, 'backend/models/img_classifier_model.ckpt')
 
 IMAGE_CLASSIFIER_RESNET_PATH = os.path.join(ROOT_DIR, 'backend/models/ResNet1.ckpt')

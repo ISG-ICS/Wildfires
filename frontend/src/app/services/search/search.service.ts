@@ -15,7 +15,7 @@ export class SearchService {
     }
 
     getSearch(userInput): Observable<object> {
-        return this.http.get<object>('http://' + environment.host + ':' + environment.port + '/search',
+        return this.http.get<object>(`http://${environment.host}:${environment.port}/search`,
             {params: new HttpParams().set('keyword', userInput)});
     }
 

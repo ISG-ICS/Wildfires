@@ -23,7 +23,7 @@ export class FireService {
     }
 
     searchSeparatedFirePolygon(id, size): Observable<object> {
-        return this.http.post('http://${environment.host}:${environment.port}/data/fire-with-id-seperated', JSON.stringify({
+        return this.http.post('http://' + environment.host + ':' + environment.port + '/data/fire-with-id-seperated', JSON.stringify({
             id, size,
         })).pipe(map(data => {
             return {type: 'FeatureCollection', features: data};

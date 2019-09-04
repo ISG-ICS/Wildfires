@@ -4,6 +4,8 @@ import {Observable} from 'rxjs';
 import {HttpClient} from '@angular/common/http';
 import {map} from 'rxjs/operators';
 
+import {environment} from '../../../environments/environment';
+
 @Injectable({
     providedIn: 'root'
 })
@@ -14,11 +16,14 @@ export class FireService {
     }
 
     searchFirePolygon(id, size): Observable<object> {
-        return this.http.post('http://127.0.0.1:5000/data/fire-with-id', JSON.stringify({id, size}));
+        return this.http.post(`http://${environment.host}:${environment.port}/data/fire-with-id`, JSON.stringify({
+            id,
+            size
+        }));
     }
 
     searchSeparatedFirePolygon(id, size): Observable<object> {
-        return this.http.post('http://127.0.0.1:5000/data/fire-with-id-seperated', JSON.stringify({
+        return this.http.post(`http://${environment.host}:${environment.port}/data/fire-with-id-seperated`, JSON.stringify({
             id, size,
         })).pipe(map(data => {
             return {type: 'FeatureCollection', features: data};

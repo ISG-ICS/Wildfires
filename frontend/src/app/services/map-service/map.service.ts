@@ -7,7 +7,7 @@ import {Wind} from '../../models/wind.model';
 import {HeatMap} from '../../models/heatMap.model';
 import {Boundary} from '../../models/boundary.model';
 import {SearchSuggestion} from '../../models/search.suggestion.model';
-
+import {environment} from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
@@ -27,11 +27,11 @@ export class MapService {
 
 
     getFireTweetData(): Observable<Tweet[]> {
-        return this.http.get<Tweet[]>('http://127.0.0.1:5000/tweet/fire-tweet');
+        return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/fire-tweet`);
     }
 
     getWildfirePredictionData(northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
-        return this.http.post('http://127.0.0.1:5000/wildfire-prediction', JSON.stringify({
+        return this.http.post(`http://${environment.host}:${environment.port}/wildfire-prediction`, JSON.stringify({
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
             startDate: start,
@@ -41,7 +41,7 @@ export class MapService {
 
     getFirePolygonData(northEastBoundaries, southWestBoundaries, setSize, start, end): Observable<any> {
 
-        return this.http.post('http://127.0.0.1:5000/data/fire-polygon', JSON.stringify({
+        return this.http.post(`http://${environment.host}:${environment.port}/data/fire-polygon`, JSON.stringify({
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
             size: setSize,
@@ -55,12 +55,12 @@ export class MapService {
 
 
     getWindData(): Observable<Wind[]> {
-        return this.http.get<Wind[]>('http://127.0.0.1:5000/data/wind');
+        return this.http.get<Wind[]>(`http://${environment.host}:${environment.port}/data/wind`);
     }
 
     getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries): Observable<Boundary> {
 
-        return this.http.post<object>('http://127.0.0.1:5000/search/boundaries', JSON.stringify({
+        return this.http.post<object>(`http://${environment.host}:${environment.port}/search/boundaries`, JSON.stringify({
             states: stateLevel,
             cities: cityLevel,
             counties: countyLevel,
@@ -74,29 +74,29 @@ export class MapService {
 
     getDropBox(userInput): Observable<SearchSuggestion[]> {
         // gets auto-completion suggestions
-        return this.http.get<SearchSuggestion[]>('http://127.0.0.1:5000/dropdownMenu',
+        return this.http.get<SearchSuggestion[]>(`http://${environment.host}:${environment.port}/dropdownMenu`,
             {params: new HttpParams().set('userInput', userInput)});
     }
 
 
     getRecentTweetData(): Observable<any> {
 
-        return this.http.get('http://127.0.0.1:5000/tweet/recent-tweet');
+        return this.http.get(`http://${environment.host}:${environment.port}/tweet/recent-tweet`);
     }
 
     getTemperatureData(): Observable<HeatMap[]> {
-        return this.http.get<HeatMap[]>('http://127.0.0.1:5000/data/recent-temp');
+        return this.http.get<HeatMap[]>(`http://${environment.host}:${environment.port}/data/recent-temp`);
     }
 
     getClickData(lat, lng, radius, timestamp, range): Observable<any> {
 
-        return this.http.post('http://127.0.0.1:5000/data/aggregation', JSON.stringify({
+        return this.http.post(`http://${environment.host}:${environment.port}/data/aggregation`, JSON.stringify({
             lat, lng, radius, timestamp, range
         }));
     }
 
     getIntentTweetData(id): Observable<any> {
-        return this.http.get('http://127.0.0.1:5000/tweet/tweet-from-id',
+        return this.http.get(`http://${environment.host}:${environment.port}/tweet/tweet-from-id`,
             {params: new HttpParams().set('tweet_id', id)});
     }
 }

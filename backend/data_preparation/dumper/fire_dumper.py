@@ -71,8 +71,8 @@ class FireDumper(DumperBase):
                                 '%(geopolygon_medium)s,%(geopolygon_small)s, ' \
                                 'st_astext(st_centroid(st_geomfromtext(%(geopolygon_small)s))), %(area)s) ON CONFLICT DO NOTHING'
     # SQL_INSERT_FIRE: insert a new fire record into fire
-    SQL_INSERT_FIRE_INTO_MERGED = 'INSERT INTO fire_merged(name, if_sequence, agency, state, id, start_time, end_time, ' \
-                                  'geom_full, geom_1e4, geom_1e3, geom_1e2, geom_center, max_area)' \
+    SQL_INSERT_FIRE_INTO_MERGED = 'INSERT INTO fire_merged(name, if_sequence, agency, state, id, start_time, ' \
+                                  'end_time, geom_full, geom_1e4, geom_1e3, geom_1e2, geom_center, max_area)' \
                                   'Values (%s, %s, %s,%s, %s, %s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET ' \
                                   'if_sequence = true, agency = excluded.agency, end_time = excluded.end_time, ' \
                                   'geom_full = excluded.geom_full,geom_1e4 = Excluded.geom_1e4,geom_1e3 = Excluded.geom_1e3,' \
@@ -304,6 +304,8 @@ class FireDumper(DumperBase):
                 "geom_center": aggregated_record[11],
                 "max_area": aggregated_record[12]
                 }
+        # info = dict(zip(["a", 'b'], aggregated_record))
+        # info["id"] = id
         fire_record_update = [info["id"], info["name"], info["start_time"], info["end_time"]]
         fire_merged_insert = [i for i in info.values()]
         return fire_record_update, fire_merged_insert
@@ -318,8 +320,8 @@ class FireDumper(DumperBase):
         :param current_year: int
         :return:
         """
-        aggregated_with_id = list(Connection.sql_execute(self.SQL_GET_LATEST_AGGREGATION.format(id)))
-        if len(aggregated_with_id) == 0:
+        aggregated_fire_records_with_id = list(Connection.sql_execute(self.SQL_GET_LATEST_AGGREGATION.format(id)))
+        if not aggregated_fire_records_with_id:
             logger.warning(f"Record {id} is an empty record. Skipping...")
             # if this id is an empty record, then there is no aggregated fire records
             # in this situation, we only mark the url as crawled, by inserting it into fire_history
@@ -327,8 +329,8 @@ class FireDumper(DumperBase):
             # return the latest fire id
             raise InvalidRecordError
         logger.info(f"Successfully fetch Record #{id}, " + \
-                    f"there are {len(aggregated_with_id)} aggregated records in this id")
-        return aggregated_with_id
+                    f"there are {len(aggregated_fire_records_with_id)} aggregated records in this id")
+        return aggregated_fire_records_with_id
 
     def merge_fire_and_insert_history(self, id: int, year: int, name: str, state: str, current_year: int) -> int:
         '''
@@ -356,13 +358,14 @@ class FireDumper(DumperBase):
             # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
             # then when merged, the return list has more than one records
             # so a for loop is needed to deal with this situation
+            # 用enumerate
             for index_of_aggregated_record in range(len(aggregated_with_id)):
                 new_id += index_of_aggregated_record
                 # Most situation, there is only one record, new_id = id
                 # if there is more than one, new_id will be id + i
                 # create the dictionary for all values in aggregated record
-                fire_info_update_params, fire_merged_insert_params = self.generate_data(aggregated_with_id
-                                                                                        [index_of_aggregated_record],
+                fire_info_update_params, fire_merged_insert_params = self.generate_data(*(aggregated_with_id
+                                                                                        [index_of_aggregated_record]),
                                                                                         new_id)
                 # update their id in fire_info
                 # here, if the new_id is different from id, the fire with that name will be updated with the new id

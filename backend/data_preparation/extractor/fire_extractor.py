@@ -55,7 +55,7 @@ class FireExtractor(ExtractorBase):
         except shapefile.ShapefileException:
             # if the sub-files of the shapefile is not complete
             # then it is not a valid shapefile, and no result should be returned
-            raise IncompleteShapefileError
+            raise IncompleteShapefileError("Hit incomplete polygon files, skipping. ")
             # return result
         # fill result dict based on the format for this year
         if year < 2016:
@@ -66,7 +66,7 @@ class FireExtractor(ExtractorBase):
             # before 2016, record schema for agency is: AGENCY
             try:
                 result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"]) + shp.record\
-                    (0)['TIME_'], '%m%d%Y%H%M')
+                    (0).get('TIME_', "0000"), '%m%d%Y%H%M')
                 # before 2016, record schema for datetime is: DATE_ and TIME_
             except ValueError:
                 result["datetime"] = datetime.datetime.strptime("{:%m%d%Y}".format(shp.record(0)["DATE_"] + \
@@ -74,6 +74,8 @@ class FireExtractor(ExtractorBase):
                 # sometimes, before 2016, record schema for datetime is: DATE_ ONLY, defaultly treated as fire
                 # happened at 00:00
             try:
+                #################hhhhhhh
+                shp.record(0).get("A", shp.record(0).get("a"))
                 result["area"] = float(shp.record(0)["ACRES"])
                 # before 2016, record schema for area is: ACRES
             except IndexError:
@@ -159,7 +161,6 @@ class FireExtractor(ExtractorBase):
         # merge polygons into a single multipolygon object and then return it
         return MultiPolygon(polygons)
 
-    # Can this be removed from abstract class?
     def export(self, file_type: str, file_name: str):
         """
         Useless function for this data pipeline. Keeps it here for abstractmethod

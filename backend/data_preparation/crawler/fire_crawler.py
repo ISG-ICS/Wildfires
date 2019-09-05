@@ -12,157 +12,234 @@ import datetime
 import logging
 import shutil
 import urllib
-import random
-from typing import List
-rootpath.append()
-
+import glob
+from typing import List, Set
 from paths import FIRE_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
+from retrying import retry
+
+rootpath.append()
 
 logger = logging.getLogger('TaskManager')
 
 
+class FireEvent:
+    # the class to represent a FireEvent object, a fire event is a link on the rmgsc website
+    def __init__(self, year: int, state: str, url_name: str):
+        """
+        Takes year, state, url_name and make a new FireEvent object
+        :param year: the year when the fire event occurred.
+                e.g. 2017
+        :param state: the state where the fire event occurred.
+                e.g. 'California'
+        :param url_name: the name of this fire event on rmgsc website, should contains underscore.
+                e.g. "Happy_Camp_Mountain"
+        """
+        self.fire_id = -1
+        self.year = year
+        self.state = state
+        self.url_name = url_name
+
+    def is_valid(self) -> bool:
+        """
+        Judges if this fire event is valid. A valid fire event should have reasonable fire name.
+        :return: bool
+        """
+        # to delete exceptions: "[To Parent Directory]" "whatever.zip"
+        # ActivePerim is an useless link which contains metadata over the year, existing in links before 2016 Skip it
+        return "." in self.url_name or "[To Parent Directory]" == self.url_name or self.url_name == "ActivePerim"
+
+    def __str__(self) -> str:
+        """
+        Transforms a FireEvent into a string.
+        :return: str
+        """
+        return f"Fire Event: {self.url_name} in year {self.year}, state {self.state}"
+
+
 class FireCrawler(CrawlerBase):
+    # BASE_DIR is the website directory the crawler will crawl
+    BASE_DIR = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
 
     def __init__(self, states: List[str]):
         """
         Initialization for the crawler.
         :param states: list of states that the crawler needs to crawl
+                e.g. ["California", "Nevada"]
         """
         super().__init__()
-        self.baseDir = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
-        # baseDir is the website directory the crawler will crawl
         self.states = states
         # states is a list of states that the crawler needs to crawl
 
-    # self.start() is removed because it is removed from the crawler base
-
     @staticmethod
-    def get_url(url: str, page_name: str, function_name: str, max_attempts=10) -> str:
+    @retry(retry_on_exception=requests.exceptions.RequestException, stop_max_attempt_number=3)
+    def _get_url(url: str, page_name: str, function_name: str) -> str:
         """
         Helper function for request.get().
-        Handles connection errors.
-        :param url: str
-        :param page_name: str
-        :param function_name: str
-        :param max_attempts: int
-        :return: str
+        When request.get() meets the connection error, it will retry.
+        If retry fails for 5 attempts, it will throw RuntimeError.
+        :param url: str,
+                e.g. 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
+        :param page_name: str,
+                e.g. 'main_page'
+        :param function_name: str,
+                e.g. 'extract_all_fires()'
+        :return: str,
+                e.g. the string of all HTML code from 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
         """
-        for attempt in range(max_attempts):
-            try:
-                response = requests.get(url).content.decode("utf-8")
-            except requests.exceptions.RequestException:
-                logger.info(f"Cannot fetch {page_name} page in function {function_name}")
-                logger.info(f"Attempting a second time... Remaining attempts:{10 - attempt}")
-            else:
-                break
-        else:
-            logger.error(f"Failed to fetch {page_name} page in function {function_name}")
-            raise RuntimeError(f"Too many failed attempts in fetching {page_name} page in function {function_name}")
+        logger.info(f"Fetching {page_name} page in function {function_name}...")
+        response = requests.get(url).content.decode("utf-8")
+        logger.info(f"Finished fetching {page_name} page in function {function_name}")
         return response
 
-    def extract_all_fires(self, start_year: int) -> List[tuple]:
+    @staticmethod
+    @retry(retry_on_exception=urllib.error.URLError, stop_max_attempt_number=3)
+    def _download_single_file(url: str, file: str, out_path: str):
+        """
+        Downloads a single file from the website to the out_path.
+        :param url: url of the fire event.
+               e.g. https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/
+        :param file: file name of the file to download.
+                e.g. 'ca_eclipse_20170823_0000_dd83.cpg'
+        :param out_path: path where the downloaded file stored.
+                e.g. '/myResearch/Wildfires/data/fire-data'
+        """
+        logger.info(f"Downloading {url}/{file} to {out_path}.")
+        wget.download(url=url + "/" + file, out=out_path)
+        logger.info(f"Finished Downloading {url}/{file} to {out_path}.")
+
+    @staticmethod
+    def _extract_fire_events_in_state(year: int, state: str) -> List[FireEvent]:
+        """
+        Takes a year, and a state, fetches all fire events in that year and the state and output it as a list of
+        FireEvent objects.
+        :param year: int, represent the year to crawl.
+                e.g. 2017
+        :param state: str, the state to crawl.
+                e.g. 'California'
+        :return: list of FireEvent objects of all fire events happened in that year this state
+                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
+        """
+        logger.info(f"Fetching fire events in {state} in year {year}.")
+        # try except for network errors
+        try:
+            fires_in_this_state = FireCrawler._get_url(f"{FireCrawler.BASE_DIR}{year}_fire_data/{state}",
+                                                f"{state} State of year {year}", "_extract_fire_events_in_state()")
+        except requests.exceptions.RequestException:
+            logger.error(f"Error: cannot fetch state page for {state} in {year}")
+        # crawl the all fires in this state
+        re_formula = r'<A .*?>(.*?)</A>'
+        # This re_formula is different from the one used
+        fire_names_in_this_state = re.findall(re_formula, fires_in_this_state, re.S | re.M)
+        logger.info(f"Finished fetching fire events in {state} in year {year}.")
+        return list(map(lambda single_fire_name: FireEvent(year, state, single_fire_name), fire_names_in_this_state))
+
+    @staticmethod
+    def _filter_out_invalid_fire_events(fires: List[FireEvent]):
+        """
+        Find those invalid FireEvent objects and remove them from the input list
+        :param fires: list of FireEvent objects.
+                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
+        """
+        for fire_event in fires[:]:
+            if fire_event.is_valid():
+                fires.remove(fire_event)
+
+    def extract_all_fires(self, start_year: int) -> List[FireEvent]:
         """
         Extracts all fires on the website and return.
         The returned value is a list of tuples:(year:int, state:string, fire's name in its url)
         :param start_year: int, start year for the crawler. Record before the start year will be deleted.
-        :return: list of tuples
+                e.g. 2015
+        :return: list of FireEvent objects
+                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
         """
         logger.info("Attempting to get all links...")
         current_year = datetime.datetime.now().date().year
         # fetch all year nodes from the website, may encounter errors
         # add a try-except block, and while loop to keep trying
-        # if attempts > 10 raise an exception
-        main_page = self.get_url(self.baseDir, "main_page", "extract_all_fires()", 10)
+        # if attempts > 3 raise an exception
+        try:
+            main_page = self._get_url(FireCrawler.BASE_DIR, "main_page", "extract_all_fires()")
+        except requests.exceptions.RequestException:
+            logger.error("Error: Cannot fetch main_page in function extract_all_fires()")
         re_formula = r'<A .*?>(\w*?)</A>'
-        year_nodes = re.findall(re_formula, main_page, re.S | re.M)[:-1]
-        # year_nodes are now fire data of a certain year or current year
+        sub_links_of_each_year = re.findall(re_formula, main_page, re.S | re.M)[:-1]
+        # sub_links_of_each_year are now fire data of a certain year or current year
         # e.g. '2010_fire_data', 'current_year_fire_data'
         fires = []
-        for year_node in year_nodes:
-            true_year = current_year if year_node == "current_year_fire_data" else int(year_node.split("_")[0])
+        for sub_link_of_each_year in sub_links_of_each_year:
+            # sub_link_of_each_year: e.g. '2010_fire_data'
             # to change "current_year" to the real year as an integer
+            year_as_int = current_year if sub_link_of_each_year == "current_year_fire_data" \
+                                     else int(sub_link_of_each_year.split("_")[0])
             # ignore years that before the start year
             # filter out links that is too old
-            if true_year < start_year:
-                continue
-            for state in self.states:
-                # try except for network errors
-                list_of_state_fires = self.get_url(f"{self.baseDir}{year_node}/{state}",
-                                                   f"{state} State of year {year_node}",
-                                                   "extract_all_fires()", 10)
-                # crawl the all fires in this state
-                re_formula = r'<A .*?>(.*?)</A>'
-                # This re_formula is different from the one used
-                firenames = re.findall(re_formula, list_of_state_fires, re.S | re.M)
-                fires.extend((map(lambda f: (true_year, state, f),firenames)))
-        # to delete exceptions: "[To Parent Directory]" "whatever.zip"
-        # ActivePerim is an useless link which contains metadata over the year, existing in links before 2016 Skip it
-        for year, state, firename in fires[:]:
-            if "." in firename or "[To Parent Directory]" == firename or firename == "ActivePerim":
-                fires.remove((year, state, firename))
+            if year_as_int >= start_year:
+                for state in self.states:
+                    # for each state, extract fire events in that year at that state
+                    fires.extend(self._extract_fire_events_in_state(year_as_int, state))
+        self._filter_out_invalid_fire_events(fires)
         return fires
 
     @staticmethod
-    def generate_url_from_tuple(tuple_year: int, tuple_state: str, tuple_firename: str, current_year: int) -> str:
+    def _download_fire_record(single_file_name: str, used_folder_names: Set[str], url_of_fire_event: str):
         """
-        Take year, state, and url name and convert the entry to the url
-        :param tuple_year: int
-        :param tuple_state: str
-        :param tuple_firename: str
-        :param current_year: int
-        :return: str
+        Downloads a single fire record from the website and puts its sub-files into a folder.
+        :param single_file_name: e.g. "ca_cedar_20170810_0000_dd83.CPG"
+        :param used_folder_names:e.g. ("ca_cedar_20170810_0000_dd83", "ca_cedar_20170812_2145_dd83")
+        :param url_of_fire_event:e.g "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Cedar/"
         """
-        baseDir = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
-        year_str = "current_year" if tuple_year == current_year else str(tuple_year)
-        url = f"{baseDir}{year_str}_fire_data/{tuple_state}/{tuple_firename}"
-        return url
+        if not ".zip" == single_file_name[-4:]:
+            # if it is a zip don't download
+            folder_name = single_file_name.split(".")[0]
+            if folder_name not in used_folder_names:
+                # if the folder name is not in used_folder_names, which means it is a new folder
+                # then create the folder and add it into the used_folder_names set, to avoid duplicate folders
+                used_folder_names.add(folder_name)
+                os.makedirs(os.path.join(FIRE_DATA_DIR, folder_name))
+            out_path = os.path.join(FIRE_DATA_DIR, folder_name)
+            FireCrawler._download_single_file(url_of_fire_event, single_file_name, out_path)
 
-    def crawl(self, url_to_crawl):
+    @staticmethod
+    def _extract_file_names_in_fire_event(url_of_fire_event: str) -> List[str]:
         """
-        Takes the url string of one fire and start to crawl all files
-        :param url_to_crawl: str
-        :return: None
+        Extracts all file names from a fire_event page. Return a list of all file names.
+        :param url_of_fire_event: the url of the fire_event
+                e.g. https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Antelope/
+        :return: e.g. ["ca_antelope_20170706_1930_dd83.CPG", "ca_antelope_20170706_1930_dd83.dbf"]
+        """
+        try:
+            fire_page = FireCrawler._get_url(url_of_fire_event, url_of_fire_event, "crawl()")
+        except requests.exceptions.RequestException:
+            logger.error(f"Error: cannot fetch fire page {url_of_fire_event}")
+        res = r'<A .*?>([a-z]{2}_.+?)</A>'
+        return re.findall(res, fire_page, re.S | re.M)
+
+    def crawl(self, url_of_fire_event: str):
+        """
+        Takes the url string of one fire and start to crawl all files.
+        :param url_of_fire_event: str
+                e.g. "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2016_fire_data/California/Happy_Camp"
         """
         used_folder_names = set()
-        # grab all firenames in the page
+        # grab all fire names in the page
         # for loop for runtime error
-        fire_page = self.get_url(url_to_crawl, url_to_crawl, "crawl()", 10)
-        res = r'<A .*?>(ca_.+?)</A>'
-        filenames = re.findall(res, fire_page, re.S | re.M)
         # download useful files
-        for file in filenames:
-            if not ".zip" == file[-4:]:
-                # if it is a zip don't download
-                folder_name = file.split(".")[0]
-                if folder_name not in used_folder_names:
-                    used_folder_names.add(folder_name)
-                    os.makedirs(os.path.join(FIRE_DATA_DIR,folder_name))
-                out_path = os.path.join(FIRE_DATA_DIR, folder_name)
-                for attempts in range(10):
-                    try:
-                        wget.download(url=url_to_crawl + "/" + file, out=out_path)
-                    except urllib.error.URLError:
-                        logger.warning(f"Cannot download {url_to_crawl} in crawl()")
-                        logger.warning(f"Attempting a second time... Remaining attempts:{10 - attempts}")
-                    else:
-                        break
-                else:
-                    logger.error(f"Cannot download {url_to_crawl} in crawl(), max attempts reached")
-                    raise RuntimeError("Cannot download {url_to_crawl} in crawl()")
+        for file in FireCrawler._extract_file_names_in_fire_event(url_of_fire_event):
+            self._download_fire_record(file, used_folder_names, url_of_fire_event)
         return
 
     @staticmethod
     def cleanup():
         """
-        Clean up the temp data folder
-        :return:
+        Cleans up the temp data folder
         """
-        folders_to_remove = [os.path.join(FIRE_DATA_DIR, f) for f in os.listdir(FIRE_DATA_DIR)]
-        for folder_name in folders_to_remove:
-            if folder_name.__contains__(".DS"):
-                continue
+        logger.info("Cleaning up the temp data folder...")
+        folder_names = glob.glob(os.path.join(FIRE_DATA_DIR, "[a-z]*"))
+        for folder_name in folder_names:
             shutil.rmtree(folder_name)
+        logger.info("Finished cleaning up the temp data folder.")
 
 
 if __name__ == '__main__':
@@ -170,8 +247,15 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     test_crawler = FireCrawler(["California"])
-    fire_list = test_crawler.extract_all_fires()
-    random_number = random.randint(0, len(fire_list))
-    random_entry = fire_list[random_number]
-    random_url = test_crawler.generate_url_from_tuple(random_entry[0], random_entry[1],random_entry[2], 2019)
-    test_crawler.crawl(random_url)
+    test_crawler._extract_fire_events_in_state(2015, "California")
+    #print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
+    used = set()
+    # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.cpg', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
+    # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.dbf', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
+    # test_crawler.crawl("https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Chorro/")
+    test_crawler.cleanup()
+    # fire_list = test_crawler.extract_all_fires()
+    # random_number = random.randint(0, len(fire_list))
+    # random_entry = fire_list[random_number]
+    # random_url = test_crawler.generate_url_from_tuple(random_entry[0], random_entry[1],random_entry[2], 2019)
+    # test_crawler.crawl(random_url)

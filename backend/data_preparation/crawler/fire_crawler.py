@@ -11,7 +11,7 @@ import os
 import datetime
 import logging
 import shutil
-import urllib
+import urllib.error
 import glob
 from typing import List, Set
 from paths import FIRE_DATA_DIR
@@ -21,6 +21,11 @@ from retrying import retry
 rootpath.append()
 
 logger = logging.getLogger('TaskManager')
+
+
+class CannotCrawlException(Exception):
+    pass
+
 
 
 class FireEvent:
@@ -60,6 +65,9 @@ class FireEvent:
 class FireCrawler(CrawlerBase):
     # BASE_DIR is the website directory the crawler will crawl
     BASE_DIR = 'https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/'
+    RE_EXTRACT_FIRE_EVENTS_IN_STATE = re.compile(r'<A .*?>(.*?)</A>', re.S | re.M)
+    RE_EXTRACT_ALL_FIRES = re.compile(r'<A .*?>(\w*?)</A>', re.S | re.M)
+    RE_EXTRACT_FILES_IN_FIRE_EVENTS = re.compile(r'<A .*?>([a-z]{2}_.+?)</A>', re.S | re.M)
 
     def __init__(self, states: List[str]):
         """
@@ -109,6 +117,7 @@ class FireCrawler(CrawlerBase):
         logger.info(f"Finished Downloading {url}/{file} to {out_path}.")
 
     @staticmethod
+    @retry(retry_on_exception=requests.exceptions.RequestException, stop_max_attempt_number=3)
     def _extract_fire_events_in_state(year: int, state: str) -> List[FireEvent]:
         """
         Takes a year, and a state, fetches all fire events in that year and the state and output it as a list of
@@ -122,15 +131,22 @@ class FireCrawler(CrawlerBase):
         """
         logger.info(f"Fetching fire events in {state} in year {year}.")
         # try except for network errors
-        try:
-            fires_in_this_state = FireCrawler._get_url(f"{FireCrawler.BASE_DIR}{year}_fire_data/{state}",
-                                                f"{state} State of year {year}", "_extract_fire_events_in_state()")
-        except requests.exceptions.RequestException:
-            logger.error(f"Error: cannot fetch state page for {state} in {year}")
-        # crawl the all fires in this state
-        re_formula = r'<A .*?>(.*?)</A>'
-        # This re_formula is different from the one used
-        fire_names_in_this_state = re.findall(re_formula, fires_in_this_state, re.S | re.M)
+        # try:
+        #      fire_events_page_in_state = FireCrawler._get_url(f"{FireCrawler.BASE_DIR}{year}_fire_data/{state}",
+        #                                         f"{state} State of year {year}", "_extract_fire_events_in_state()")
+        # except requests.exceptions.RequestException:
+        #     logger.error(f"Error: cannot fetch state page for {state} in {year}")
+        #     # retry
+        # else:
+        #     # crawl the all fires in this state
+        #     # This re_formula is different from the one used
+        #     fire_names_in_this_state = FireCrawler.RE_EXTRACT_FIRE_EVENTS_IN_STATE.findall(fire_events_page_in_state)
+        #     logger.info(f"Finished fetching fire events in {state} in year {year}.")
+        #     return list(map(lambda single_fire_name: FireEvent(year, state, single_fire_name), fire_names_in_this_state))
+        fire_events_page_in_state = FireCrawler._get_url(f"{FireCrawler.BASE_DIR}{year}_fire_data/{state}",
+                                                         f"{state} State of year {year}",
+                                                         "_extract_fire_events_in_state()")
+        fire_names_in_this_state = FireCrawler.RE_EXTRACT_FIRE_EVENTS_IN_STATE.findall(fire_events_page_in_state)
         logger.info(f"Finished fetching fire events in {state} in year {year}.")
         return list(map(lambda single_fire_name: FireEvent(year, state, single_fire_name), fire_names_in_this_state))
 
@@ -163,24 +179,27 @@ class FireCrawler(CrawlerBase):
             main_page = self._get_url(FireCrawler.BASE_DIR, "main_page", "extract_all_fires()")
         except requests.exceptions.RequestException:
             logger.error("Error: Cannot fetch main_page in function extract_all_fires()")
-        re_formula = r'<A .*?>(\w*?)</A>'
-        sub_links_of_each_year = re.findall(re_formula, main_page, re.S | re.M)[:-1]
-        # sub_links_of_each_year are now fire data of a certain year or current year
-        # e.g. '2010_fire_data', 'current_year_fire_data'
-        fires = []
-        for sub_link_of_each_year in sub_links_of_each_year:
-            # sub_link_of_each_year: e.g. '2010_fire_data'
-            # to change "current_year" to the real year as an integer
-            year_as_int = current_year if sub_link_of_each_year == "current_year_fire_data" \
-                                     else int(sub_link_of_each_year.split("_")[0])
-            # ignore years that before the start year
-            # filter out links that is too old
-            if year_as_int >= start_year:
-                for state in self.states:
-                    # for each state, extract fire events in that year at that state
-                    fires.extend(self._extract_fire_events_in_state(year_as_int, state))
-        self._filter_out_invalid_fire_events(fires)
-        return fires
+            raise CannotCrawlException("Error: Cannot fetch main_page in function extract_all_fires")
+            # retry exception
+        else:
+            # the last node is "historical_fire_data" and we don't want it
+            sub_links_of_each_year = FireCrawler.RE_EXTRACT_ALL_FIRES.findall(main_page)[:-1]
+            # sub_links_of_each_year are now fire data of a certain year or current year
+            # e.g. '2010_fire_data', 'current_year_fire_data'
+            fires = []
+            for sub_link_of_each_year in sub_links_of_each_year:
+                # sub_link_of_each_year: e.g. '2010_fire_data'
+                # to change "current_year" to the real year as an integer
+                year_as_int = current_year if sub_link_of_each_year == "current_year_fire_data" \
+                                         else int(sub_link_of_each_year.split("_")[0])
+                # ignore years that before the start year
+                # filter out links that is too old
+                if year_as_int >= start_year:
+                    for state in self.states:
+                        # for each state, extract fire events in that year at that state
+                        fires.extend(self._extract_fire_events_in_state(year_as_int, state))
+            self._filter_out_invalid_fire_events(fires)
+            return fires
 
     @staticmethod
     def _download_fire_record(single_file_name: str, used_folder_names: Set[str], url_of_fire_event: str):
@@ -202,6 +221,7 @@ class FireCrawler(CrawlerBase):
             FireCrawler._download_single_file(url_of_fire_event, single_file_name, out_path)
 
     @staticmethod
+    @retry(retry_on_exception=requests.exceptions.RequestException, stop_max_attempt_number=3)
     def _extract_file_names_in_fire_event(url_of_fire_event: str) -> List[str]:
         """
         Extracts all file names from a fire_event page. Return a list of all file names.
@@ -209,12 +229,12 @@ class FireCrawler(CrawlerBase):
                 e.g. https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Antelope/
         :return: e.g. ["ca_antelope_20170706_1930_dd83.CPG", "ca_antelope_20170706_1930_dd83.dbf"]
         """
-        try:
-            fire_page = FireCrawler._get_url(url_of_fire_event, url_of_fire_event, "crawl()")
-        except requests.exceptions.RequestException:
-            logger.error(f"Error: cannot fetch fire page {url_of_fire_event}")
-        res = r'<A .*?>([a-z]{2}_.+?)</A>'
-        return re.findall(res, fire_page, re.S | re.M)
+        # try:
+        #     fire_page = FireCrawler._get_url(url_of_fire_event, url_of_fire_event, "crawl()")
+        # except requests.exceptions.RequestException:
+        #     logger.error(f"Error: cannot fetch fire page {url_of_fire_event}")
+        fire_page = FireCrawler._get_url(url_of_fire_event, url_of_fire_event, "crawl()")
+        return FireCrawler.RE_EXTRACT_FILES_IN_FIRE_EVENTS.findall(fire_page)
 
     def crawl(self, url_of_fire_event: str):
         """
@@ -247,8 +267,8 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     test_crawler = FireCrawler(["California"])
-    test_crawler._extract_fire_events_in_state(2015, "California")
-    #print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
+    #test_crawler._extract_fire_events_in_state(2015, "California")
+    print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
     used = set()
     # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.cpg', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
     # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.dbf', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")

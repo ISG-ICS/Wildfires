@@ -13,7 +13,7 @@ import logging
 import shutil
 import urllib.error
 import glob
-from typing import List, Set
+from typing import List, Set, Tuple
 from paths import FIRE_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from retrying import retry
@@ -30,7 +30,7 @@ class CannotCrawlException(Exception):
 
 class FireEvent:
     # the class to represent a FireEvent object, a fire event is a link on the rmgsc website
-    def __init__(self, year: int, state: str, url_name: str):
+    def __init__(self, year: int, state: str, url_name: str, fire_id=-1):
         """
         Takes year, state, url_name and make a new FireEvent object
         :param year: the year when the fire event occurred.
@@ -39,11 +39,29 @@ class FireEvent:
                 e.g. 'California'
         :param url_name: the name of this fire event on rmgsc website, should contains underscore.
                 e.g. "Happy_Camp_Mountain"
+        :param fire_id: the id of the fire event in database, -1 for new fire events that is not inserted into the
+                database
         """
-        self.fire_id = -1
+        self.fire_id = fire_id
         self.year = year
         self.state = state
         self.url_name = url_name
+
+    @classmethod
+    def from_tuple(cls, tuple_for_information: Tuple[int, str, str]) -> 'FireEvent':
+        """
+        Generates a FireEvent object from a tuple of information.
+        :param tuple_for_information: Tuple.
+               e.g. (2015, 'California', 'Happy_Camp'), (111, 2017, 'California', 'Eclipse')
+        :return: FireEvent object.
+               e.g. FireEvent(-1, 2015, 'California', 'Happy_Camp'), FireEvent(111, 2017, 'California', 'Eclipse')
+        """
+        if len(tuple_for_information) == 3:
+            return cls(tuple_for_information[0], tuple_for_information[1], tuple_for_information[2])
+        else:
+            return cls(tuple_for_information[1], tuple_for_information[2], tuple_for_information[3],
+                       tuple_for_information[0])
+
 
     def is_valid(self) -> bool:
         """
@@ -59,8 +77,18 @@ class FireEvent:
         Transforms a FireEvent into a string.
         :return: str
         """
+        if id == -1:
+            return f"Fire Event {self.fire_id}: {self.url_name} in year {self.year}, state {self.state}"
         return f"Fire Event: {self.url_name} in year {self.year}, state {self.state}"
 
+    def to_url(self) -> str:
+        """
+        Converts a FireEvent object into the url
+        :return: url. e.g. "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse"
+        """
+        current_year = datetime.datetime.now().date().year
+        year_str = "current_year" if self.year == current_year else str(self.year)
+        return f"{FireCrawler.BASE_DIR}{year_str}_fire_data/{self.state}/{self.url_name}"
 
 class FireCrawler(CrawlerBase):
     # BASE_DIR is the website directory the crawler will crawl
@@ -127,7 +155,7 @@ class FireCrawler(CrawlerBase):
         :param state: str, the state to crawl.
                 e.g. 'California'
         :return: list of FireEvent objects of all fire events happened in that year this state
-                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
+                e.g. [FireEvent(-1, 2015, 'California', 'FireA'), FireEvent(-1, 2015, 'California', 'FireB')]
         """
         logger.info(f"Fetching fire events in {state} in year {year}.")
         # try except for network errors
@@ -155,7 +183,7 @@ class FireCrawler(CrawlerBase):
         """
         Find those invalid FireEvent objects and remove them from the input list
         :param fires: list of FireEvent objects.
-                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
+                e.g. [FireEvent(-1, 2015, 'California', 'FireA'), FireEvent(-1, 2015, 'California', 'FireB')]
         """
         for fire_event in fires[:]:
             if fire_event.is_valid():
@@ -168,7 +196,7 @@ class FireCrawler(CrawlerBase):
         :param start_year: int, start year for the crawler. Record before the start year will be deleted.
                 e.g. 2015
         :return: list of FireEvent objects
-                e.g. [FireEvent(2015, 'California', 'FireA'), FireEvent(2015, 'California', 'FireB')]
+                e.g. [FireEvent(-1, 2015, 'California', 'FireA'), FireEvent(-1, 2015, 'California', 'FireB')]
         """
         logger.info("Attempting to get all links...")
         current_year = datetime.datetime.now().date().year
@@ -268,12 +296,12 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     test_crawler = FireCrawler(["California"])
     #test_crawler._extract_fire_events_in_state(2015, "California")
-    print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
-    used = set()
+    # print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
+    # used = set()
     # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.cpg', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
     # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.dbf', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
-    # test_crawler.crawl("https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Chorro/")
-    test_crawler.cleanup()
+    test_crawler.crawl("https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/current_year_fire_data/California/Trestle/")
+    # test_crawler.cleanup()
     # fire_list = test_crawler.extract_all_fires()
     # random_number = random.randint(0, len(fire_list))
     # random_entry = fire_list[random_number]

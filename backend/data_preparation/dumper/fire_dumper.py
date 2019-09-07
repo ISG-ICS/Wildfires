@@ -7,11 +7,14 @@ FireDumper
 from typing import List, Dict, Tuple
 import logging
 import rootpath
-rootpath.append()
-
 from backend.data_preparation.dumper.dumperbase import DumperBase
 from backend.data_preparation.connection import Connection
 from typing import Set
+from backend.data_preparation.crawler.fire_crawler import FireEvent
+
+rootpath.append()
+
+
 logger = logging.getLogger('TaskManager')
 
 
@@ -37,6 +40,8 @@ class FireDumper(DumperBase):
     """
 
     # code for checking if a database exists
+    SQL_CHECK_IF_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'{}\''
+
     SQL_CHECK_IF_FIRE_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire\''
     # SQL_CHECK_IF_FIRE_TABLE_EXISTS: check if "fire" table exists
     SQL_CHECK_IF_HISTORY_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_history\''
@@ -100,122 +105,139 @@ class FireDumper(DumperBase):
                                  'st_astext(st_union(st_makevalid(f.geom_1e2))),st_astext(st_centroid(st_union(st_makevalid(f.geom_center)))), ' \
                                  'max(f.area) FROM (SELECT * FROM fire where id = {}) f Group by f.name, f.if_sequence, f.state, f.id'
 
-    def create_history_table(self, conn: Connection) -> None:
+    @staticmethod
+    def _get_length_of_select_query_result(query: str) -> int:
         """
-        Checks if the fire_history table exists,
+        Takes a SELECT query and returns the number of rows the query returns.
+        :param query: str.
+                e.g. 'SELECT year,state,name FROM fire_history'
+        :return: int
+        """
+        return sum(1 for _ in Connection().sql_execute(query))
+
+    @staticmethod
+    def _create_table(table_name: str):
+        """
+        Checks if the a given table exists,
         Creates fire_history table if not exist
         If it exists, the function does nothing
-        :param conn: connection
+        :param table_name: name of the table to look for or create.
+                Only 3 possible values: "fire_history", "fire", "fire_merged"
         """
-        # create a cursor
-        cur = conn.cursor()
+        logger.info("Looking for fire_history table in database...")
+        # this is the select query from table name
+        table_names_to_select_query = FireDumper.SQL_CHECK_IF_TABLE_EXISTS.format(table_name)
+        # this is the create query from table name
+        table_name_to_create_query = {
+            "fire_history": FireDumper.SQL_CREATE_HISTORY_TABLE,
+            "fire": FireDumper.SQL_CREATE_FIRE_TABLE,
+            "fire_merged": FireDumper.SQL_CREATE_FIRE_MERGED_TABLE,
+            "new_table_testing": "CREATE TABLE new_table_testing(tid int)"
+        }[table_name]
         # check if the fire_history table exists
         # if the pipeline is run for the first time
         # then the fire_history table will not exist
-        cur.execute(self.SQL_CHECK_IF_HISTORY_TABLE_EXISTS)
-        tables = cur.fetchall()
+        num_of_rows_found = FireDumper._get_length_of_select_query_result(table_names_to_select_query)
         # table is the result of the statement: sql_check_if_history_table_exists
-        if len(tables) == 0:
-            # if table is empty, which means the fire_history table does not exists
+        if num_of_rows_found == 0:
+            # if table is empty, which means the fire_history table does not exists, so we create it
             logger.info("No history table exists. Creating a new one.")
-            cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
-            # create the fire_history table
-            conn.commit()
-            # commit the transaction so the change will be saved
+            Connection().sql_execute_commit(table_name_to_create_query)
             logger.info("History table created.")
         else:
             logger.info("Find the fire_history table, continue >..")
-        cur.close()
 
-    def create_fire_table(self, conn: Connection) -> None:
+    # def _create_fire_table(self, conn: Connection):
+    #     """
+    #     Checks if the fire table exists
+    #     Creates fire table if not exist
+    #     If it exists, the function does nothing
+    #     :param conn: Connection object
+    #     """
+    #     logger.info("Looking for fire table in database...")
+    #     # create a cursor
+    #     cur = conn.cursor()
+    #     # check if the fire_history table exists
+    #     # if the pipeline is run for the first time
+    #     # then the fire_history table will not exist
+    #     cur.execute(self.SQL_CHECK_IF_FIRE_TABLE_EXISTS)
+    #     tables = cur.fetchall()
+    #     # table is the result of the statement: sql_check_if_history_table_exists
+    #     if len(tables) == 0:
+    #         # if table is empty, which means the fire_history table does not exists
+    #         logger.info("No fire table exists. Creating a new one.")
+    #         cur.execute(FireDumper.SQL_CREATE_FIRE_TABLE)
+    #         # create the fire_history table
+    #         conn.commit()
+    #         # commit the transaction so the change will be saved
+    #         logger.info("Fire table created.")
+    #     else:
+    #         logger.info("Find the fire table, continue >..")
+    #     cur.close()
+    #
+    # def _create_fire_merged_table(self, conn: Connection):
+    #     """
+    #     Checks if the fire_merged table exists,
+    #     Creates fire_merged table if not exist
+    #     If it exists, the function does nothing
+    #     :param conn: Connection object
+    #     """
+    #     logger.info("Looking for fire_merged table in database...")
+    #     # create a cursor
+    #     cur = conn.cursor()
+    #     # check if the fire_merged table exists
+    #     # if the pipeline is run for the first time
+    #     # then the fire_merged table will not exist
+    #     # table is the result of the statement: sql_check_if_history_table_exists
+    #     if len(list(Connection.sql_execute(self.SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS))) == 0:
+    #         # if table is empty, which means the fire_history table does not exists
+    #         logger.info("No fire_merged table exists. Creating a new one.")
+    #         cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
+    #         # create the fire_history table
+    #         conn.commit()
+    #         # commit the transaction so the change will be saved
+    #         logger.info("fire_merged table created.")
+    #     else:
+    #         logger.info("Find the fire_merged table, continue >..")
+    #     cur.close()
+
+    @staticmethod
+    def retrieve_all_fires() -> Set[FireEvent]:
         """
-        Checks if the fire table exists
-        Creates fire table if not exist
-        If it exists, the function does nothing
-        :param conn:connection
+        Retrieves all fires in the database.
+        :return: set of FireEvent objects
+                 e.g. [FireEvent(-1, 2015, 'California', 'FireA'), FireEvent(-1, 2015, 'California', 'FireB')]
         """
-        # create a cursor
-        cur = conn.cursor()
         # check if the fire_history table exists
-        # if the pipeline is run for the first time
-        # then the fire_history table will not exist
-        cur.execute(self.SQL_CHECK_IF_FIRE_TABLE_EXISTS)
-        tables = cur.fetchall()
-        # table is the result of the statement: sql_check_if_history_table_exists
-        if len(tables) == 0:
-            # if table is empty, which means the fire_history table does not exists
-            logger.info("No fire table exists. Creating a new one.")
-            cur.execute(FireDumper.SQL_CREATE_FIRE_TABLE)
-            # create the fire_history table
-            conn.commit()
-            # commit the transaction so the change will be saved
-            logger.info("Fire table created.")
-        else:
-            logger.info("Find the fire table, continue >..")
-        cur.close()
+        # if not exist, executing sql_retrieve_all_fires will return an error
+        FireDumper._create_table("fire_history")
+        # retrieve all fires in fire_history
+        set_of_fire_event_objects = set(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
+                                        Connection().sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
+        # result now is a set of FireEvent objects
+        # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
+        # the FireEvent object is: Fire Event: Deer_Horn_2 in year 2015, state California
+        return set_of_fire_event_objects
 
-    def create_fire_merged_table(self, conn: Connection) -> None:
-        """
-        Checks if the fire_merged table exists,
-        Creates fire_merged table if not exist
-        If it exists, the function does nothing
-        :param conn: connection
-        """
-        # create a cursor
-        cur = conn.cursor()
-        # check if the fire_merged table exists
-        # if the pipeline is run for the first time
-        # then the fire_merged table will not exist
-        # cur.execute(self.sql_check_if_fire_merged_table_exists)
-        # tables = cur.fetchall()
-        # table is the result of the statement: sql_check_if_history_table_exists
-        if len(list(Connection.sql_execute(self.SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS))) == 0:
-            # if table is empty, which means the fire_history table does not exists
-            logger.info("No fire_merged table exists. Creating a new one.")
-            cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
-            # create the fire_history table
-            conn.commit()
-            # commit the transaction so the change will be saved
-            logger.info("fire_merged table created.")
-        else:
-            logger.info("Find the fire_merged table, continue >..")
-        cur.close()
-
-    def retrieve_all_fires(self) -> Set[tuple]:
-        """
-        Retrieves all fires in the database
-        :return: set of tuples
-        """
-        with Connection() as connect:
-            # check if the fire_history table exists
-            # if not exist, executing sql_retrieve_all_fires will return an error
-            self.create_history_table(connect)
-            # retrieve all fires in fire_history
-            result = set(Connection.sql_execute(self.SQL_RETRIEVE_ALL_FIRES))
-            # result now is a set of tuples: (year, state, urlname)
-            # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
-            # the history tuple is : (2015, California, Deer_Horn_2)
-        return result
-
-    def insert(self, data: Dict) -> None:
+    def insert(self, data: Dict):
         """
         Inserts a single fire record into fire table.
         :param data:dict to insert, from extractor.extract()
         :return:None
         """
-        with Connection() as connect:
-            # check if the fire table exists
-            # if not exist, executing sql_insert will cause an error
-            self.create_fire_table(connect)
-            # create cursor
-            cur = connect.cursor()
-            # execute insert statement
-            cur.execute(self.SQL_INSERT_FIRE, data)
-            connect.commit()
-            # commit transaction
-            # count number of records
-            # self.inserted_count = cur.rowcount
-            cur.close()
+        # with Connection() as connect:
+        # check if the fire table exists
+        # if not exist, executing sql_insert will cause an error
+        FireDumper._create_table("fire")
+        # create cursor
+        cur = connect.cursor()
+        # execute insert statement
+        cur.execute(self.SQL_INSERT_FIRE, data)
+        connect.commit()
+        # commit transaction
+        # count number of records
+        # self.inserted_count = cur.rowcount
+        cur.close()
         # print logging message for debugging
         logger.info(f"Finished inserting file: {data['firename']}{data['datetime']}")
         # logger.info(f"record count:{self.inserted_count}")
@@ -347,7 +369,7 @@ class FireDumper(DumperBase):
             cur = conn.cursor()
             # check if the fire_merged table exists, if not then create it
             # if it exists, do nothing
-            self.create_fire_merged_table(conn)
+            self._create_fire_merged_table(conn)
             # get the aggregated record of the last fire inserted into fire table
             try:
                 aggregated_with_id = self.get_aggregated_fire_with_id(year, name, state, id, current_year)
@@ -380,5 +402,12 @@ class FireDumper(DumperBase):
 
 
 if __name__ == '__main__':
-    fd = FireDumper()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    test_dumper = FireDumper()
+    # Test for _create_table()
+    # FireDumper.create_history_table("fire_merged")
+    # Test for retrieve_all_fires()
+    print(list(map(lambda fire: str(fire), test_dumper.retrieve_all_fires())))
+    print(len(list(map(lambda fire: str(fire), test_dumper.retrieve_all_fires()))))
 

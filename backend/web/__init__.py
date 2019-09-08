@@ -1,4 +1,3 @@
-
 import rootpath
 from flask import Flask
 from flask_cors import CORS
@@ -19,6 +18,7 @@ import router.root_router
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True, static_url_path='/static', static_folder='static')
+    # Enable CORS, cross-site-access-control
     CORS(app)
     app.config.from_mapping(
         SECRET_KEY='dev',
@@ -32,6 +32,7 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
+    # register routers
     app.register_blueprint(router.search_router.bp)
     app.register_blueprint(router.data_router.bp)
     app.register_blueprint(router.tweet_router.bp)

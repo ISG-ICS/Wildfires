@@ -28,6 +28,10 @@ class USGSCrawler(CrawlerBase):
     }
 
     def __init__(self):
+        """
+        login is required to download files from USGS.
+        we are simulating a login with session here
+        """
         super().__init__()
 
         # cookie may expire in 7days or 2hrs. not sure
@@ -58,8 +62,10 @@ class USGSCrawler(CrawlerBase):
 
     def crawl(self, target_date: date) -> Optional[str]:
         """
-            this func will download a single file
-            target_date should be 7-day interval with 2019-07-30
+        this func will download a single file
+
+        :param target_date: date
+        :return: full-path of downloaded file. None if not crawled
         """
 
         if not os.path.exists(USGS_DATA_DIR):

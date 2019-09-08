@@ -28,7 +28,16 @@ class NOAADumper(DumperBase):
         super().__init__()
 
     def insert(self, ugnd: dict, vgnd: dict, tmp: dict, soilw: dict, reftime: datetime, stamp: str) -> None:
+        """
 
+        :param ugnd: wind-U-component
+        :param vgnd: wind-V-component
+        :param tmp:  temperature
+        :param soilw: soil-moisture
+        :param reftime: datetime.datetime
+        :param stamp: timestamp in string
+        :return: None
+        """
         with Connection() as conn:
             self.check_geom(conn, ugnd)  # create mesh if not exist
 

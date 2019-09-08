@@ -207,9 +207,13 @@ if __name__ == '__main__':
     # commit it out when run on server
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
-    while True:
-        DataFromFireRunnable().run()
-        # sleep one day
-        time.sleep(3600 * 24)
-        logger.info("Finished running. Waiting for one day.")
+    # while True:
+    #     DataFromFireRunnable().run()
+    #     # sleep one day
+    #     time.sleep(3600 * 24)
+    #     logger.info("Finished running. Waiting for one day.")
+    fe = FireExtractor()
+    fd = FireDumper()
+    fd.insert(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83",True, 0, "ss"))
+
 

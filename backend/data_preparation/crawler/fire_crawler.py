@@ -62,7 +62,6 @@ class FireEvent:
             return cls(tuple_for_information[1], tuple_for_information[2], tuple_for_information[3],
                        tuple_for_information[0])
 
-
     def is_valid(self) -> bool:
         """
         Judges if this fire event is valid. A valid fire event should have reasonable fire name.
@@ -77,9 +76,9 @@ class FireEvent:
         Transforms a FireEvent into a string.
         :return: str
         """
-        if id == -1:
+        if id != -1:
             return f"Fire Event {self.fire_id}: {self.url_name} in year {self.year}, state {self.state}"
-        return f"Fire Event: {self.url_name} in year {self.year}, state {self.state}"
+        return f"Fire Event Unknown: {self.url_name} in year {self.year}, state {self.state}"
 
     def to_url(self) -> str:
         """

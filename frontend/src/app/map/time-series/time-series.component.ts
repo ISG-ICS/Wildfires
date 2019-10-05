@@ -1,3 +1,11 @@
+/**
+ * @Summary: Time chart that can be used to select time range.
+ *
+ * @Author: (Hugo) Qiaonan Huang, Yang Cao
+ *
+ * Last modified  : 2019-08-27 15:31:40
+ */
+
 import {Component, EventEmitter, OnInit, Output} from '@angular/core';
 import * as $ from 'jquery';
 import {MapService} from '../../services/map-service/map.service';
@@ -22,14 +30,26 @@ export class TimeSeriesComponent implements OnInit {
     }
 
     ngOnInit() {
+        /** Subscribe tweet data related to wildfire in service. */
         this.mapService.getFireTweetData().subscribe(data => this.drawTimeSeries(data));
     }
 
-    // Draw time series
+    /**
+     * Using tweet data to draw a time series reflecting daily tweet information
+     *
+     * Get data from backend and do the data retrieval of time to a specific date.
+     * Count wildfire related tweets and draw it as a time series chart to visualize.
+     *
+     * @param tweets tweet data crawled using tweet api
+     *
+     */
     drawTimeSeries = (tweets: Tweet[]) => {
+        /**
+         *  Refine tweet data to count related to 'wildfire' in each DAY,
+         *  storing in charData.
+         */
         const chartData = [];
         const dailyCount = {};
-
         for (const tweet of tweets) {
             const createAt = tweet.create_at.split('T')[0];
             if (dailyCount.hasOwnProperty(createAt)) {
@@ -38,28 +58,29 @@ export class TimeSeriesComponent implements OnInit {
                 dailyCount[createAt] = 1;
             }
         }
-        // time bar
         Object.keys(dailyCount).sort().forEach(key => {
             chartData.push([new Date(key).getTime(), dailyCount[key]]);
         });
+        /** Plotting format of time-series. */
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
                 height: 150,
                 backgroundColor: undefined,
                 zoomType: 'x',
                 events: {
+                    /**
+                     *  Tow things to check on a click event:
+                     *  1. Plot band: transparent orange box drew on time-series.
+                     *  2. Ticks (x-axis label): color the x-axis if it is labeled.
+                     */
                     click: event => {
                         // @ts-ignore
-                        const clickValue = event.xAxis[0].value;
-                        let dateInMs = clickValue - clickValue % this.halfUnit;
-                        dateInMs += dateInMs % (this.halfUnit * 2);
-                        const dateSelectedInYMD = new Date(dateInMs).toISOString().substring(0, 10);
-                        // @ts-ignore
-                        const tick = event.xAxis[0].axis.ticks[dateInMs];
+                        const [leftBandStart, bandCenter, rightBandEnd, tick] = this.closestTickNearClick(event.xAxis[0]);
+                        const dateSelectedInYMD = new Date(bandCenter).toISOString().substring(0, 10);
                         if (!this.hasPlotBand) {
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - this.halfUnit,
-                                to: dateInMs + this.halfUnit,
+                                from: leftBandStart,
+                                to: rightBandEnd,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand',
                             });
@@ -74,8 +95,8 @@ export class TimeSeriesComponent implements OnInit {
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             timeseries.xAxis[0].addPlotBand({
-                                from: dateInMs - this.halfUnit,
-                                to: dateInMs + this.halfUnit,
+                                from: leftBandStart,
+                                to: rightBandEnd,
                                 color: 'rgba(216,128,64,0.25)',
                                 id: 'plotBand'
                             });
@@ -135,6 +156,10 @@ export class TimeSeriesComponent implements OnInit {
                 type: 'datetime',
                 range: 6 * 30 * 24 * 3600 * 1000, // six months
                 events: {
+                    /**
+                     *  This event allow both selections on time-series and navigator,
+                     *  updating information of date.
+                     */
                     setExtremes: (event) => {
                         this.timeService.setRangeDate(event.min + this.halfUnit, event.max);
                         $('#report').html('Date Range => ' +
@@ -151,5 +176,47 @@ export class TimeSeriesComponent implements OnInit {
         });
     }
 
-
+    /**
+     *  Summary: Generate information needed for click event.
+     *
+     *  Description: Receive a event axis with click value to measure the distance on time series.
+     *
+     *  @param eventAxis Click event fire information of axis.
+     *
+     *  @return [leftBandStart, bandCenter, rightBandEnd, tick] which will be used in
+     *  time series click event.
+     */
+    closestTickNearClick(eventAxis): [number, number, number, any] {
+        const halfUnitDistance = 43200000;
+        const xAxis = eventAxis.axis;
+        const dateClickedInMs = eventAxis.value;
+        let distanceToTheLeft;
+        let distanceToTheRight;
+        let minValue;
+        let minKey;
+        if (xAxis.ordinalPositions === undefined) {
+            /** Ticks evenly distributed with unit distance 43200000*2. */
+            minValue = dateClickedInMs - dateClickedInMs % halfUnitDistance;
+            minValue += minValue % (halfUnitDistance * 2);
+            distanceToTheLeft = halfUnitDistance;
+            distanceToTheRight = halfUnitDistance;
+        } else {
+            /** Ticks distributed with different distance. */
+            xAxis.ordinalPositions.forEach((value, index) => {
+                if (minValue === undefined || Math.abs(dateClickedInMs - value) < Math.abs(dateClickedInMs - minValue)) {
+                    minValue = value;
+                    minKey = index;
+                }
+            });
+            if (minKey === 0 || minKey === xAxis.ordinalPositions.length - 1) {
+                /** Case when click at the beginning or the end of the range. */
+                distanceToTheLeft = 0;
+                distanceToTheRight = 0;
+            } else {
+                distanceToTheLeft = (xAxis.ordinalPositions[minKey] - xAxis.ordinalPositions[minKey - 1]) / 2;
+                distanceToTheRight = (xAxis.ordinalPositions[minKey + 1] - xAxis.ordinalPositions[minKey]) / 2;
+            }
+        }
+        return [minValue - distanceToTheLeft, minValue, distanceToTheRight + minValue, xAxis.ticks[minValue]];
+    }
 }

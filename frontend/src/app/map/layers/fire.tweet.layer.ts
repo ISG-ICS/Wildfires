@@ -1,5 +1,6 @@
 /**
- * @author Yuan Fu <yuanf9@uci.edu>
+ * @author: Yuan Fu <yuanf9@uci.edu>
+ * @author: (Hugo) Qiaonan Huang <qiaonanh@uci.edu>
  */
 import 'leaflet/dist/leaflet.css';
 import {MapService} from '../../services/map-service/map.service';

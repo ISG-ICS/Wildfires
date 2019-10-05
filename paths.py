@@ -4,6 +4,7 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # directory for all runnable tasks
+# the task directory should not be changed, otherwise the task manager will crash
 TASK_DIR = os.path.join(ROOT_DIR, 'backend', 'task')
 # directory for all tasks' logs
 LOG_DIR = os.path.join(ROOT_DIR, 'backend', 'logs')
@@ -21,6 +22,8 @@ LOG_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'logger-conf.json')
 NLTK_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/nltk_model.pickle')
 
 TEXT_CNN_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/text_cnn_classifier.ckpt')
+
+GOOGLE_VOCAB_PATH = os.path.join(ROOT_DIR, 'backend/models/GoogleNews-vectors-negative300.bin')
 
 IMAGE_CLASSIFIER_VGG_PATH = os.path.join(ROOT_DIR, 'backend/models/img_classifier_model.ckpt')
 

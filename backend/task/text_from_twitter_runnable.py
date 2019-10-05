@@ -1,3 +1,6 @@
+"""
+@author: Tingxuan Gu
+"""
 import logging
 
 import rootpath
@@ -12,12 +15,15 @@ logger = logging.getLogger('TaskManager')
 
 
 class TextFromTwitter(Runnable):
+    """
+    This class is responsible for crawling texts from twitter, extracting them and dumping them into database
+    """
     def __init__(self):
         self.crawler = TweetCrawler()
         self.extractor = TweetExtractor()
         self.dumper = TweetDumper()
 
-    def run(self, keywords: list = None, batch_num: int = 20, fetch_from_db: bool = False):
+    def run(self, keywords: list = None, batch_num: int = 100, fetch_from_db: bool = False):
         if keywords is None:
             keywords = ['wildfire']
         logger.info('start crawling')
@@ -35,4 +41,8 @@ class TextFromTwitter(Runnable):
 
 
 if __name__ == '__main__':
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+    # TODO:
+    # add comments to explain usage of fetch_from_db parameter 
     TextFromTwitter().run(fetch_from_db=False)

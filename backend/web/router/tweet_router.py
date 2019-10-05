@@ -9,7 +9,6 @@ import requests
 import rootpath
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
-
 from router.data_router import fill_series, gen_date_series
 
 rootpath.append()
@@ -23,7 +22,10 @@ api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
 
 @bp.route("/live-tweet")
 def send_live_tweet():
-    # TODO: replace source of live tweets to db
+    """
+    (unused)(deprecated)
+    :return:
+    """
     # Simulate request from a mac browser
     headers = {
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_4) AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -57,6 +59,11 @@ def send_live_tweet():
 
 @bp.route("/fire-tweet")
 def send_fire_tweet_data():
+    """
+        This func gives all historical tweets objects with id
+
+        :returns: a list of tweet objects, each with time, lat, long, id
+    """
     resp = make_response(
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
                  Connection().sql_execute(
@@ -67,6 +74,12 @@ def send_fire_tweet_data():
 
 @bp.route("/recent-tweet")
 def send_recent_tweet_data():
+    """
+        This func gives recent tweets objects which must has a image
+        here the interval is 10 month
+
+        :returns: a list of tweet objects, each with time, lat, long, text, id
+    """
     with Connection() as conn:
         cur = conn.cursor()
         livetweet_query = "select it.create_at, it.top_left_long, it.top_left_lat, it.bottom_right_long, it.bottom_right_lat, it.id, it.text, i.image_url, it.profile_pic, it.user_name " \
@@ -85,6 +98,14 @@ def send_recent_tweet_data():
 
 @bp.route('/region-tweet')
 def region_tweet():
+    """
+    tweet count within specific administrative boundary
+
+    @:param tweet_id: integer
+    @:param timestamp: ISO string
+    @:param days: integer
+    :return: [ [date, count], ... ]
+    """
     region_id = int(flask_request.args.get('region_id'))
     timestamp_str = flask_request.args.get('timestamp')
     days = int(flask_request.args.get('days', 7))
@@ -126,6 +147,12 @@ def region_tweet():
 
 @bp.route("/tweet-from-id", methods=['GET'])
 def tweet_from_id():
+    """
+    get detail of specific tweet
+
+    @:param tweet_id: integer
+    :return: JSON {"id", "create_at", "text", "user", "profilePic", "image"}
+    """
     tweet_id = int(flask_request.args.get('tweet_id'))
 
     query = '''

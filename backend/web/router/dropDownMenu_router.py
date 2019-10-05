@@ -10,6 +10,14 @@ bp = Blueprint('dropdownMenu', __name__, url_prefix='/dropdownMenu')
 
 @bp.route('', methods=['GET'])
 def dropBox():
+    """
+    auto-completion relies on this API.
+    frontend send user types through userInput,
+    this API perform DB query through stored procedure (autocomplete.sql)
+
+    return a list/array: [ (city, county, state, id), ... ]
+    :return:
+    """
     userInput = flask_request.args.get('userInput')
     # request_json = flask_request.get_json(force=True)
     # userInput = request_json['userInput']

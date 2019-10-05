@@ -1,3 +1,4 @@
+// This file is currently unused, prepared to move clickbox feature from heatmap file to this file
 import 'leaflet/dist/leaflet.css';
 import {MapService} from '../../services/map-service/map.service';
 import * as $ from 'jquery';
@@ -28,6 +29,7 @@ export class ClickboxLayer {
     }
 
     distance(pt) {
+        // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
         return 111000 * Math.sqrt(Math.pow(this.latlng.lat - pt.lat, 2) + Math.pow(this.latlng.lng - pt.lng, 2));
     }
 
@@ -51,6 +53,7 @@ export class ClickboxLayer {
             fill: false,
             bubblingMouseEvents: false,
         }).addTo(this.map)
+        // change bound color when mouse on to tell user your mouse is on
             .on('mouseover', () => {
                 this.boundary.setStyle({color: '#919191'});
             })
@@ -58,9 +61,11 @@ export class ClickboxLayer {
                 this.boundary.setStyle({color: 'white'});
             })
             .on('mousedown', () => {
+                // deal with drag event when mouseon circle bound
                 this.map.removeEventListener('click');
                 this.map.dragging.disable();
                 this.map.on('mousemove', this.mouseMoveChangeRadius, this);
+                // send changed radius to backend with mousedown/mouseup
             })
             .on('mouseup', () => {
                 this.map.dragging.enable();

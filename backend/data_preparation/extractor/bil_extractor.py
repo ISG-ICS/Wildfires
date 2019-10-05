@@ -28,7 +28,12 @@ class BILExtractor(ExtractorBase):
     CROP_RIGHT = 262
 
     def extract(self, filepath) -> Optional[BILFormat]:
-        # extract files
+        """
+        extract from .bil file to numpy array
+
+        :param filepath: full-path of .bil file
+        :return: BILFormat
+        """
         try:
             filename = os.path.basename(filepath)
             zf = zipfile.ZipFile(filepath)

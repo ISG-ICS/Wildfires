@@ -1,3 +1,6 @@
+"""
+@author: Yutong Wang, (Hugo) Qiaonan Huang
+"""
 import logging
 import os
 import traceback
@@ -27,6 +30,9 @@ logger = logging.getLogger('TaskManager')
 
 
 class ImageClassifier(ClassifierBase):
+    """
+    Image classifier can either use model to predict or train the model.
+    """
     VGG_MODEL = "vgg"
     RESNET_MODEL = "resnet"
 
@@ -54,6 +60,10 @@ class ImageClassifier(ClassifierBase):
     RGB_CHANNELS = 3
 
     def __init__(self, model_type: str):
+        """
+        Init function of image classifier class.
+        :param model_type: different model will be used according to model type.
+        """
         super().__init__()
         self.model_type = model_type
         if torch.cuda.is_available():
@@ -62,7 +72,10 @@ class ImageClassifier(ClassifierBase):
             self.dtype = torch.float
 
     def set_model(self, model: str = None):
-        """load trained model"""
+        """
+        Loads trained model accrording to model_type of the class.
+        :param model: the path of trained model. If not none, then load the specific model.
+        """
 
         if self.model_type == ImageClassifier.VGG_MODEL:
             self.model = CNN(ImageClassifier.N_CHANNELS, ImageClassifier.N_CLASSES)
@@ -80,7 +93,11 @@ class ImageClassifier(ClassifierBase):
                     self.dtype)
 
     def predict(self, url: str) -> tuple:
-        """predict classification result of the image from url"""
+        """
+        Predicts classification result of the image from url.
+        :param url: the url link for an image.
+        :return: prediction result for this image. Result type is a tuple containing probability of being a wildfire or not wildfire. Two probabilities add up to 1.
+        """
 
         logger.info("predicting url: " + url)
         # download image from url
@@ -118,7 +135,18 @@ class ImageClassifier(ClassifierBase):
             return tuple(self.prettify(torch.topk(percentages, 2)))
 
     def train(self, train_path: str, num_epochs: int = EPOCHS) -> RESNET_MODEL_TYPE:
-        """train ResNet model"""
+        """
+        Trains a CNN model using ResNet50.
+
+        Basic structures:
+            Training Data: Preprocessed data in a format of 32(default) batch size loader
+            Loss function: Cross Entropy Loss
+            Optimizer: rmsprop
+
+        :param train_path: Path of training data
+        :param num_epochs: Number of epochs used to train data.
+        :return: model trained with training data
+        """
         # 1. build data loader for training dataset from the path train_path.
         train_loader = ImageClassifier.load_dataloader(train_path, ImageClassifier.TRAIN_MODE)
 
@@ -149,7 +177,18 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def load_dataloader(dataset_path: str, process_mode: int) -> DATA_LOADER_TYPE:
-        """pre-process dataset as dataloader"""
+        """
+        Preprocesses training or testing data into dataloader.
+
+        Process including:
+            1. Normalization
+            2. RandomResizedCrop
+            3. RandomHorizontalFlip
+
+        :param dataset_path: Path of training or testing data.
+        :param process_mode: Used to distinguished training or testing mode.
+        :return: dataloder which can be used to do training or validating.
+        """
         normalize = transforms.Normalize(mean=[ImageClassifier.NORMALIZE_PARAM_MEAN_0,
                                                ImageClassifier.NORMALIZE_PARAM_MEAN_1,
                                                ImageClassifier.NORMALIZE_PARAM_MEAN_2],
@@ -182,7 +221,12 @@ class ImageClassifier(ClassifierBase):
         return dataloader
 
     def check_accuracy(self, model: RESNET_MODEL_TYPE, val_path: str):
-        """use test data to print out accuracy"""
+        """
+        Uses test data to print out accuracy
+
+        :param model: Trained model used to check accuracy
+        :param val_path: Path of testing data
+        """
         loader = self.load_dataloader(val_path, ImageClassifier.VAL_MODE)
         num_correct = 0
         num_samples = 0
@@ -199,12 +243,21 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def save_model(model: RESNET_MODEL_TYPE, modelname: str):
-        """save the model locally"""
+        """
+        Saves the model locally.
+
+        :param model: Trained model.
+        :param modelname: Trained model name.
+        """
         torch.save(model.state_dict(), paths.MODELS_SAVE_PATH + modelname)
 
     @staticmethod
     def download_image(url: str) -> Optional[str]:
-        """download image from url"""
+        """
+        Downloads image from url.
+        :param url: url link of the image.
+        :return: download path for the image.
+        """
         if not os.path.exists(paths.TWEET_IMAGES_DIR):
             os.makedirs(paths.TWEET_IMAGES_DIR)
         download_path = paths.TWEET_IMAGES_DIR + "/current.jpg"
@@ -218,9 +271,14 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def vgg_transform_image(image_path: str) -> Optional[Any]:
-        """under VGG model, image transformation to specific size"""
+        """
+        Transforms image to specific size under VGG model.
+        :param image_path: path of image.
+        :return: transformed image with specific size of tensor type.
+        """
         if image_path is None:
             return None
+        # specify a specific transformation for all the images
         trans = transforms.Compose(
             [
                 transforms.CenterCrop(ImageClassifier.DROP_SIZE),
@@ -235,6 +293,7 @@ class ImageClassifier(ClassifierBase):
             ])
         try:
             img = Image.open(image_path)
+            # return the image with same size as other images
             return trans(img).view(1, ImageClassifier.RGB_CHANNELS, ImageClassifier.DROP_SIZE,
                                    ImageClassifier.DROP_SIZE)
         except RuntimeError as err:
@@ -244,10 +303,15 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def resnet_transform_image(image_path: str):
-        """under RESNET model, image transformation to specific size"""
-        loader = transforms.Compose([transforms.Resize(ImageClassifier.RESIZE_VALUE), transforms.ToTensor()])
+        """
+        Transforms image to specific size under RESNET model.
+        :param image_path: path of image.
+        :return: transformed image with specific size of tensor type.
+        """
+        # specify a specific transformation for all the images
+        trans = transforms.Compose([transforms.Resize(ImageClassifier.RESIZE_VALUE), transforms.ToTensor()])
         try:
-            image = Variable(loader(Image.open(image_path)).float(), requires_grad=True).unsqueeze(0)
+            image = Variable(trans(Image.open(image_path)).float(), requires_grad=True).unsqueeze(0)
             # check if channel is 3
             if image.shape[1] != ImageClassifier.RGB_CHANNELS:
                 return None
@@ -260,7 +324,13 @@ class ImageClassifier(ClassifierBase):
 
     @staticmethod
     def prettify(tensor_topk) -> list:
-        """transfer tensor object into list of confidence level"""
+        """
+        Transfers tensor object into list of confidence level. From tensor Object to a list, where index
+        representing the class and the value of the index representing the probability.
+
+        :param tensor_topk: Top 2 tensor object which contains the corresponding probability of each class.
+        :return: A list of corresponding probability.
+        """
         result = [0, 0]
         idx = [0, 0]
         prob = [0, 0]
@@ -276,10 +346,6 @@ class ImageClassifier(ClassifierBase):
         result[idx[0]] = prob[0]
         result[idx[1]] = prob[1]
         return result
-
-    # TODO
-    def train_with_colab(self):
-        pass
 
 
 if __name__ == '__main__':

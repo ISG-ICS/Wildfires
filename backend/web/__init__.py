@@ -17,7 +17,7 @@ import router.root_router
 
 def create_app(test_config=None):
     # create and configure the app
-    app = Flask(__name__, instance_relative_config=True, static_url_path='/static', static_folder='static')
+    app = Flask(__name__, instance_relative_config=True, static_url_path='', static_folder='static')
     # Enable CORS, cross-site-access-control
     CORS(app)
     app.config.from_mapping(

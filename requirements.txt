@@ -2,7 +2,7 @@ lxml
 gdal
 rasterio
 fiona
-gdal
+gdal==2.4.2
 rasterio
 fiona
 torchvision

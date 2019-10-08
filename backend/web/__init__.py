@@ -17,7 +17,7 @@ import router.root_router
 
 def create_app(test_config=None):
     # create and configure the app
-    app = Flask(__name__, instance_relative_config=True, static_url_path='/static', static_folder='static')
+    app = Flask(__name__, instance_relative_config=True, static_url_path='', static_folder='static')
     CORS(app)
     app.config.from_mapping(
         SECRET_KEY='dev',
@@ -42,4 +42,4 @@ def create_app(test_config=None):
 
 if __name__ == '__main__':
     server_app = create_app()
-    server_app.run(debug=True, host='0.0.0.0', port=2334)
+    server_app.run(debug=True, host='0.0.0.0', port=2333)

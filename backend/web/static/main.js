@@ -71,7 +71,7 @@ if(false) {}
 /*! no static exports found */
 /***/ (function(module, exports) {
 
-module.exports = "<!--The content below is only a placeholder and can be replaced.-->\n\n<app-search-bar></app-search-bar>\n<app-location-name-display></app-location-name-display>\n<app-heatmap></app-heatmap>\n<app-sidebar></app-sidebar>\n<app-time-series></app-time-series>\n\n"
+module.exports = "<!--The content below is only a placeholder and can be replaced.-->\n\n<app-search-bar></app-search-bar>\n<app-location-name-display></app-location-name-display>\n<app-heatmap></app-heatmap>\n<!--<app-sidebar></app-sidebar>-->\n<app-time-series></app-time-series>\n\n"
 
 /***/ }),
 
@@ -721,7 +721,7 @@ __webpack_require__.r(__webpack_exports__);
 
 let AppComponent = class AppComponent {
     constructor() {
-        this.title = 'wildfires-frontend';
+        this.title = 'Wildfire Map';
     }
 };
 AppComponent = tslib__WEBPACK_IMPORTED_MODULE_0__["__decorate"]([
@@ -830,10 +830,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _services_time_time_service__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(/*! ../../services/time/time.service */ "./src/app/services/time/time.service.ts");
 var HeatmapComponent_1;
 
-/**
- * @author Yuan Fu <yuanf9@uci.edu>
- * @author (Hugo) Qiaonan Huang <qiaonanh@uci.edu>
- */
 
 
 
@@ -891,17 +887,9 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         //     this.mainControl.addOverlay(fireEvents, 'Fire event');
         // };
         this.heatmapDataHandler = (data) => {
-            /**
-             *  Display temp data as a heatmap with color scale.
-             *
-             *  Receive data with geolocation and temp value as points with value;
-             *  showed as different color with customized color scale;
-             *  use heatmapOverlay class from leaflet-heatmap.
-             *
-             *  @param {Object} geolocation value and temp value
-             *
-             *  @link https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
-             */
+            // use heatmapOverlay from leaflet-heatmap
+            // Documentation for details in change of custom parameter
+            // https://www.patrick-wied.at/static/heatmapjs/docs.html#heatmap-setData
             const heatmapConfig = {
                 radius: 1,
                 maxOpacity: 0.63,
@@ -931,31 +919,22 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
                 }
             };
             const heatmapLayer = new leaflet_heatmap_leaflet_heatmap_js__WEBPACK_IMPORTED_MODULE_2___default.a(heatmapConfig);
-            // 'max' should be far higher than the upper domain of data, to make the color distinguish each different data
             heatmapLayer.setData({ max: 680, data });
             this.mainControl.addOverlay(heatmapLayer, 'Temp heatmap');
         };
         this.dotMapDataHandler = (data) => {
-            /**
-             *  Assign 14 different color layers for all temp data.
-             *
-             *  Classify points for different temp into different list
-             *  Assign a different color and a layer for each small temperature interval, and push these layer
-             *
-             *  @param {Object} geolocation value and temp value
-             */
             const latLongBins = [];
             // Classify points for different temp into different list
             for (let t = 0; t < this.tempBreaks.length - 1; t++) {
                 const points = [];
                 for (const point of data) {
-                    if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) { // one list for one small temp interval
+                    if (point.temp >= this.tempBreaks[t] && point.temp <= this.tempBreaks[t + 1]) {
                         points.push([Number(point.lat), Number(point.long)]);
                     }
                 }
                 latLongBins.push(points);
             }
-            // Assign different color for each temperature interval
+            // Assign a different color and a layer for each small temperature interval
             for (let i = 0; i < this.colorList.length; i++) {
                 this.tempLayer = L.TileLayer.maskCanvas({
                     radius: 5,
@@ -970,17 +949,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             }
         };
         this.clickPointHandler = (data) => {
-            /**
-             *  Handle the aggregated data got from backend and display as charts
-             *
-             *  First, convert data to fit drawchart function
-             *  Also, deal with null values
-             *  Then, second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
-             *
-             *  @param 3 lists of environmental data (Moisture, Temperature, Precipitation) with time, and value
-             */
-            // convert data to fit drawchart function
-            // deal with null values
             const cntTime = [];
             const cntValue = [];
             for (const tweetcnt of data.cnt_tweet) {
@@ -1000,7 +968,7 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
                     tmpValue.push(0);
                 }
                 else {
-                    tmpValue.push(avgtmp[1]); // PRISM data: unit Celsius
+                    tmpValue.push(avgtmp[1] - 273.15); // transfer the unit to celsius eg. 273 Kelvin --> 0 Celsius
                 }
             }
             const soilwTime = [];
@@ -1011,7 +979,7 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
                     soilwValue.push(0);
                 }
                 else {
-                    soilwValue.push(avgsoilw[1]); // PRISM data: unit %
+                    soilwValue.push(avgsoilw[1] * 100); // transfer the unit to percent eg. 0.23 --> 23 %
                 }
             }
             const pptTime = [];
@@ -1025,12 +993,10 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
                     pptValue.push(avgppt[1]);
                 }
             }
-            // Second popup generated, 3 charts indicating Moisture, Temperature, Precipitation within that clickbox circle
             this.marker.bindPopup(this.clickboxContentsToShow).openPopup();
             HeatmapComponent_1.drawChart('container', soilwTime, 'Tweet counts', cntValue, 'tweets', 'Moisture', soilwValue, '%', '#d9db9c');
             HeatmapComponent_1.drawChart('container2', tmpTime, 'Tweet counts', cntValue, 'tweets', 'Temperature', tmpValue, 'Celsius', '#c4968b');
             HeatmapComponent_1.drawChart('container3', pptTime, 'Tweet counts', cntValue, 'tweets', 'Precipitation', pptValue, 'mm', '#9fc7c3');
-            // if popup closed, remove the whole clickbox
             this.marker.getPopup().on('remove', () => {
                 this.group.remove();
             });
@@ -1038,7 +1004,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             //     this.group.addTo(this.map);
             // }
         };
-        // TODO: Add Sticky botton for clickbox later
         // stickyBotton = () => {
         //     const clickboxContents = $('<div />');
         //     clickboxContents.html('<button href="#" class="leaflet-popup-sticky-button1">S</button><br>')
@@ -1052,16 +1017,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         //     return clickboxContents[0];
         // };
         this.rangeSelectHandler = (event) => {
-            /**
-             *  Add dotmap layers satisfy the temp range user selected
-             *
-             *  Respond to the input range of temperature from the range selector in side bar;
-             *  used a varint to always keep the latest input Max/Min temperature;
-             *  pushed layers in selected range into list tempRegionsMax;
-             *  added new canvas layers in the updated list tempRegionsMax to Map
-             *
-             *  @param {Object} a list with current lower and upper temp bound that user gives
-             */
             const inRange = (min, max, target) => {
                 return target < max && target >= min;
             };
@@ -1129,14 +1084,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         };
     }
     static drawChart(name, xValue, y1Name, y1Value, y1Unit, y2Name, y2Value, y2Unit, y2Color) {
-        /**
-         *  Static format for popup chart content
-         *
-         *  Define format of the highcharts in clickbox, Each chart has 2 y axises for 2 plots : y1, y2
-         *  y1 color is set static, y2 color takes as a parameter
-         *
-         *  @param {Type} inputs including name,list of value, and units for each plots
-         */
         highcharts__WEBPACK_IMPORTED_MODULE_6__["chart"](name, {
             title: {
                 text: '',
@@ -1225,8 +1172,9 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             '<span style =\'color:red\'>Streets</span>': streets,
             '<span style =\'color:black\'>Dark</span>': dark
         };
-        this.mainControl = L.control.layers(baseLayers).addTo(this.map);
-        // Generate coordinate in sidebar
+        const command = L.control;
+        this.mainControl = command.layers(baseLayers).addTo(this.map);
+        // Generate coordinate   in sidebar
         this.map.addEventListener('mousemove', (ev) => {
             const lat = ev.latlng.lat;
             const lng = ev.latlng.lng;
@@ -1241,7 +1189,7 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         this.fireTweetLayer = new _layers_fire_tweet_layer__WEBPACK_IMPORTED_MODULE_9__["FireTweetLayer"](this.mainControl, this.mapService, this.map, this.timeService);
         // Get fire events data from service
         // this.fireEventLayer = new FireEventLayer(this.mainControl, this.mapService, this.map);
-        this.fireRegionLayer = new _layers_fire_region_layer__WEBPACK_IMPORTED_MODULE_12__["FireRegionLayer"](this.mainControl, this.mapService, this.map, this.fireService, this.timeService);
+        this.fireRegionLayer = new _layers_fire_region_layer__WEBPACK_IMPORTED_MODULE_12__["FireRegionLayer"](this.mainControl, this.mapService, this.map, this.fireService, this.timeService, this.isFirstTime = true);
         this.locationBoundaryLayer = new _layers_location_boundary_layer__WEBPACK_IMPORTED_MODULE_13__["LocationBoundaryLayer"](this.mainControl, this.mapService, this.map);
         this.locationMarkerLayer = new _layers_location_marker__WEBPACK_IMPORTED_MODULE_14__["LocationMarkerLayer"](this.mainControl, this.mapService, this.map);
         // Get wind events data from service
@@ -1250,7 +1198,7 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         this.searchService.searchDataLoaded.subscribe(this.boundaryDataHandler);
         // Add event Listener when user specify a time range on time series
         jquery__WEBPACK_IMPORTED_MODULE_1__(window).on('timeRangeChange', this.fireTweetLayer.timeRangeChangeHandler);
-        jquery__WEBPACK_IMPORTED_MODULE_1__(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
+        // $(window).on('timeRangeChange', this.fireRegionLayer.timeRangeChangeFirePolygonHandler);
         // $(window).on('timeRangeChange', this.fireEventLayer.timeRangeChangeFireEventHandler);
         // Send temp range selected from service
         this.mapService.temperatureChangeEvent.subscribe(this.rangeSelectHandler);
@@ -1258,17 +1206,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         this.mapService.getRecentTweetData().subscribe(data => this.fireTweetLayer.recentTweetLoadHandler(data));
     }
     onMapClick(e) {
-        /**
-         *  The major function to generate pin with a simple popup after click-hold event
-         *
-         *  Include several sub-functions which would be explained seperately.
-         *  Despite separated functions, it generate customize icon marker, also group the circle together
-         *  change bound color when mouse on to tell user your mouse is on, with an upper bound of radius
-         *  when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
-         *
-         *  @param event with geolocation value
-         */
-        // TODO: Add old clickbox according to Sticky botton
         // const oldMarker = this.marker;
         // const oldGroup = this.group;
         // if (oldMarker !== null) {
@@ -1276,28 +1213,14 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         //         oldGroup.addTo(this.map);
         //     }
         // }
-        let aggregatedDataSubInBound; // To unsubscribe later
+        let aggregatedDataSubInBound;
         function mouseMoveChangeRadius(event) {
-            /**
-             *  To set radius of circle and bound together when the drag event happens
-             *
-             *  @param event of mouseup with geolocation value
-             */
-            let newRadius = distance(circle._latlng, event.latlng);
-            if (newRadius > 2 * 111000) {
-                // Set upper bound of radius of clickbox (2 degree); 2 degree = 2 * 111000 meter
-                newRadius = 2 * 111000;
-                console.log('Reaches the upper bound of radius (2 degree)');
-            }
+            const newRadius = distance(circle._latlng, event.latlng);
             localBound.setRadius(newRadius);
             circle.setRadius(newRadius);
         }
         function distance(center, pt) {
-            /**
-             *  convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
-             *
-             *  @param (center of circle, latlng of current location)
-             */
+            // convert unit : degree of latlng to meter. eg: 1degree = 111km = 111000m
             return 111000 * Math.sqrt(Math.pow(center.lat - pt.lat, 2) + Math.pow(center.lng - pt.lng, 2));
         }
         const clickIcon = L.icon({
@@ -1305,8 +1228,7 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             iconSize: [26, 30],
         });
         const marker = L.marker(e.latlng, { draggable: false, icon: clickIcon });
-        // TODO: Add isSticky switch for clickbox
-        // marker.isSticky = false;
+        marker.isSticky = false;
         const circle = L.circle(e.latlng, {
             stroke: false,
             fillColor: 'white',
@@ -1320,7 +1242,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             fill: false,
             bubblingMouseEvents: false,
         })
-            // change bound color when mouse on to tell user your mouse is on
             .on('mouseover', () => {
             localBound.setStyle({ color: '#919191' });
         })
@@ -1328,19 +1249,12 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
             localBound.setStyle({ color: 'white' });
         })
             .on('mousedown', () => {
-            // deal with drag event when mouseon circle bound
             this.map.removeEventListener('click');
             this.map.dragging.disable();
             this.map.on('mousemove', mouseMoveChangeRadius);
-            // send changed radius to backend with mousedown/mouseup
             this.map.on('mouseup', (event) => {
-                let newRadius = distance(circle._latlng, event.latlng);
-                if (newRadius > 2 * 111000) {
-                    // upper bound of radius
-                    newRadius = 2 * 111000;
-                }
-                // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
-                aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
+                const newRadius = distance(circle._latlng, event.latlng);
+                aggregatedDataSubInBound = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, newRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7) // convert unit :  meter to degree of latlng. eg: 1degree = 111km = 111000m
                     .subscribe(this.clickPointHandler);
                 this.map.dragging.enable();
                 this.map.removeEventListener('mousemove', mouseMoveChangeRadius);
@@ -1350,38 +1264,26 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
                 }, 500);
             }, this);
         });
-        // group 3 item as a group, so they can be added or removed together
         const group = L.layerGroup([marker, circle, localBound]).addTo(this.map);
-        // First popup generated, with geolocation info
         marker.bindPopup('You clicked the map at ' + e.latlng.toString(), {
             closeOnClick: false,
             autoClose: true,
         }).openPopup();
-        // when mousedown, judge if the mouse moved when mouseup, if not moved then this is a common click on map
-        // we aimed to remove the whole clickbox when user do a common click
         this.map.on('mousedown', (e) => this.judgeDistance(e, group));
         this.marker = marker;
         this.group = L.layerGroup([marker, circle, localBound]);
         // TODO: change marker from global var since it only specify one.
         const aggregatedDataSub = this.mapService.getClickData(e.latlng.lat, e.latlng.lng, this.pinRadius / 111000, new Date(this.timeService.getRangeDate()[1]).toISOString(), 7)
             .subscribe(this.clickPointHandler);
-        // Remove popup fire remove all (default is not sticky)
         marker.getPopup().on('remove', () => {
             group.remove();
             aggregatedDataSub.unsubscribe();
             if (aggregatedDataSubInBound !== undefined) {
-                // unsubscribe when backend data was sending but frontend clickbox was closed by user, otherwise backend data has no place to display
                 aggregatedDataSubInBound.unsubscribe();
             }
-        });
+        }); // Remove popup fire remove all (default is not sticky)
     }
-    // TODO: Add Sticky feature for clickbox later
     judgeDistance(event, group) {
-        /**
-         *  Judge if the mousedown and mouseup as the same coordinate location, if not, then remove clickbox
-         *
-         *  @param event with geolocation value, and the grouped components: marker, circle, bound
-         */
         this.map.on('mouseup', (e) => {
             if (event.latlng.lat === e.latlng.lat && event.latlng.lng === e.latlng.lng) {
                 // if (!that.marker.isSticky) {
@@ -1391,11 +1293,6 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         });
     }
     onMapHold(event) {
-        /**
-         *  Fire clickbox if mouse down hold for  > 1000ms
-         *
-         *  @param event with geolocation
-         */
         const duration = 1000;
         if (this.timer !== null) {
             clearTimeout(this.timer);
@@ -1411,18 +1308,15 @@ let HeatmapComponent = HeatmapComponent_1 = class HeatmapComponent {
         }, this), duration);
     }
     clickboxContentsToShow() {
-        /**
-         *  Format of clickbox with 3 tabs structured
-         *
-         *  Three Highcharts added under first tab
-         */
-        // HTML for the 3 highcharts
         const chartContents = '    <div id="containers" style="width: 280px; height: 360px;">\n' +
             '    <div id="container" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container2" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n' +
             '    <div id="container3" style="width: 280px; height: 120px; margin: 0px; float: left;"></div>\n';
-        // HTML for the tabs inside clickbox
-        // Inside style is CSS content
+        const tweetContents = '    <div id="hh" style="width: 400px; height: 200px;">\n' +
+            '    <div id="hh1" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh2" style="width: 200px; height: 100px; margin: 0px; float: right;"></div>\n' +
+            '    <div id="hh3" style="width: 200px; height: 100px; margin: 0px; float: left;"></div>\n' +
+            '    <div id="hh4" style="width: 200px; height: 100px; margin: 0px;float: right;;"></div>\n';
         const clickboxContents = '<style>' +
             `.leaflet-popup-content {
                 width: 400px;
@@ -1552,50 +1446,93 @@ __webpack_require__.r(__webpack_exports__);
 
 
 class FireRegionLayer {
-    constructor(mainControl, mapService, map, fireService, timeService) {
+    constructor(mainControl, mapService, map, fireService, timeService, isFirstTime) {
         this.mainControl = mainControl;
         this.mapService = mapService;
         this.map = map;
         this.fireService = fireService;
         this.timeService = timeService;
+        this.isFirstTime = isFirstTime;
+        this.POINT_LABEL_ZOOM = 8;
+        this.ACCURATE_POLYGON_ZOOM = 9;
+        this.POINT_FIRE = 4;
+        this.LESS_DETAILED_FIRE_POLYGON = 3;
+        this.DETAILED_FIRE_POLYGON = 2;
+        this.MORE_DETAILED_FIRE_POLYGON = 1;
+        this.MOST_DETAILED_FIRE_POLYGON = 0;
+        this.needsRestart = false;
+        /**
+         * Gets start and end time from the time service, call function "getFirePolygon()" and provides it with the start and end time
+         */
         this.timeRangeChangeFirePolygonHandler = () => {
             // processes given time data from time-series
             const [dateStartInMs, dateEndInMs] = this.timeService.getRangeDate();
             this.dateStartInISO = new Date(dateStartInMs).toISOString();
             this.dateEndInISO = new Date(dateEndInMs).toISOString();
+            // start and end time are both in ISO datetime format
             this.getFirePolygon(this.dateStartInISO, this.dateEndInISO);
         };
+        /**
+         * Takes in the start and end time of a selected time range, defines the size (accuracy) of the fire polygon based on the
+         * zoom in level, records the northEast and southWest bounds on the current screen display.
+         * Then calls the function "getFirePolygonData" and provides NE bounds, SW bounds, size, start and end time
+         * @param start  start time in ISO format.
+         * @param end  end time in ISO format.
+         */
         this.getFirePolygon = (start, end) => {
             // sends request to the map service based on the start/end time and the current screen map boundaries
             const zoom = this.map.getZoom();
             let size;
-            if (zoom < 8) {
-                size = 4;
+            if (zoom < this.POINT_LABEL_ZOOM) {
+                size = this.POINT_FIRE;
             }
-            else if (zoom < 9) {
-                size = 3;
+            else if (zoom < this.ACCURATE_POLYGON_ZOOM) {
+                size = this.LESS_DETAILED_FIRE_POLYGON;
             }
             else {
-                size = 2;
+                size = this.DETAILED_FIRE_POLYGON;
             }
+            // decides how detailed the fire polygon should be based on the zoom level
             const bound = this.map.getBounds();
             const boundNE = { lat: bound._northEast.lat, lon: bound._northEast.lng };
             const boundSW = { lat: bound._southWest.lat, lon: bound._southWest.lng };
-            this.mapService.getFirePolygonData(boundNE, boundSW, size, start, end).subscribe(this.firePolygonDataHandler);
+            // gets the NE and SW bounds on the current display
+            this.subscription = this.mapService.getFirePolygonData(boundNE, boundSW, size, start, end).subscribe(this.firePolygonDataHandler);
         };
+        /**
+         * Adds fire label or fire polygon to the map based on the zoom in level
+         * Adds pop ups once the user clicks on the fire label/fire polygon
+         * @param data  geojson provided by the backend server
+         */
         this.firePolygonDataHandler = (data) => {
-            // adds the fire polygon to the map, the accuracy is based on the zoom level
+            this.subscription.unsubscribe();
+            if (this.map.hasLayer(this.firePolygon)) {
+                this.isFirstTime = false;
+                // if the layer is opened, then the first time condition is set to false, and each move/zoom in & out will add layer to the map
+            }
             if (!this.map.hasLayer(this.firePolygon) && this.firePolygon) {
                 return;
+                // returns if the check box on main control is not checked but the fire polygon layer exists
             }
             if (this.firePolygon) {
                 this.map.removeLayer(this.firePolygon);
                 this.mainControl.removeLayer(this.firePolygon);
+                // removes previous layer before adding the new layer
             }
-            if (this.map.getZoom() < 8) {
+            if (this.map.getZoom() < this.POINT_LABEL_ZOOM) {
+                // the added firePolygon layer will have fire labels instead of polygons shown
                 const fireLabelList = [];
                 for (const fireObject of data.features) {
+                    if (fireObject.geometry.coordinates[0].length) {
+                        // error handler: error exists when the user zoom in to fire polygon level --> move time series --> zoom out quickly
+                        // into fire label level since the fireObject.geometry.coordinates[0] will be an array instead of a geolocation value
+                        // if the returned value is correct (no error), its length is underfined thus will not come into this if statement
+                        this.needsRestart = true;
+                        break;
+                        // this.needsRestart is set to true and breaks out of the current "if" condition
+                    }
                     const latlng = [fireObject.geometry.coordinates[1], fireObject.geometry.coordinates[0]];
+                    // latlng order in geojson is different from that in the leaflet system, thus need to reverse the order
                     const size = this.map.getZoom() * this.map.getZoom();
                     const fireIcon = L.icon({
                         iconUrl: 'assets/image/pixelfire.gif',
@@ -1603,39 +1540,66 @@ class FireRegionLayer {
                     });
                     const marker = L.marker(latlng, { icon: fireIcon }).bindPopup(this.popUpContentZoomIn(fireObject));
                     fireLabelList.push(marker);
+                    // adds the fire marker binding with a pop up
                 }
                 this.firePolygon = L.layerGroup(fireLabelList);
                 this.mainControl.addOverlay(this.firePolygon, 'Fire polygon');
-                this.map.addLayer(this.firePolygon);
-                this.firePolygon.bringToFront();
+                if (!this.isFirstTime) {
+                    // if the map is initialized for the first time, the fire polygon layer is added to the main control but not opened
+                    this.map.addLayer(this.firePolygon);
+                }
+                this.isMarker = true;
+                // the bringToFront() function does not work for marker, it only works for layer
             }
             else {
+                // when the zoom in level allows the fire polygon to be shown
                 this.firePolygon = L.geoJson(data, {
                     style: this.style,
                     onEachFeature: this.onEachFeature
                 });
+                // adds the fire polygon (which is data in geojson format) onto the map, with its style set
                 this.mainControl.addOverlay(this.firePolygon, 'Fire polygon');
-                this.map.addLayer(this.firePolygon);
+                if (!this.isFirstTime) {
+                    // if the map is initialized for the first time, the fire polygon layer is added to the main control but not opened
+                    this.map.addLayer(this.firePolygon);
+                }
                 this.firePolygon.bringToFront();
+                this.isMarker = false;
+                // the bringToFront() function does not work for marker, it only works for layer
+            }
+            if (this.needsRestart) {
+                this.needsRestart = false;
+                this.timeRangeChangeFirePolygonHandler();
+                // calls the timeRangeChangeFirePolygonHandler() again and force it to detect the NE and SW boundaries of the display again
+                // until the data provided is correct
             }
         };
+        /**
+         * Constructs the pop up content shown with the fire labels (which has a "zoom in" button on it)
+         * @param fireObject  value in the features array of geojson data.
+         * @return fireInfoTemplate[0] Properly formatted pop up style and content.
+         */
         this.popUpContentZoomIn = (fireObject) => {
             // creates css style for the pop up content
             const fireInfoTemplate = jquery__WEBPACK_IMPORTED_MODULE_4__('<div />');
-            // tslint:disable-next-line:max-line-length
             fireInfoTemplate.html('<button href="#" class="button-action" ' +
                 'style="color: #ff8420; font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom In</button><br>')
                 .on('click', '.button-action', () => {
-                // when the fire pop up is triggered, go into firePolygonZoomInDataHandler which handels the zoom in
+                // when the "zoom in" button is clicked in the pop up, go into firePolygonZoomInDataHandler which handles the zoom in
                 this.fireObjectInfo = fireObject;
-                this.fireService.searchFirePolygon(fireObject.id, 2).subscribe(this.firePolygonZoomInDataHandler);
+                // tslint:disable-next-line:max-line-length
+                this.fireService.searchFirePolygon(fireObject.id, this.DETAILED_FIRE_POLYGON).subscribe(this.firePolygonZoomInDataHandler);
             });
             const content = FireRegionLayer.formatPopUpContent(fireObject);
             fireInfoTemplate.append(content);
             return fireInfoTemplate[0];
         };
+        /**
+         * zooms in to the fire polygon and adds a pop up to the polygon
+         * @param data  value in the features array of geojson data.
+         * @return      Properly formatted pop up style and content.
+         */
         this.firePolygonZoomInDataHandler = (data) => {
-            // zooms in to the fire polygon and adds a pop up
             const bbox = data[0].bbox.coordinates[0];
             const firePolygonLL = [];
             for (const item of bbox) {
@@ -1647,7 +1611,13 @@ class FireRegionLayer {
                 .setLatLng(this.map.getCenter())
                 .setContent(this.popUpContentZoomOut(this.fireObjectInfo))
                 .openOn(this.map);
+            // adds the pop up onto the fire polygon
         };
+        /**
+         * Constructs the pop up content shown with the fire labels (which has a "zoom out" button on it)
+         * @param fireObject  value in the features array of geojson data.
+         * @return            Properly formatted pop up style and content.
+         */
         this.popUpContentZoomOut = (fireObject) => {
             // creates css style for the pop up content
             const fireInfoTemplate = jquery__WEBPACK_IMPORTED_MODULE_4__('<div />');
@@ -1656,6 +1626,7 @@ class FireRegionLayer {
             fireInfoTemplate.html('<button href="#" class="button-action" style="color: #ff8420; ' +
                 'font-family: "Dosis", Arial, Helvetica, sans-serif">Zoom Out</button><br>')
                 .on('click', '.button-action', () => {
+                // zooms out to the initial map view point and zoom level
                 this.map.setView([33.64, -117.84], 5);
             });
             // tslint:disable-next-line:max-line-length
@@ -1670,6 +1641,10 @@ class FireRegionLayer {
             fireInfoTemplate.append(content);
             return fireInfoTemplate[0];
         };
+        /**
+         * Once the map is moved or zoomed in/out, adds the fire polygon layer again
+         * Closes the pop up on the fire polygon once zoomed out to a certain level
+         */
         this.getFirePolygonOnceMoved = () => {
             // calls this every time the map is moved
             if (this.dateStartInISO && this.dateEndInISO) {
@@ -1680,12 +1655,18 @@ class FireRegionLayer {
                 this.map.closePopup(this.fireZoomOutPopup);
             }
         };
+        /**
+         * Sends the fire polygon layer to the front everytime the map is moved/zoom in&out
+         */
         this.sendFireToFrontHandler = () => {
             // sends fire to the front layer
-            if (this.firePolygon) {
+            if (this.firePolygon && !this.isMarker) {
                 this.firePolygon.bringToFront();
             }
         };
+        /**
+         * Sets the style for the fire polygon layer
+         */
         this.style = (feature) => {
             // style for the boundary layers
             return {
@@ -1697,6 +1678,9 @@ class FireRegionLayer {
                 fillOpacity: 0.5
             };
         };
+        /**
+         * Sets the color of the fire polygon layer
+         */
         this.getColor = (density) => {
             // color for the fire polygon layers
             // switch (true) {
@@ -1719,6 +1703,9 @@ class FireRegionLayer {
             // }
             return '#fff10d';
         };
+        /**
+         * Highlights/unhighlights the polygon that the mouse hovers over, zooms in to the region when the polygon is clicked.
+         */
         this.onEachFeature = (feature, layer) => {
             // controls the interaction between the mouse and the map
             layer.on({
@@ -1727,6 +1714,9 @@ class FireRegionLayer {
                 click: this.zoomToFeature
             });
         };
+        /**
+         * Highlights the polygon that the mouse hovers over
+         */
         this.highlightFeature = (event) => {
             // highlights the region when the mouse moves over the region
             const layer = event.target;
@@ -1737,18 +1727,32 @@ class FireRegionLayer {
                 fillOpacity: 0.7
             });
         };
+        /**
+         * Unhighlights the polygon that the mouse hovers over
+         */
         this.resetHighlight = (event) => {
             // gets rid of the highlight when the mouse moves out of the region
             this.firePolygon.resetStyle(event.target);
         };
+        /**
+         * Zooms in to the region when the polygon is clicked
+         */
         this.zoomToFeature = (event) => {
             // zooms to a region when the region is clicked
             this.map.fitBounds(event.target.getBounds());
         };
         this.mapService.sendFireToFront.subscribe(this.sendFireToFrontHandler);
         this.map.on('zoomend, moveend', this.getFirePolygonOnceMoved);
+        // this.map.removeLayer(this.firePolygon);
+        console.log('isFirstTime', this.isFirstTime);
         this.timeRangeChangeFirePolygonHandler();
+        jquery__WEBPACK_IMPORTED_MODULE_4__(window).on('timeRangeChange', this.timeRangeChangeFirePolygonHandler);
     }
+    /**
+     * Creates the css style and adds object for the pop up content
+     * @param fireObject  value in the features array of geojson data.
+     * @return            Properly formatted pop up style and content.
+     */
     static formatPopUpContent(fireObject) {
         return '\n <div class="fire">\n '
             + '      <span class="name" style=\'color: #ff8420;\'> '
@@ -1774,7 +1778,8 @@ FireRegionLayer.ctorParameters = () => [
     { type: _services_map_service_map_service__WEBPACK_IMPORTED_MODULE_1__["MapService"] },
     null,
     { type: _services_fire_service_fire_service__WEBPACK_IMPORTED_MODULE_5__["FireService"] },
-    { type: _services_time_time_service__WEBPACK_IMPORTED_MODULE_6__["TimeService"] }
+    { type: _services_time_time_service__WEBPACK_IMPORTED_MODULE_6__["TimeService"] },
+    null
 ];
 
 
@@ -2191,22 +2196,22 @@ class LocationBoundaryLayer {
         this.getColor = (density) => {
             // color for the boundary layers
             // TODO: remove this func
-            switch (true) {
-                case (density > 1000):
-                    return '#fd3208';
-                case (density > 500):
-                    return '#f40031';
-                case (density > 200):
-                    return '#f74d1a';
-                case (density > 100):
-                    return '#fc5a0a';
-                case (density > 50):
-                    return '#fd810b';
-                case (density > 20):
-                    return '#fe046a';
-                default:
-                    return '#fe0b2e';
-            }
+            // switch (true) {
+            //     case (density > 1000):
+            //         return '#fd3208';
+            //     case (density > 500):
+            //         return '#f40031';
+            //     case (density > 200):
+            //         return '#f74d1a';
+            //     case (density > 100):
+            //         return '#fc5a0a';
+            //     case (density > 50):
+            //         return '#fd810b';
+            //     case (density > 20):
+            //         return '#fe046a';
+            //     default:
+            return 'rgba(255,255,255,0.25)';
+            // }
         };
         this.onEachFeature = (feature, layer) => {
             // controls the interaction between the mouse and the map
@@ -3099,8 +3104,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm2015/core.js");
 /* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @angular/common/http */ "./node_modules/@angular/common/fesm2015/http.js");
 /* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs/operators */ "./node_modules/rxjs/_esm2015/operators/index.js");
-/* harmony import */ var _environments_environment__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../environments/environment */ "./src/environments/environment.ts");
-
 
 
 
@@ -3110,13 +3113,10 @@ let FireService = class FireService {
         this.http = http;
     }
     searchFirePolygon(id, size) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/fire-with-id`, JSON.stringify({
-            id,
-            size
-        }));
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/data/fire-with-id', JSON.stringify({ id, size }));
     }
     searchSeparatedFirePolygon(id, size) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/fire-with-id-seperated`, JSON.stringify({
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/data/fire-with-id-seperated', JSON.stringify({
             id, size,
         })).pipe(Object(rxjs_operators__WEBPACK_IMPORTED_MODULE_3__["map"])(data => {
             return { type: 'FeatureCollection', features: data };
@@ -3150,8 +3150,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm2015/core.js");
 /* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @angular/common/http */ "./node_modules/@angular/common/fesm2015/http.js");
 /* harmony import */ var rxjs_operators__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! rxjs/operators */ "./node_modules/rxjs/_esm2015/operators/index.js");
-/* harmony import */ var _environments_environment__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../../../environments/environment */ "./src/environments/environment.ts");
-
 
 
 
@@ -3168,10 +3166,10 @@ let MapService = class MapService {
         this.sendFireToFront = new _angular_core__WEBPACK_IMPORTED_MODULE_1__["EventEmitter"]();
     }
     getFireTweetData() {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/tweet/fire-tweet`);
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/tweet/fire-tweet');
     }
     getWildfirePredictionData(northEastBoundaries, southWestBoundaries, start, end) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/wildfire-prediction`, JSON.stringify({
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/wildfire-prediction', JSON.stringify({
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
             startDate: start,
@@ -3179,7 +3177,7 @@ let MapService = class MapService {
         }));
     }
     getFirePolygonData(northEastBoundaries, southWestBoundaries, setSize, start, end) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/fire-polygon`, JSON.stringify({
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/data/fire-polygon', JSON.stringify({
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
             size: setSize,
@@ -3190,10 +3188,10 @@ let MapService = class MapService {
         }));
     }
     getWindData() {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/wind`);
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/data/wind');
     }
     getBoundaryData(stateLevel, countyLevel, cityLevel, northEastBoundaries, southWestBoundaries) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/search/boundaries`, JSON.stringify({
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/search/boundaries', JSON.stringify({
             states: stateLevel,
             cities: cityLevel,
             counties: countyLevel,
@@ -3205,21 +3203,21 @@ let MapService = class MapService {
     }
     getDropBox(userInput) {
         // gets auto-completion suggestions
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/dropdownMenu`, { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('userInput', userInput) });
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/dropdownMenu', { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('userInput', userInput) });
     }
     getRecentTweetData() {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/tweet/recent-tweet`);
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/tweet/recent-tweet');
     }
     getTemperatureData() {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/recent-temp`);
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/data/recent-temp');
     }
     getClickData(lat, lng, radius, timestamp, range) {
-        return this.http.post(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/data/aggregation`, JSON.stringify({
+        return this.http.post('http://cloudberry05.ics.uci.edu:2334/data/aggregation', JSON.stringify({
             lat, lng, radius, timestamp, range
         }));
     }
     getIntentTweetData(id) {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_4__["environment"].port}/tweet/tweet-from-id`, { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('tweet_id', id) });
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/tweet/tweet-from-id', { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('tweet_id', id) });
     }
 };
 MapService.ctorParameters = () => [
@@ -3248,8 +3246,6 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var tslib__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! tslib */ "./node_modules/tslib/tslib.es6.js");
 /* harmony import */ var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! @angular/core */ "./node_modules/@angular/core/fesm2015/core.js");
 /* harmony import */ var _angular_common_http__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! @angular/common/http */ "./node_modules/@angular/common/fesm2015/http.js");
-/* harmony import */ var _environments_environment__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../environments/environment */ "./src/environments/environment.ts");
-
 
 
 
@@ -3259,7 +3255,7 @@ let SearchService = class SearchService {
         this.searchDataLoaded = new _angular_core__WEBPACK_IMPORTED_MODULE_1__["EventEmitter"]();
     }
     getSearch(userInput) {
-        return this.http.get(`http://${_environments_environment__WEBPACK_IMPORTED_MODULE_3__["environment"].host}:${_environments_environment__WEBPACK_IMPORTED_MODULE_3__["environment"].port}/search`, { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('keyword', userInput) });
+        return this.http.get('http://cloudberry05.ics.uci.edu:2334/search', { params: new _angular_common_http__WEBPACK_IMPORTED_MODULE_2__["HttpParams"]().set('keyword', userInput) });
     }
 };
 SearchService.ctorParameters = () => [

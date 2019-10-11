@@ -14,7 +14,7 @@ from nltk.corpus import stopwords
 import rootpath
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 
 
 class NLTKTest:

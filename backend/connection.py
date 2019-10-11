@@ -9,7 +9,7 @@ from deprecated import deprecated
 
 rootpath.append()
 from paths import DATABASE_CONFIG_PATH
-from utilities.ini_parser import parse
+from backend.utilities.ini_parser import parse
 
 logger = logging.getLogger('TaskManager')
 

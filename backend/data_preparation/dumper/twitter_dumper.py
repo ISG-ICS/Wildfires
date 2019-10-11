@@ -8,7 +8,7 @@ from psycopg2 import extras
 
 rootpath.append()
 
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 
 from backend.data_preparation.dumper.dumperbase import DumperBase
 

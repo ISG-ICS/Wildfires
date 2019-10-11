@@ -12,13 +12,13 @@ import twitter
 rootpath.append()
 
 from paths import TWITTER_API_CONFIG_PATH
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.dumper.twitter_dumper import TweetDumper
 from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
 from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
 from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
-from utilities.ini_parser import parse
+from backend.utilities.ini_parser import parse
 
 logger = logging.getLogger('TaskManager')
 

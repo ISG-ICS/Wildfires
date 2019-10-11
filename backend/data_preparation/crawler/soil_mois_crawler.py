@@ -11,7 +11,7 @@ import rootpath
 import wget
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from paths import SOIL_MOIS_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 

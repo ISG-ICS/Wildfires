@@ -2,7 +2,7 @@ import rootpath
 
 rootpath.append()
 from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 
 
 class TextClassificationDumper(DumperBase):

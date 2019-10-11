@@ -8,7 +8,7 @@ import rootpath
 
 rootpath.append()
 from backend.task.runnable import Runnable
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from backend.classifiers.image_classifier import ImageClassifier
 from backend.data_preparation.dumper.img_classification_dumper import ImgClassificationDumper
 

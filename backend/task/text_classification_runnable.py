@@ -5,7 +5,7 @@ import rootpath
 
 rootpath.append()
 from backend.task.runnable import Runnable
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from backend.classifiers.text_classifier import TextClassifier
 from backend.data_preparation.dumper.text_classification_dumper import TextClassificationDumper
 from paths import TEXT_CNN_MODEL_PATH

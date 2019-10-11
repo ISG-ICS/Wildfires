@@ -13,7 +13,7 @@ from backend.data_preparation.crawler.soil_mois_crawler import SoilMoisCrawler
 from backend.data_preparation.extractor.soil_mois_extractor import TiffExtractor
 
 from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 
 logger = logging.getLogger('TaskManager')
 

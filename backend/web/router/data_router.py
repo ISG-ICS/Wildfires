@@ -14,7 +14,7 @@ from dateutil import parser
 from flask import Blueprint, make_response, jsonify, send_from_directory, request as flask_request
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from paths import BOUNDARY_PATH
 
 bp = Blueprint('data', __name__, url_prefix='/data')

@@ -8,7 +8,7 @@ import rootpath
 
 rootpath.append()
 from backend.task.runnable import Runnable
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from backend.data_preparation.crawler.prism_crawler import PRISMCrawler
 from backend.data_preparation.extractor.bil_extractor import BILExtractor, BILFormat
 from backend.data_preparation.dumper.prism_dumper import PRISMDumper

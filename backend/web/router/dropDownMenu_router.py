@@ -3,7 +3,7 @@ import rootpath
 from flask import Blueprint, make_response, jsonify, request as flask_request
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 
 bp = Blueprint('dropdownMenu', __name__, url_prefix='/dropdownMenu')
 

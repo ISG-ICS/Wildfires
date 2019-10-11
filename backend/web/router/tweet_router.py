@@ -9,12 +9,13 @@ import requests
 import rootpath
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
+
 from router.data_router import fill_series, gen_date_series
 
 rootpath.append()
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from paths import TWITTER_API_CONFIG_PATH
-from utilities.ini_parser import parse
+from backend.utilities.ini_parser import parse
 
 bp = Blueprint('tweet', __name__, url_prefix='/tweet')
 api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))

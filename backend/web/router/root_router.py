@@ -3,11 +3,14 @@ import rootpath
 rootpath.append()
 
 import time
-from flask import Blueprint, make_response, jsonify, request as flask_request
+from flask import Blueprint, send_file, make_response, jsonify, request as flask_request
 from backend.connection import Connection
 
 bp = Blueprint('root', __name__, url_prefix='/')
 
+@bp.route('/',methods=['GET'])
+def home_page():
+  return send_file('static/index.html')
 
 @bp.route("/wildfire-prediction", methods=['POST'])
 def send_wildfire():

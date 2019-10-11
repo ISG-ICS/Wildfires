@@ -125,7 +125,8 @@ class FireExtractor(ExtractorBase):
             # after 2016
             # For some records after 2016, record schema for firename is: FIRENAME, for agency is: AGENCY, for
             # datetime is: PERDATTIME
-            data["firename"] = record.as_dict().get("FIRE_NAME",  record.as_dict().get('fireName'))
+            data["firename"] = record.as_dict().get("FIRE_NAME",  record.as_dict().get('fireName',
+                                                                                record.as_dict().get("FIRENAME")))
             data["agency"] = record.as_dict().get("AGENCY", record.as_dict().get("agency")) \
                 if record.as_dict().get("AGENCY", record.as_dict().get("agency")) != "" else "Unknown"
             data["datetime"] = FireExtractor._get_datetime_after_2016(record)

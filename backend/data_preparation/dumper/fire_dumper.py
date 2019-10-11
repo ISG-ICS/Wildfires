@@ -212,7 +212,7 @@ class FireDumper(DumperBase):
         # if not exist, executing sql_retrieve_all_fires will return an error
         FireDumper._create_table("fire_history")
         # retrieve all fires in fire_history
-        set_of_fire_event_objects = set(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
+        set_of_fire_event_objects = list(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
                                         Connection().sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
         # result now is a set of FireEvent objects
         # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
@@ -248,36 +248,21 @@ class FireDumper(DumperBase):
         FireDumper._generate_sql_statement_and_execute(FireDumper.SQL_INSERT_FIRE, data)
         logger.info(f"Finished inserting file: {data['firename']}{data['datetime']}")
 
-    def insert_history(self, year: int, name: str, state: str, fire_id: int, current_year: int) -> None:
+    @staticmethod
+    def insert_history(fire: FireEvent) -> None:
         """
-        Insert a fire record into fire_history table
-        :param year: year of fire from url
-        :param name: url name of fire
-        :param state: state of fire from url
-        :param id: id of fire, from the counter from data_from_fire
-        :param current_year: current year, from datetime
+        Inserts a fire record into fire_history table
+        :param fire: a FireEvent object representing a wild fire event
+                e.g. FireEvent(-1, 2015, 'California', 'FireQ')
         :return: None
         """
-        with Connection() as connect:
-            # if year == current_year, then the fire's url year part is current_year_fire_data
-            # if year != current_year, then the fire's url year part is the year as a string
-            year_url = "current_year" if year == current_year else str(year)
-            # make the dictionary to be inserted into fire_history
-            data = {"year": year,
-                    "firename": name,
-                    "state": state,
-                    "id": id,
-                    "url": f"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/{year_url}_fire_data/{state}/{name}/"}
-            # create the cursor
-            cur = connect.cursor()
-            # execute insert statement
-            cur.execute(self.SQL_INSERT_FIRE_HISTORY, data)
-            # commit transaction
-            connect.commit()
-            # close connection
-            cur.close()
+        logger.info(f"Inserting into fire_history table: {fire.url_name} in {fire.state} in {fire.year}")
+        # make the dictionary to be inserted into fire_history
+        FireDumper._generate_sql_statement_and_execute(FireDumper.SQL_INSERT_FIRE_HISTORY, fire.to_dict())
+        logger.info(f"Finished inserting file: {fire.url_name} in {fire.state} in {fire.year}")
 
-    def get_latest_fire_id(self) -> int:
+    @staticmethod
+    def get_latest_fire_id() -> int:
         """
         Gets the latest fire id to pass to the counter in data_from_fire
         :return: int
@@ -285,12 +270,14 @@ class FireDumper(DumperBase):
         """
         # execute select statement
         # the latest fire id is the first and only entry of the result
-        return Connection.sql_execute(self.SQL_GET_LASTEST_ID).__next__()[0]
+        return Connection.sql_execute(FireDumper.SQL_GET_LASTEST_ID).__next__()[0]
 
-    def get_recent_records(self) -> List[FireEvent]:
+    @staticmethod
+    def get_recent_records() -> List[FireEvent]:
         """
         Return the list of ids of most recent records.
         :return: List of FireEvent objects
+        e.g. [FireEvent(-1, 2015, 'California', 'FireA'), FireEvent(-1, 2015, 'California',"FireQ")]
         """
         # execute select statement to see if fire_merged table exists
         # if it doesn't exist, create one
@@ -300,54 +287,65 @@ class FireDumper(DumperBase):
         # these are fires that might update these days
         logger.info("Retrieving recent fires...")
         old_fires = list(map(lambda old_fire: FireEvent.from_tuple(old_fire),
-                             Connection().sql_execute(self.SQL_GET_LATEST_FIRE)))
+                             Connection().sql_execute(FireDumper.SQL_GET_LATEST_FIRE)))
         logger.info(f"Fires updated within 10 days:{[str(old_fire) for old_fire in old_fires]}")
         return old_fires
 
     @staticmethod
-    def generate_data(aggregated_record: tuple, id: int):
+    def _generate_data(aggregated_record: Tuple[Any], fire_id: int) -> Tuple[Dict[str, Any]]:
         """
         Generates the data dictionary to pass to sql statement.
         :param aggregated_record: tuple
-        :param id: int
-        :return: Dict[str, str]
+                e.g. ("FireA",True,"USFA","California",999,minTime,maxTime,geom....,total_area)
+        :param fire_id: int
+                e.g. 998
+        :return: Tuple[Dict[str, Any]]
+                e.g. ({"name":"FireA"...}, {"name": "FireB"...})
         """
-        info = {"name": aggregated_record[0],
-                "if_sequence": aggregated_record[1],
-                "agency": aggregated_record[2],
-                "state": aggregated_record[3],
-                "id": id,
-                "start_time": aggregated_record[5],
-                "end_time": aggregated_record[6],
-                "geom_full": aggregated_record[7],
-                "geom_1e4": aggregated_record[8],
-                "geom_1e3": aggregated_record[9],
-                "geom_1e2": aggregated_record[10],
-                "geom_center": aggregated_record[11],
-                "max_area": aggregated_record[12]
-                }
-        # info = dict(zip(["a", 'b'], aggregated_record))
-        # info["id"] = id
+        # info = {"name": aggregated_record[0],
+        #         #         "if_sequence": aggregated_record[1],
+        #         #         "agency": aggregated_record[2],
+        #         #         "state": aggregated_record[3],
+        #         #         "id": id,
+        #         #         "start_time": aggregated_record[5],
+        #         #         "end_time": aggregated_record[6],
+        #         #         "geom_full": aggregated_record[7],
+        #         #         "geom_1e4": aggregated_record[8],
+        #         #         "geom_1e3": aggregated_record[9],
+        #         #         "geom_1e2": aggregated_record[10],
+        #         #         "geom_center": aggregated_record[11],
+        #         #         "max_area": aggregated_record[12]
+        #         #         }
+        columns = ["name", "if_sequence", "agency", "state", "id", "start_time", "end_time","geom_full", "geom_1e4",
+                   "geom_1e3", "geom_1e2", "geom_center", "max_area"]
+        info = dict(zip(columns, aggregated_record))
+        info["id"] = fire_id
         fire_record_update = [info["id"], info["name"], info["start_time"], info["end_time"]]
         fire_merged_insert = [i for i in info.values()]
         return fire_record_update, fire_merged_insert
 
-    def get_aggregated_fire_with_id(self, year: int, name: str, state: str, id: int, current_year: int) -> List[Tuple]:
+    def get_aggregated_fire_with_id(self, year: int, name: str, state: str, id: int) -> List[Tuple]:
         """
         Merges fire events with this id from fire table into several big fire events.
+        Some pages might have fires from multiple fire events, so the return value is a list of tuples.
+        If there are more than one fire events, then there will be multiple tuples in returned list.
         :param year: int
+                e.g. 1999
         :param name: str
+                e.g. "FireA"
         :param state: str
+                e.g. "California"
         :param id: int
-        :param current_year: int
-        :return:
+                e.g. 9999
+        :return: list of tuples representing fire events
+                e.g. [(1999, "FireA",...), (1999, "FireB",....)]
         """
         aggregated_fire_records_with_id = list(Connection.sql_execute(self.SQL_GET_LATEST_AGGREGATION.format(id)))
         if not aggregated_fire_records_with_id:
             logger.warning(f"Record {id} is an empty record. Skipping...")
             # if this id is an empty record, then there is no aggregated fire records
             # in this situation, we only mark the url as crawled, by inserting it into fire_history
-            self.insert_history(year, name, state, id, current_year)
+            self.insert_history(FireEvent(year, state, name, id))
             # return the latest fire id
             raise InvalidRecordError
         logger.info(f"Successfully fetch Record #{id}, " + \
@@ -365,39 +363,64 @@ class FireDumper(DumperBase):
         :param current_year:int
         :return:int
         '''
-        with Connection() as conn:
-            cur = conn.cursor()
-            # check if the fire_merged table exists, if not then create it
-            # if it exists, do nothing
-            self._create_fire_merged_table(conn)
-            # get the aggregated record of the last fire inserted into fire table
-            try:
-                aggregated_with_id = self.get_aggregated_fire_with_id(year, name, state, id, current_year)
-            except InvalidRecordError:
-                return id
-            # set a temporary value new_id as id
-            new_id = id
-            # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
-            # then when merged, the return list has more than one records
-            # so a for loop is needed to deal with this situation
-            # 用enumerate
-            for index_of_aggregated_record in range(len(aggregated_with_id)):
-                new_id += index_of_aggregated_record
-                # Most situation, there is only one record, new_id = id
-                # if there is more than one, new_id will be id + i
-                # create the dictionary for all values in aggregated record
-                fire_info_update_params, fire_merged_insert_params = self.generate_data(*(aggregated_with_id
-                                                                                        [index_of_aggregated_record]),
-                                                                                        new_id)
-                # update their id in fire_info
-                # here, if the new_id is different from id, the fire with that name will be updated with the new id
-                cur.execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
-                # insert this set in fire_aggregate
-                cur.execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
-                # commit the transaction
-                conn.commit()
-                # insert this set into fire_crawl_history, mark it as crawled
-                self.insert_history(year, name, state, id, current_year)
+        self._create_table("fire_merged")
+        try:
+            aggregated_records_with_id = self.get_aggregated_fire_with_id(year, name, state, id)
+        except InvalidRecordError:
+            return id
+        # set a temporary value new_id as id
+        #new_id = id
+        new_id = id - 1
+        # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
+        # then when merged, the return list has more than one records
+        # so a for loop is needed to deal with this situation
+        for record_tuple in enumerate(aggregated_records_with_id):
+            #new_id += index_of_aggregated_record
+            new_id += 1
+            # Most situation, there is only one record, new_id = id
+            # if there is more than one, new_id will be id + i
+            # create the dictionary for all values in aggregated record
+            fire_info_update_params, fire_merged_insert_params = self._generate_data(record_tuple, new_id)
+            # update their id in fire_info
+            # here, if the new_id is different from id, the fire with that name will be updated with the new id
+            self._generate_sql_statement_and_execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
+            # insert this set in fire_aggregate
+            self._generate_sql_statement_and_execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
+            # insert this set into fire_crawl_history, mark it as crawled
+            self.insert_history(FireEvent(year, state, name, id))
+        # with Connection() as conn:
+        #     cur = conn.cursor()
+        #     # check if the fire_merged table exists, if not then create it
+        #     # if it exists, do nothing
+        #     self._create_table("fire_merged")
+        #     # get the aggregated record of the last fire inserted into fire table
+        #     try:
+        #         aggregated_with_id = self.get_aggregated_fire_with_id(year, name, state, id, current_year)
+        #     except InvalidRecordError:
+        #         return id
+        #     # set a temporary value new_id as id
+        #     new_id = id
+        #     # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
+        #     # then when merged, the return list has more than one records
+        #     # so a for loop is needed to deal with this situation
+        #     # 用enumerate
+        #     for index_of_aggregated_record in range(len(aggregated_with_id)):
+        #         new_id += index_of_aggregated_record
+        #         # Most situation, there is only one record, new_id = id
+        #         # if there is more than one, new_id will be id + i
+        #         # create the dictionary for all values in aggregated record
+        #         fire_info_update_params, fire_merged_insert_params = self.generate_data(*(aggregated_with_id
+        #                                                                                 [index_of_aggregated_record]),
+        #                                                                                 new_id)
+        #         # update their id in fire_info
+        #         # here, if the new_id is different from id, the fire with that name will be updated with the new id
+        #         cur.execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
+        #         # insert this set in fire_aggregate
+        #         cur.execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
+        #         # commit the transaction
+        #         conn.commit()
+        #         # insert this set into fire_crawl_history, mark it as crawled
+        #         self.insert_history(year, name, state, id, current_year)
         return new_id
 
 
@@ -410,5 +433,6 @@ if __name__ == '__main__':
     # Test for retrieve_all_fires()
     # print(list(map(lambda fire: str(fire), test_dumper.retrieve_all_fires())))
     # print(len(list(map(lambda fire: str(fire), test_dumper.retrieve_all_fires()))))
-    test_dumper.get_recent_records()
-
+    # test_dumper.insert_history(FireEvent(1999,"Sss","sss",198888))
+    # test_dumper.get_recent_records()
+    # get_aggregated_fire_with_id()

@@ -54,32 +54,19 @@ class DataFromFireRunnable(Runnable):
         else:
             logger.info(f"Temp fire data folder detected, path: {FIRE_DATA_DIR}")
 
-    @staticmethod
-    def handle_fire_page_tuples(fire_page_tuple: Tuple[str], fire_id) -> Tuple[int, int, str, str]:
-        """
-        Takes a tuple of information about a fire web page and returns a tuple of unified information
-        :param fire_page_tuple: Tuple
-        :param fire_id: int
-        :return: Tuple
-        """
-        if len(fire_page_tuple) == 4:
-            # if it is a recent record
-            fire_id, year, state, urlname = fire_page_tuple
-            logger.info(f"Handling recent fire: old fire id:{fire_id}, year: {year}, state:{state}, urlname:{urlname}.")
-        else:
-            # if it is a new record
-            year, state, urlname = fire_page_tuple
-            logger.info(f"Handling new fire: fire id:{fire_id}, year: {year}, state:{state}, urlname:{urlname}.")
-        return fire_id, year, state, urlname
-
     def merge_fire_and_return_fire_id(self, fire_id: int, year: int, urlname: str,state: str, current_year: int, errors: List[Tuple[int, int, str]]) -> int:
         """
         Merges a set of records of fire records into a single fire record for a time interval.
         :param fire_id: int
+                e.g. 999
         :param year: int
+                e.g. 2016
         :param urlname: str
+                e.g. "FireQ"
         :param state: str
+                e.g."California"
         :param current_year: int
+                e.g.2019
         :param errors: List[Tuple]
         :return: int
         """
@@ -95,14 +82,14 @@ class DataFromFireRunnable(Runnable):
             errors.append((fire_id, year, urlname))
             return fire_id
 
-    def get_fire_id(self, entry: FireEvent, fire_id: int) -> int:
+    def get_fire_id(self, fire_event: FireEvent, fire_id: int) -> int:
         """
         Gets the newest fire id for the next merged fire record.
-        :param entry: Tuple
+        :param fire_event: Tuple
         :param fire_id: int
         :return: int
         """
-        if entry.fire_id != -1:
+        if fire_event.fire_id != -1:
             # if it is an updation for existing records, we need to access the latest fire id because the current
             # fire id is not the latest
             logger.info(f"Updated recent records: id {fire_id}, next fire id:{self.dumper.get_latest_fire_id() + 1}")
@@ -110,21 +97,6 @@ class DataFromFireRunnable(Runnable):
         else:
             # if it is a new fire, then just add 1 to the largest fire id
             return fire_id + 1
-
-    @staticmethod
-    def _generate_url_from_fire_event_object(fire_event: FireEvent) -> str:
-        """
-        Takes year, state, and url name and convert the entry to the url
-        returns "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2016_fire_data/California/Happy_Camp"
-        :param fire_event: FireEvent. e.g. FireEvent(2017, 'California', 'Happy_Camp')
-        :return: the url of this fire event on rmgsc.cr.usgs.gov
-        """
-        current_year = datetime.datetime.now().date().year
-        year_str = "current_year" if fire_event.year == current_year else str(fire_event.year)
-        return f"{FireCrawler.BASE_DIR}{year_str}_fire_data/{fire_event.state}/{fire_event.url_name}"
-
-    # def _get_difference(a, b):
-    #
 
     def run(self):
         """
@@ -143,10 +115,9 @@ class DataFromFireRunnable(Runnable):
             return
         # retrieve all historical links from fire_history table
         logger.info("Retrieving historical fires...")
-        crawled = set(self.dumper.retrieve_all_fires())
-        logger.info(f"Num of historical links: {len(crawled)}")
         # get the difference between all links and crawled
-        to_crawl = sorted((set(all_fire_tuples).difference(crawled)), key=lambda fire_event: fire_event.url_name)
+        to_crawl = sorted((set(all_fire_tuples).difference(set(self.dumper.retrieve_all_fires()))),
+                          key=lambda fire_event: fire_event.url_name)
         logger.info(f"Num of new links: {len(to_crawl)}")
         logger.info("Requesting recent records...")
         # get the fires that updated recently(in 10 days)
@@ -154,7 +125,7 @@ class DataFromFireRunnable(Runnable):
         recent_records = self.dumper.get_recent_records()
         logger.info(f"Recent records: {recent_records}")
         # final list of urls we need to crawl is the combination of un-crawled links and recent links
-        to_crawl = recent_records + to_crawl
+        to_crawl += recent_records
         logger.info(f"Total number of fire urls needed to be crawled: {len(to_crawl)}")
         logger.info(f"To be crawled urls:{[str(fire_event) for fire_event in to_crawl]}")
         # clean up the temporary directory, in case of a dirty directory
@@ -167,13 +138,13 @@ class DataFromFireRunnable(Runnable):
         # entries in to_crawl are:
         # New tuples: new tuples that is never crawled: (year, state, urlname)
         # Recent tuples: tuples of recent fires: (old_id, year, state, urlname)
-        for entry in to_crawl:
+        for fire_event in to_crawl:
             # if statement take forward here, handle 3 or 4 values
-            logger.info(f"Now working on: {entry}")
-            fire_id, year, state, urlname = entry.to_tuple(fire_id)
+            logger.info(f"Now working on: {fire_event}")
+            fire_id, year, state, urlname = fire_event.to_tuple(fire_id)
             # generate the url from known information
             # download all records to temporary directory
-            self.crawler.crawl(entry.to_url())
+            self.crawler.crawl(fire_event.to_url())
             # if the temporary directory has more than one sub directory(records), then the fire is a sequence of fire
             if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
             # for each record in the temporary directory:
@@ -192,8 +163,8 @@ class DataFromFireRunnable(Runnable):
                 logger.info(f"Successfully inserted {record} into fire_info.")
             # after the for loop, all records belongs to this fire should be inserted into fire
             # then we can create the merged record and insert it into fire_merged and mark it as crawled in fire_history
-            fire_id = self.merge_fire_and_return_fire_id(fire_id, year, urlname, state, current_year, errors)
-            fire_id = self.get_fire_id(entry, fire_id)
+            fire_id = self.get_fire_id(fire_event,
+                      self.merge_fire_and_return_fire_id(fire_id, year, urlname, state, current_year, errors))
             logger.info(f"New fire id : {fire_id}")
             # clean up the temporary directory for crawling the next fire record
             self.crawler.cleanup()
@@ -208,17 +179,10 @@ if __name__ == '__main__':
     # commit it out when run on server
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
-    a = FireEvent(33,"aa","ss",-1)
-    b = FireEvent(33,"bb","ss",-1)
-    c = FireEvent(33,"aa","ss",-1)
-    print(set((a,b)).difference(set([c])))
     while True:
         DataFromFireRunnable().run()
         # sleep one day
         time.sleep(3600 * 24)
         logger.info("Finished running. Waiting for one day.")
-    # fe = FireExtractor()
-    # fd = FireDumper()
-    # fd.insert(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83",True, 0, "ss"))
 
 

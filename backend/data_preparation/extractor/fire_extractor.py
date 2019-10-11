@@ -200,6 +200,4 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     fe = FireExtractor()
     print(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", True, 0, "ss"))
-    # geom1 = fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", "ca_trestle_20190605_1200_dd83", True, 0, "ss")["geopolygon_full"]
-    # geom2 = fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", "ca_trestle_20190605_1200_dd83", True, 0, "ss")["geopolygon_medium"]
-    # assert(geom1 != geom2)
+

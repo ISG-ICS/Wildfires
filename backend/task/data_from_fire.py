@@ -146,7 +146,7 @@ class DataFromFireRunnable(Runnable):
         crawled = set(self.dumper.retrieve_all_fires())
         logger.info(f"Num of historical links: {len(crawled)}")
         # get the difference between all links and crawled
-        to_crawl = sorted(list(crawled.difference(set(all_fire_tuples))), key=lambda fire_event: fire_event.url_name)
+        to_crawl = sorted((set(all_fire_tuples).difference(crawled)), key=lambda fire_event: fire_event.url_name)
         logger.info(f"Num of new links: {len(to_crawl)}")
         logger.info("Requesting recent records...")
         # get the fires that updated recently(in 10 days)

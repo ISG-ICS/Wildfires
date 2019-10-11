@@ -13,12 +13,13 @@ from paths import FIRE_DATA_DIR
 from typing import Tuple, List
 import time
 
-rootpath.append()
+
 from backend.task.runnable import Runnable
 from backend.data_preparation.crawler.fire_crawler import FireCrawler, FireEvent
 from backend.data_preparation.extractor.fire_extractor import FireExtractor, IncompleteShapefileError
 from backend.data_preparation.dumper.fire_dumper import FireDumper
 
+rootpath.append()
 logger = logging.getLogger('TaskManager')
 
 
@@ -36,10 +37,10 @@ class DataFromFireRunnable(Runnable):
         self.extractor = FireExtractor()
         # dumper object initialization
         self.dumper = FireDumper()
-        self.start_time = 2015
+        self.start_time = 2018
 
     @staticmethod
-    def create_temporary_data_path():
+    def _create_temporary_data_path():
         """
         Checks if the temporary directory (FIRE_DATA_DIR) exists, if yes, do nothing
         if not, create the temporary directory.
@@ -94,14 +95,14 @@ class DataFromFireRunnable(Runnable):
             errors.append((fire_id, year, urlname))
             return fire_id
 
-    def get_fire_id(self, entry: Tuple, fire_id: int) -> int:
+    def get_fire_id(self, entry: FireEvent, fire_id: int) -> int:
         """
         Gets the newest fire id for the next merged fire record.
         :param entry: Tuple
         :param fire_id: int
         :return: int
         """
-        if len(entry) == 4:
+        if entry.fire_id != -1:
             # if it is an updation for existing records, we need to access the latest fire id because the current
             # fire id is not the latest
             logger.info(f"Updated recent records: id {fire_id}, next fire id:{self.dumper.get_latest_fire_id() + 1}")
@@ -122,7 +123,8 @@ class DataFromFireRunnable(Runnable):
         year_str = "current_year" if fire_event.year == current_year else str(fire_event.year)
         return f"{FireCrawler.BASE_DIR}{year_str}_fire_data/{fire_event.state}/{fire_event.url_name}"
 
-
+    # def _get_difference(a, b):
+    #
 
     def run(self):
         """
@@ -131,20 +133,20 @@ class DataFromFireRunnable(Runnable):
         # get the current year, will be useful for converting year numbers from urls
         current_year = datetime.datetime.now().date().year
         # check if the FIRE_DATA_DIR exists,
-        self.create_temporary_data_path()
+        self._create_temporary_data_path()
         # Here we need to get all useful fire urls
         # sometimes rmgsc doesn't response, so we set a while loop to continue until we get the information
         try:
-            all_fire_tuples =  self.crawler.extract_all_fires(self.start_time)
+            all_fire_tuples = self.crawler.extract_all_fires(self.start_time)
         except RuntimeError:
             logger.error("Stopping data pipeline. No network connection.")
             return
         # retrieve all historical links from fire_history table
         logger.info("Retrieving historical fires...")
-        crawled = self.dumper.retrieve_all_fires()
+        crawled = set(self.dumper.retrieve_all_fires())
         logger.info(f"Num of historical links: {len(crawled)}")
         # get the difference between all links and crawled
-        to_crawl = sorted(list(set(all_fire_tuples).difference(crawled)))
+        to_crawl = sorted(list(crawled.difference(set(all_fire_tuples))), key=lambda fire_event: fire_event.url_name)
         logger.info(f"Num of new links: {len(to_crawl)}")
         logger.info("Requesting recent records...")
         # get the fires that updated recently(in 10 days)
@@ -154,7 +156,7 @@ class DataFromFireRunnable(Runnable):
         # final list of urls we need to crawl is the combination of un-crawled links and recent links
         to_crawl = recent_records + to_crawl
         logger.info(f"Total number of fire urls needed to be crawled: {len(to_crawl)}")
-        logger.info(f"To be crawled urls:{to_crawl}")
+        logger.info(f"To be crawled urls:{[str(fire_event) for fire_event in to_crawl]}")
         # clean up the temporary directory, in case of a dirty directory
         self.crawler.cleanup()
         # records with errors are stored in errors list for a backup
@@ -168,11 +170,10 @@ class DataFromFireRunnable(Runnable):
         for entry in to_crawl:
             # if statement take forward here, handle 3 or 4 values
             logger.info(f"Now working on: {entry}")
-            fire_id, year, state, urlname = self.handle_fire_page_tuples(entry, fire_id)
+            fire_id, year, state, urlname = entry.to_tuple(fire_id)
             # generate the url from known information
-            url = self.crawler.generate_url_from_tuple(year, state, urlname, current_year)
             # download all records to temporary directory
-            self.crawler.crawl(url) # 合并
+            self.crawler.crawl(entry.to_url())
             # if the temporary directory has more than one sub directory(records), then the fire is a sequence of fire
             if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
             # for each record in the temporary directory:
@@ -180,7 +181,7 @@ class DataFromFireRunnable(Runnable):
                 absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
                 # extract the shapefile into a dictionary called single_record
                 try:
-                    single_record = self.extractor.extract(absolute_path_folder, record, if_sequence, fire_id, state)
+                    single_record = self.extractor.extract(absolute_path_folder, if_sequence, fire_id, state)
                 except IncompleteShapefileError as err:
                     # the extractor result can be empty when the record is incomplete and cannot be decoded
                     # in this situation, skip the record
@@ -207,13 +208,17 @@ if __name__ == '__main__':
     # commit it out when run on server
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
-    # while True:
-    #     DataFromFireRunnable().run()
-    #     # sleep one day
-    #     time.sleep(3600 * 24)
-    #     logger.info("Finished running. Waiting for one day.")
-    fe = FireExtractor()
-    fd = FireDumper()
-    fd.insert(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83",True, 0, "ss"))
+    a = FireEvent(33,"aa","ss",-1)
+    b = FireEvent(33,"bb","ss",-1)
+    c = FireEvent(33,"aa","ss",-1)
+    print(set((a,b)).difference(set([c])))
+    while True:
+        DataFromFireRunnable().run()
+        # sleep one day
+        time.sleep(3600 * 24)
+        logger.info("Finished running. Waiting for one day.")
+    # fe = FireExtractor()
+    # fd = FireDumper()
+    # fd.insert(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83",True, 0, "ss"))
 
 

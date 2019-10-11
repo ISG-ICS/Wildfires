@@ -13,6 +13,7 @@ import logging
 import shutil
 import urllib.error
 import glob
+from typing import Dict, Any
 from typing import List, Set, Tuple
 from paths import FIRE_DATA_DIR
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
@@ -47,8 +48,14 @@ class FireEvent:
         self.state = state
         self.url_name = url_name
 
+    def __eq__(self, other):
+        return self.year == other.year and self.state == other.state and self.url_name == other.url_name
+
+    def __hash__(self):
+        return hash(self.to_url())
+
     @classmethod
-    def from_tuple(cls, tuple_for_information: Tuple[int, str, str]) -> 'FireEvent':
+    def from_tuple(cls, tuple_for_information: Tuple[Any]) -> 'FireEvent':
         """
         Generates a FireEvent object from a tuple of information.
         :param tuple_for_information: Tuple.
@@ -88,6 +95,28 @@ class FireEvent:
         current_year = datetime.datetime.now().date().year
         year_str = "current_year" if self.year == current_year else str(self.year)
         return f"{FireCrawler.BASE_DIR}{year_str}_fire_data/{self.state}/{self.url_name}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Converts a FireEvent object into a dictionary.
+        :return: Dict[str, Any]
+            e.g. {"year": 2017,
+                "firename": "Sand",
+                "state": "California",
+                "id": 299,
+                "url":"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/...."}
+        """
+        data = {"year": self.year,
+                "firename": self.url_name,
+                "state": self.state,
+                "id": self.fire_id,
+                "url": self.to_url()}
+        return data
+
+    def to_tuple(self, new_id) -> Tuple[int,int,str, str]:
+        self.fire_id = new_id
+        return self.fire_id, self.year,self.state, self.url_name
+
 
 class FireCrawler(CrawlerBase):
     # BASE_DIR is the website directory the crawler will crawl
@@ -170,6 +199,8 @@ class FireCrawler(CrawlerBase):
         #     fire_names_in_this_state = FireCrawler.RE_EXTRACT_FIRE_EVENTS_IN_STATE.findall(fire_events_page_in_state)
         #     logger.info(f"Finished fetching fire events in {state} in year {year}.")
         #     return list(map(lambda single_fire_name: FireEvent(year, state, single_fire_name), fire_names_in_this_state))
+        current_year = datetime.datetime.now().date().year
+        year = "current_year" if current_year == year else year
         fire_events_page_in_state = FireCrawler._get_url(f"{FireCrawler.BASE_DIR}{year}_fire_data/{state}",
                                                          f"{state} State of year {year}",
                                                          "_extract_fire_events_in_state()")

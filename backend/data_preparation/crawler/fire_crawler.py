@@ -10,8 +10,8 @@ import wget
 import os
 import datetime
 import logging
+import random
 import shutil
-import urllib.error
 import glob
 from typing import Dict, Any
 from typing import List, Set, Tuple
@@ -26,7 +26,6 @@ logger = logging.getLogger('TaskManager')
 
 class CannotCrawlException(Exception):
     pass
-
 
 
 class FireEvent:
@@ -308,15 +307,12 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     test_crawler = FireCrawler(["California"])
-    #test_crawler._extract_fire_events_in_state(2015, "California")
-    # print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
-    # used = set()
-    # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.cpg', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
-    # FireCrawler.download_fire_record('ca_eclipse_20170823_0000_dd83.dbf', used, "https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2017_fire_data/California/Eclipse/")
+    print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
+    used = set()
     test_crawler.crawl("https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/current_year_fire_data/California/Trestle/")
-    # test_crawler.cleanup()
-    # fire_list = test_crawler.extract_all_fires()
-    # random_number = random.randint(0, len(fire_list))
-    # random_entry = fire_list[random_number]
-    # random_url = test_crawler.generate_url_from_tuple(random_entry[0], random_entry[1],random_entry[2], 2019)
-    # test_crawler.crawl(random_url)
+    test_crawler.cleanup()
+    fire_list = test_crawler.extract_all_fires()
+    random_number = random.randint(0, len(fire_list))
+    random_entry = fire_list[random_number]
+    random_url = test_crawler.generate_url_from_tuple(random_entry[0], random_entry[1],random_entry[2], 2019)
+    test_crawler.crawl(random_url)

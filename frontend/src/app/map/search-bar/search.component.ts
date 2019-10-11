@@ -19,8 +19,8 @@ import {SearchSuggestion} from "../../models/search.suggestion.model";
 
 export class SearchComponent implements OnInit {
 
-    private dataToDropDownMenu;
-    private formControl = new FormControl();
+    public dataToDropDownMenu;
+    public formControl = new FormControl();
 
     constructor(private mapService: MapService, private searchService: SearchService) {
     }

@@ -67,12 +67,12 @@ export class LocationBoundaryLayer {
     style = (feature) => {
         // style for the boundary layers
         return {
-            fillColor: this.getColor(feature.properties.density),
+            //fillColor: this.getColor(feature.properties.density),
             weight: 2,
             opacity: 0.8,
             color: 'white',
             dashArray: '3',
-            fillOpacity: 0.5
+            fillOpacity: 0.0
         };
     };
 

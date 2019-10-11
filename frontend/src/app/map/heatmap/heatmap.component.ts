@@ -158,7 +158,7 @@ export class HeatmapComponent implements OnInit {
         const dark = L.tileLayer(mapBoxUrl, {id: 'mapbox.dark'});
         this.map = L.map('map', {
             center: [33.64, -117.84],
-            zoom: 5,
+            zoom: 4,
             maxzoom: 22,
             layers: [satellite, streets, dark]
         });

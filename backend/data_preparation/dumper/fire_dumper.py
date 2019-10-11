@@ -113,7 +113,7 @@ class FireDumper(DumperBase):
                 e.g. 'SELECT year,state,name FROM fire_history'
         :return: int
         """
-        return sum(1 for _ in Connection().sql_execute(query))
+        return sum(1 for _ in Connection.sql_execute(query))
 
     @staticmethod
     def _create_table(table_name: str):
@@ -142,7 +142,7 @@ class FireDumper(DumperBase):
         if num_of_rows_found == 0:
             # if table is empty, which means the fire_history table does not exists, so we create it
             logger.info(f"No {table_name} exists. Creating a new one.")
-            Connection().sql_execute_commit(table_name_to_create_query)
+            Connection.sql_execute_commit(table_name_to_create_query)
             logger.info(f"Table {table_name} created.")
         else:
             logger.info(f"Found the {table_name} table, continue >..")
@@ -213,7 +213,7 @@ class FireDumper(DumperBase):
         FireDumper._create_table("fire_history")
         # retrieve all fires in fire_history
         set_of_fire_event_objects = list(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
-                                        Connection().sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
+                                        Connection.sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
         # result now is a set of FireEvent objects
         # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
         # the FireEvent object is: Fire Event: Deer_Horn_2 in year 2015, state California
@@ -287,7 +287,7 @@ class FireDumper(DumperBase):
         # these are fires that might update these days
         logger.info("Retrieving recent fires...")
         old_fires = list(map(lambda old_fire: FireEvent.from_tuple(old_fire),
-                             Connection().sql_execute(FireDumper.SQL_GET_LATEST_FIRE)))
+                             Connection.sql_execute(FireDumper.SQL_GET_LATEST_FIRE)))
         logger.info(f"Fires updated within 10 days:{[str(old_fire) for old_fire in old_fires]}")
         return old_fires
 
@@ -380,7 +380,7 @@ class FireDumper(DumperBase):
             # Most situation, there is only one record, new_id = id
             # if there is more than one, new_id will be id + i
             # create the dictionary for all values in aggregated record
-            fire_info_update_params, fire_merged_insert_params = self._generate_data(record_tuple, new_id)
+            fire_info_update_params, fire_merged_insert_params = self._generate_data(record_tuple[1], new_id)
             # update their id in fire_info
             # here, if the new_id is different from id, the fire with that name will be updated with the new id
             self._generate_sql_statement_and_execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)

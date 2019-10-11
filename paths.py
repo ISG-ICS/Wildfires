@@ -19,40 +19,42 @@ TWITTER_API_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'twitter.ini')
 # path of the config file for logging in task manager
 LOG_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'logger-conf.json')
 
-NLTK_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/nltk_model.pickle')
+MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend', 'models')
 
-TEXT_CNN_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/text_cnn_classifier.ckpt')
+NLTK_MODEL_PATH = os.path.join(MODELS_SAVE_PATH, 'nltk_model.pickle')
 
-GOOGLE_VOCAB_PATH = os.path.join(ROOT_DIR, 'backend/models/GoogleNews-vectors-negative300.bin')
+TEXT_CNN_MODEL_PATH = os.path.join(MODELS_SAVE_PATH, 'text_cnn_classifier.ckpt')
 
-IMAGE_CLASSIFIER_VGG_PATH = os.path.join(ROOT_DIR, 'backend/models/img_classifier_model.ckpt')
+GOOGLE_VOCAB_PATH = os.path.join(MODELS_SAVE_PATH, 'GoogleNews-vectors-negative300.bin')
 
-IMAGE_CLASSIFIER_RESNET_PATH = os.path.join(ROOT_DIR, 'backend/models/ResNet1.ckpt')
+IMAGE_CLASSIFIER_VGG_PATH = os.path.join(MODELS_SAVE_PATH, 'img_classifier_model.ckpt')
 
-EVENT2MIND_MODEL_PATH = os.path.join(ROOT_DIR, 'backend/models/event2mind-2018.10.26.tar.gz')
+IMAGE_CLASSIFIER_RESNET_PATH = os.path.join(MODELS_SAVE_PATH, 'ResNet1.ckpt')
 
-TEST_DATA_PATH = os.path.join(ROOT_DIR, 'data/test')
+EVENT2MIND_MODEL_PATH = os.path.join(MODELS_SAVE_PATH, 'event2mind-2018.10.26.tar.gz')
 
-GRIB2_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'grib-data')
+DATA_PATH = os.path.join(ROOT_DIR, 'data')
 
-SOIL_MOIS_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'soil-mois-data')
+TEST_DATA_PATH = os.path.join(DATA_PATH, 'test')
 
-US_SHAPE_PATH = os.path.join(ROOT_DIR, 'data', 'US-continental', 'US_continental.shp')
+GRIB2_DATA_DIR = os.path.join(DATA_PATH, 'grib-data')
 
-USGS_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'usgs')
+SOIL_MOIS_DATA_DIR = os.path.join(DATA_PATH, 'soil-mois-data')
+
+US_SHAPE_PATH = os.path.join(DATA_PATH, 'US-continental', 'US_continental.shp')
+
+USGS_DATA_DIR = os.path.join(DATA_PATH, 'usgs')
 
 WIND_DATA_DIR = os.path.join(ROOT_DIR, 'backend', 'data')
 
 GRIB2JSON_PATH = os.path.join('converter', 'bin', 'grib2json')
 
-TWEET_IMAGES_DIR = os.path.join(ROOT_DIR, 'data/tweet_images')
+TWEET_IMAGES_DIR = os.path.join(DATA_PATH, 'tweet_images')
 
-MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend/models/')
+BOUNDARY_PATH = os.path.join(DATA_PATH, 'boundaries')
 
-BOUNDARY_PATH = os.path.join(ROOT_DIR, 'data/boundaries')
+IMAGE_TRAIN_PATH = os.path.join(DATA_PATH, 'image_dataset/train')
 
-IMAGE_TRAIN_PATH = os.path.join(ROOT_DIR, 'data/image_dataset/train')
+IMAGE_VAL_PATH = os.path.join(DATA_PATH, 'image_dataset/val')
 
-IMAGE_VAL_PATH = os.path.join(ROOT_DIR, 'data/image_dataset/val')
-
-PRISM_DATA_PATH = os.path.join(ROOT_DIR, 'data', 'prism')
+PRISM_DATA_PATH = os.path.join(DATA_PATH, 'prism')

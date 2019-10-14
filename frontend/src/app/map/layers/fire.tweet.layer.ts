@@ -26,7 +26,7 @@ export class FireTweetLayer {
 
     constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         // This is the overlay controller defined in constructor
-        //rewrite
+        // rewrite
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
 
         this.map.on('overlayadd', (event) => {
@@ -170,7 +170,7 @@ export class FireTweetLayer {
 
         this.tweetData.forEach(tweet => {
                 tempData.push([tweet.lat, tweet.long]);
-        }
+            }
         );
 
         this.tweetLayer.setData(tempData);
@@ -187,12 +187,17 @@ export class FireTweetLayer {
          */
         this.tempDataWithID = [];
         const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
-        this.timeService.getTweetByDate(startDateInMs, endDateInMs).subscribe((data) => {
-                console.log(data);
-                this.tweetLayer.setData(data);
-            });
-        //console.log(startDateInMs);
-        //console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
+        this.timeService.getTweetByDate(startDateInMs, endDateInMs).subscribe(tweets => {
+                const tempData = [];
+                tweets.forEach(tweet => {
+                        tempData.push([tweet.lat, tweet.long]);
+                    }
+                );
+                this.tweetLayer.setData(tempData);
+            }
+        );
+        // console.log(startDateInMs);
+        // console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
 
         // this.tweetData.forEach(tweet => {
         //     const time = new Date(tweet.create_at).getTime();
@@ -201,8 +206,8 @@ export class FireTweetLayer {
         //         this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
         //     }
         // });
-        //console.log(tempData);
-        //this.tweetLayer.setData(tempData); //draw on twittermap
+        // console.log(tempData);
+        // this.tweetLayer.setData(tempData); //draw on twittermap
     }
 
     idOverPoint(x, y) {

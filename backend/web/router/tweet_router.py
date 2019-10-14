@@ -58,6 +58,23 @@ def send_live_tweet():
     return resp
 
 
+@bp.route("/tweet-count")
+def send_tweet_count_data():
+    """
+        This func gives all historical tweets objects with id
+
+        :returns: a list of tweet objects, each with time, lat, long, id
+    """
+    resp = make_response(
+        jsonify({date.isoformat(): count for date, count in
+                 Connection().sql_execute(
+                     "select m.t_date, count(*) from "
+                     "(select r.create_at::timestamp::date as t_date from records r,locations l where r.id=l.id  group by(r.create_at)) "
+                     "as m group by m.t_date order by m.t_date")}))
+
+    return resp
+
+
 @bp.route("/fire-tweet")
 def send_fire_tweet_data():
     """
@@ -69,7 +86,7 @@ def send_fire_tweet_data():
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
                  Connection().sql_execute(
                      "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, r.id "
-                     "from records r,locations l where r.id=l.id")]))
+                     "from records r,locations l where r.id=l.id AND create_at>now()-interval '30 day'")]))
     return resp
 
 
@@ -143,6 +160,32 @@ def region_tweet():
         resp = make_response(jsonify(
             fill_series(date_series, cur.fetchall())
         ))
+    return resp
+
+
+@bp.route('/tweet-by-date')
+def tweet_by_date():
+    """
+    tweet count within specific date range
+
+    @:param start-date: ISO string
+    @:param end-date: ISO string
+    :return: [ {create_at, id, lat, lon}, ... ]
+    """
+    start_date_str = flask_request.args.get('start-date').split('.')[0][:-3]
+    end_date_str = flask_request.args.get('end-date').split('.')[0][:-3]
+
+    query = f'''
+    select r.create_at, r.id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat 
+    from records r, locations l where r.id = l.id and r.create_at <  to_timestamp({end_date_str}) and r.create_at >  to_timestamp({start_date_str})
+    '''
+
+    resp = make_response(
+        jsonify(
+            [{'create_at':create_at, 'id': id, 'lat': (top_left_lat + bottom_right_lat) / 2, 'long': (top_left_long + bottom_right_long) / 2}
+             for create_at, id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat in
+             Connection.sql_execute(query)]))
+
     return resp
 
 

@@ -31,7 +31,7 @@ export class TimeSeriesComponent implements OnInit {
 
     ngOnInit() {
         /** Subscribe tweet data related to wildfire in service. */
-        this.mapService.getFireTweetData().subscribe(data => this.drawTimeSeries(data));
+        this.mapService.getDateCountData().subscribe(data => this.drawTimeSeries(data));
     }
 
     /**
@@ -43,25 +43,34 @@ export class TimeSeriesComponent implements OnInit {
      * @param tweets tweet data crawled using tweet api
      *
      */
-    drawTimeSeries = (tweets: Tweet[]) => {
+    drawTimeSeries = (dateAndCount) => {
+        /** replace */
         /**
          *  Refine tweet data to count related to 'wildfire' in each DAY,
          *  storing in charData.
          */
         const chartData = [];
-        const dailyCount = {};
-        for (const tweet of tweets) {
-            const createAt = tweet.create_at.split('T')[0];
-            if (dailyCount.hasOwnProperty(createAt)) {
-                dailyCount[createAt]++;
-            } else {
-                dailyCount[createAt] = 1;
-            }
-        }
-        Object.keys(dailyCount).sort().forEach(key => {
-            chartData.push([new Date(key).getTime(), dailyCount[key]]);
-        });
+        Object.keys(dateAndCount).forEach(key => {
+             chartData.push([new Date(key).getTime(), dateAndCount[key]]);
+         });
+        console.log(chartData);
+        // const chartData = [];
+        // const dailyCount = {};
+        // for (const tweet of tweets) {
+        //     const createAt = tweet.create_at.split('T')[0];
+        //     if (dailyCount.hasOwnProperty(createAt)) {
+        //         dailyCount[createAt]++;
+        //     } else {
+        //         dailyCount[createAt] = 1;
+        //     }
+        // }
+        // Object.keys(dailyCount).sort().forEach(key => {
+        //     chartData.push([new Date(key).getTime(), dailyCount[key]]);
+        // });
+
+
         /** Plotting format of time-series. */
+        console.log("xxxxx");
         const timeseries = Highcharts.stockChart('timebar-container', {
             chart: {
                 height: 150,
@@ -123,7 +132,6 @@ export class TimeSeriesComponent implements OnInit {
                             this.hasPlotBand = false;
                             this.timeService.setCurrentDate(undefined);
                         }
-
                     },
                 }
             },
@@ -161,12 +169,16 @@ export class TimeSeriesComponent implements OnInit {
                      *  updating information of date.
                      */
                     setExtremes: (event) => {
-                        this.timeService.setRangeDate(event.min + this.halfUnit, event.max);
+                        console.log(event.min);
+                        console.log(event.max);
+                        this.timeService.setRangeDate(event.min, event.max);
+                        /** this.timeService.getTweetByDate(event.min, event.max).subscribe((data)=>{});*/
+
+
                         $('#report').html('Date Range => ' +
                             'Start: ' + Highcharts.dateFormat('%Y-%m-%d', event.min) +
                             ', End: ' + Highcharts.dateFormat('%Y-%m-%d', event.max));
                         $(window).trigger('timeRangeChange');
-
                     }
                 }
             },
@@ -187,6 +199,7 @@ export class TimeSeriesComponent implements OnInit {
      *  time series click event.
      */
     closestTickNearClick(eventAxis): [number, number, number, any] {
+        console.log("yyyyy");
         const halfUnitDistance = 43200000;
         const xAxis = eventAxis.axis;
         const dateClickedInMs = eventAxis.value;
@@ -217,6 +230,20 @@ export class TimeSeriesComponent implements OnInit {
                 distanceToTheRight = (xAxis.ordinalPositions[minKey + 1] - xAxis.ordinalPositions[minKey]) / 2;
             }
         }
+        console.log(minValue - distanceToTheLeft);
+        console.log(minValue);
+        console.log(distanceToTheRight + minValue);
+        // this.timeService.setRangeDate(minValue - distanceToTheLeft, distanceToTheRight + minValue);
+        // $('#report').html('Date Range => ' +
+        //     'Start: ' + Highcharts.dateFormat('%Y-%m-%d', minValue - distanceToTheLeft) +
+        //     ', End: ' + Highcharts.dateFormat('%Y-%m-%d', distanceToTheRight + minValue));
+        // $(window).trigger('timeRangeChange');
+        this.timeService.setRangeDate(minValue, (2 * distanceToTheRight) + minValue);
+        /**this.timeService.getTweetByDate(minValue, (2 * distanceToTheRight) + minValue);*/
+        $('#report').html('Date Range => ' +
+             'Start: ' + Highcharts.dateFormat('%Y-%m-%d', minValue) +
+             ', End: ' + Highcharts.dateFormat('%Y-%m-%d', 2 * distanceToTheRight + minValue));
+         $(window).trigger('timeRangeChange');
         return [minValue - distanceToTheLeft, minValue, distanceToTheRight + minValue, xAxis.ticks[minValue]];
     }
 }

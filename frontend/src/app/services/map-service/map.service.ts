@@ -30,6 +30,11 @@ export class MapService {
         return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/fire-tweet`);
     }
 
+     getDateCountData(): Observable<Tweet[]> {
+        return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/tweet-count`);
+    }
+
+
     getWildfirePredictionData(northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
         return this.http.post(`http://${environment.host}:${environment.port}/wildfire-prediction`, JSON.stringify({
             northEast: northEastBoundaries,

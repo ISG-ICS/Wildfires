@@ -26,7 +26,9 @@ export class FireTweetLayer {
 
     constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         // This is the overlay controller defined in constructor
+        //rewrite
         this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
+
         this.map.on('overlayadd', (event) => {
             if (event.name === 'Fire tweet') {
                 this.map.on('mousemove', e => this.onMapMouseMove(e));
@@ -155,6 +157,7 @@ export class FireTweetLayer {
          *  @param {Object} list of tweet object with geolocation, time of tweet, id of tweet
          */
         this.tweetData = tweets;
+        console.log(this.tweetData);
         this.tweetLayer = L.TileLayer.maskCanvas({
             radius: 10,
             useAbsoluteRadius: true,
@@ -167,7 +170,7 @@ export class FireTweetLayer {
 
         this.tweetData.forEach(tweet => {
                 tempData.push([tweet.lat, tweet.long]);
-            }
+        }
         );
 
         this.tweetLayer.setData(tempData);
@@ -182,17 +185,24 @@ export class FireTweetLayer {
          *  Filter out tweets which not satisfy the time range selection;
          *  store qualified tweets with their id in list 'tempDataWithID' for later content display usage
          */
-        const tempData = [];
         this.tempDataWithID = [];
         const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
-        this.tweetData.forEach(tweet => {
-            const time = new Date(tweet.create_at).getTime();
-            if (time > startDateInMs && time < endDateInMs) {
-                tempData.push([tweet.lat, tweet.long]);
-                this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
-            }
-        });
-        this.tweetLayer.setData(tempData);
+        this.timeService.getTweetByDate(startDateInMs, endDateInMs).subscribe((data) => {
+                console.log(data);
+                this.tweetLayer.setData(data);
+            });
+        //console.log(startDateInMs);
+        //console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
+
+        // this.tweetData.forEach(tweet => {
+        //     const time = new Date(tweet.create_at).getTime();
+        //     if (time > startDateInMs && time < endDateInMs) {
+        //         tempData.push([tweet.lat, tweet.long]);
+        //         this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
+        //     }
+        // });
+        //console.log(tempData);
+        //this.tweetLayer.setData(tempData); //draw on twittermap
     }
 
     idOverPoint(x, y) {

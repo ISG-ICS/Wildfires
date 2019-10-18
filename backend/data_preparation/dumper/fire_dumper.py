@@ -7,12 +7,14 @@ FireDumper
 from typing import List, Dict, Tuple
 import logging
 import rootpath
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
 from typing import Set, Any
-from backend.data_preparation.crawler.fire_crawler import FireEvent
 
 rootpath.append()
+
+from backend.data_preparation.dumper.dumperbase import DumperBase
+from backend.data_preparation.connection import Connection
+from backend.data_preparation.crawler.fire_crawler import FireEvent
+
 
 
 logger = logging.getLogger('TaskManager')

@@ -13,13 +13,14 @@ from paths import FIRE_DATA_DIR
 from typing import Tuple, List
 import time
 
+rootpath.append()
+
 
 from backend.task.runnable import Runnable
 from backend.data_preparation.crawler.fire_crawler import FireCrawler, FireEvent
 from backend.data_preparation.extractor.fire_extractor import FireExtractor, IncompleteShapefileError
 from backend.data_preparation.dumper.fire_dumper import FireDumper
 
-rootpath.append()
 logger = logging.getLogger('TaskManager')
 
 
@@ -145,8 +146,6 @@ class DataFromFireRunnable(Runnable):
             # generate the url from known information
             # download all records to temporary directory
             self.crawler.crawl(fire_event.to_url())
-            # if the temporary directory has more than one sub directory(records), then the fire is a sequence of fire
-            if_sequence = False if len([f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]) == 1 else True
             # for each record in the temporary directory:
             for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]: # glob
                 absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)

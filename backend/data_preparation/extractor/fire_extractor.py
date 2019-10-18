@@ -6,7 +6,6 @@ This file contains 2 classes:
 """
 import rootpath
 import re
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
 import shapefile
 import os
 import logging
@@ -16,6 +15,8 @@ from shapely.geometry import shape
 from shapely.geometry.multipolygon import MultiPolygon
 
 rootpath.append()
+from backend.data_preparation.extractor.extractorbase import ExtractorBase
+
 
 logger = logging.getLogger('TaskManager')
 
@@ -74,7 +75,8 @@ class FireExtractor(ExtractorBase):
                            if len(datetime_string) > 11 else datetime.datetime.strptime(datetime_string, '%m/%d/%Y'))
         return datetime_object
 
-    def extract(self, path: str, is_sequential: bool, fire_id: int, state: str) -> Dict[str, str]:
+    @staticmethod
+    def extract(path: str, is_sequential: bool, fire_id: int, state: str) -> Dict[str, str]:
         """
         Reads a set of records and return the contents.
         This is a messy function since the data source is dirty.

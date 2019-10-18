@@ -1,18 +1,18 @@
 """
 @author: Scarlett Zhang
 This file has 2 classes:
-InvalidRecordError
+InvalidFireRecordException
 FireDumper
 """
 from typing import List, Dict, Tuple
 import logging
 import rootpath
-from typing import Set, Any
+from typing import Set, Any, Union
 
 rootpath.append()
 
 from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.connection import Connection
+from backend.connection import Connection
 from backend.data_preparation.crawler.fire_crawler import FireEvent
 
 
@@ -20,7 +20,7 @@ from backend.data_preparation.crawler.fire_crawler import FireEvent
 logger = logging.getLogger('TaskManager')
 
 
-class InvalidRecordError(Exception):
+class InvalidFireRecordException(Exception):
     pass
 
 
@@ -42,8 +42,7 @@ class FireDumper(DumperBase):
     """
 
     # code for checking if a database exists
-    SQL_CHECK_IF_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'{}\''
-
+    SQL_CHECK_IF_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES'
     SQL_CHECK_IF_FIRE_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire\''
     # SQL_CHECK_IF_FIRE_TABLE_EXISTS: check if "fire" table exists
     SQL_CHECK_IF_HISTORY_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_history\''
@@ -107,6 +106,17 @@ class FireDumper(DumperBase):
                                  'st_astext(st_union(st_makevalid(f.geom_1e2))),st_astext(st_centroid(st_union(st_makevalid(f.geom_center)))), ' \
                                  'max(f.area) FROM (SELECT * FROM fire where id = {}) f Group by f.name, f.if_sequence, f.state, f.id'
 
+    def __init__(self):
+        super().__init__()
+        logger.info(f"Looking for tables in database...")
+        # get all existing tables in database
+        self.existing_tables = set(table_tuple[0]
+                                   for table_tuple in Connection.sql_execute(FireDumper.SQL_CHECK_IF_TABLE_EXISTS))
+        logger.info(f"Table fire in database:{'fire' in self.existing_tables}")
+        logger.info(f"Table fire_history in database:{'fire_history' in self.existing_tables}")
+        logger.info(f"Table fire_merged in database:{'fire_merged' in self.existing_tables}")
+        logger.info(f"Table testing in database:{'new_table_testing' in self.existing_tables}")
+
     @staticmethod
     def _get_length_of_select_query_result(query: str) -> int:
         """
@@ -117,8 +127,7 @@ class FireDumper(DumperBase):
         """
         return sum(1 for _ in Connection.sql_execute(query))
 
-    @staticmethod
-    def _create_table(table_name: str):
+    def _create_table_if_not_exist(self, table_name: str):
         """
         Checks if the a given table exists,
         Creates fire_history table if not exist
@@ -126,28 +135,28 @@ class FireDumper(DumperBase):
         :param table_name: name of the table to look for or create.
                 Only 3 possible values: "fire_history", "fire", "fire_merged"
         """
-        logger.info(f"Looking for {table_name} table in database...")
-        # this is the select query from table name
-        table_names_to_select_query = FireDumper.SQL_CHECK_IF_TABLE_EXISTS.format(table_name)
-        # this is the create query from table name
-        table_name_to_create_query = {
-            "fire_history": FireDumper.SQL_CREATE_HISTORY_TABLE,
-            "fire": FireDumper.SQL_CREATE_FIRE_TABLE,
-            "fire_merged": FireDumper.SQL_CREATE_FIRE_MERGED_TABLE,
-            "new_table_testing": "CREATE TABLE new_table_testing(tid int)"
-        }[table_name]
         # check if the fire_history table exists
         # if the pipeline is run for the first time
         # then the fire_history table will not exist
-        num_of_rows_found = FireDumper._get_length_of_select_query_result(table_names_to_select_query)
+        is_table_exist = table_name in self.existing_tables
         # table is the result of the statement: sql_check_if_history_table_exists
-        if num_of_rows_found == 0:
-            # if table is empty, which means the fire_history table does not exists, so we create it
-            logger.info(f"No {table_name} exists. Creating a new one.")
-            Connection.sql_execute_commit(table_name_to_create_query)
-            logger.info(f"Table {table_name} created.")
+        if is_table_exist:
+            logger.info(f"Found the {table_name} table, continue ...")
         else:
-            logger.info(f"Found the {table_name} table, continue >..")
+            # if table does not exist, create the table
+            logger.info(f"No {table_name} exists. Creating a new one.")
+            # choose the corresponding query to execute
+            table_name_to_create_query = {
+                "fire_history": FireDumper.SQL_CREATE_HISTORY_TABLE,
+                "fire": FireDumper.SQL_CREATE_FIRE_TABLE,
+                "fire_merged": FireDumper.SQL_CREATE_FIRE_MERGED_TABLE,
+                "new_table_testing": "CREATE TABLE new_table_testing(tid int)"
+            }[table_name]
+            # execute the query to create the table in database
+            Connection.sql_execute_commit(table_name_to_create_query)
+            # add the table name into the global variable to keep consistency with the database
+            self.existing_tables.add(table_name)
+            logger.info(f"Table {table_name} created.")
 
     # def _create_fire_table(self, conn: Connection):
     #     """
@@ -203,8 +212,7 @@ class FireDumper(DumperBase):
     #         logger.info("Find the fire_merged table, continue >..")
     #     cur.close()
 
-    @staticmethod
-    def retrieve_all_fires() -> Set[FireEvent]:
+    def retrieve_all_fires(self) -> Set[FireEvent]:
         """
         Retrieves all fires in the database.
         :return: set of FireEvent objects
@@ -212,7 +220,7 @@ class FireDumper(DumperBase):
         """
         # check if the fire_history table exists
         # if not exist, executing sql_retrieve_all_fires will return an error
-        FireDumper._create_table("fire_history")
+        self._create_table_if_not_exist("fire_history")
         # retrieve all fires in fire_history
         set_of_fire_event_objects = list(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
                                         Connection.sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
@@ -222,7 +230,7 @@ class FireDumper(DumperBase):
         return set_of_fire_event_objects
 
     @staticmethod
-    def _generate_sql_statement_and_execute(sql_statement: str, data: Dict[str, Any]):
+    def _generate_sql_statement_and_execute(sql_statement: str, data: Union[List[str, Any],Dict[str, Any]]):
         """
         Generates a SQL statement with the data given as a dictionary and execute, commit the changes.
         :param sql_statement: string
@@ -246,12 +254,11 @@ class FireDumper(DumperBase):
         logger.info(f"Inserting into fire table: {data['firename']} {data['datetime']}")
         # check if the fire table exists
         # if not exist, executing sql_insert will cause an error
-        FireDumper._create_table("fire")
+        self._create_table_if_not_exist("fire")
         FireDumper._generate_sql_statement_and_execute(FireDumper.SQL_INSERT_FIRE, data)
         logger.info(f"Finished inserting file: {data['firename']}{data['datetime']}")
 
-    @staticmethod
-    def insert_history(fire: FireEvent) -> None:
+    def insert_history(self, fire: FireEvent) -> None:
         """
         Inserts a fire record into fire_history table
         :param fire: a FireEvent object representing a wild fire event
@@ -259,6 +266,7 @@ class FireDumper(DumperBase):
         :return: None
         """
         logger.info(f"Inserting into fire_history table: {fire.url_name} in {fire.state} in {fire.year}")
+        self._create_table_if_not_exist("fire_history")
         # make the dictionary to be inserted into fire_history
         FireDumper._generate_sql_statement_and_execute(FireDumper.SQL_INSERT_FIRE_HISTORY, fire.to_dict())
         logger.info(f"Finished inserting file: {fire.url_name} in {fire.state} in {fire.year}")
@@ -272,10 +280,14 @@ class FireDumper(DumperBase):
         """
         # execute select statement
         # the latest fire id is the first and only entry of the result
-        return Connection.sql_execute(FireDumper.SQL_GET_LASTEST_ID).__next__()[0]
+        with Connection() as conn:
+            cur = conn.cursor()
+            cur.execute(FireDumper.SQL_GET_LASTEST_ID)
+            result = cur.fetchone()[0]
+            cur.close()
+        return result
 
-    @staticmethod
-    def get_recent_records() -> List[FireEvent]:
+    def get_recent_records(self) -> List[FireEvent]:
         """
         Return the list of ids of most recent records.
         :return: List of FireEvent objects
@@ -284,7 +296,7 @@ class FireDumper(DumperBase):
         # execute select statement to see if fire_merged table exists
         # if it doesn't exist, create one
         # if it exists, do nothing
-        FireDumper._create_table("fire_merged")
+        self._create_table_if_not_exist("fire_merged")
         # execute select statement, get the fire ids of those fire whose end_date is within 10 days
         # these are fires that might update these days
         logger.info("Retrieving recent fires...")
@@ -294,30 +306,16 @@ class FireDumper(DumperBase):
         return old_fires
 
     @staticmethod
-    def _generate_data(aggregated_record: Tuple[Any], fire_id: int) -> Tuple[Dict[str, Any]]:
+    def _generate_data(aggregated_record: Tuple[Any], fire_id: int) -> Tuple[List[Any], List[Any]]:
         """
         Generates the data dictionary to pass to sql statement.
         :param aggregated_record: tuple
                 e.g. ("FireA",True,"USFA","California",999,minTime,maxTime,geom....,total_area)
         :param fire_id: int
                 e.g. 998
-        :return: Tuple[Dict[str, Any]]
-                e.g. ({"name":"FireA"...}, {"name": "FireB"...})
+        :return: Tuple[List[Any], List[Any]]
+                e.g. ([99,"Fire","20190806 15:00", "20190806 16:00"], ["Fire", False, "UFDS"...])
         """
-        # info = {"name": aggregated_record[0],
-        #         #         "if_sequence": aggregated_record[1],
-        #         #         "agency": aggregated_record[2],
-        #         #         "state": aggregated_record[3],
-        #         #         "id": id,
-        #         #         "start_time": aggregated_record[5],
-        #         #         "end_time": aggregated_record[6],
-        #         #         "geom_full": aggregated_record[7],
-        #         #         "geom_1e4": aggregated_record[8],
-        #         #         "geom_1e3": aggregated_record[9],
-        #         #         "geom_1e2": aggregated_record[10],
-        #         #         "geom_center": aggregated_record[11],
-        #         #         "max_area": aggregated_record[12]
-        #         #         }
         columns = ["name", "if_sequence", "agency", "state", "id", "start_time", "end_time","geom_full", "geom_1e4",
                    "geom_1e3", "geom_1e2", "geom_center", "max_area"]
         info = dict(zip(columns, aggregated_record))
@@ -344,45 +342,42 @@ class FireDumper(DumperBase):
         """
         aggregated_fire_records_with_id = list(Connection.sql_execute(self.SQL_GET_LATEST_AGGREGATION.format(id)))
         if not aggregated_fire_records_with_id:
-            logger.warning(f"Record {id} is an empty record. Skipping...")
             # if this id is an empty record, then there is no aggregated fire records
             # in this situation, we only mark the url as crawled, by inserting it into fire_history
             self.insert_history(FireEvent(year, state, name, id))
             # return the latest fire id
-            raise InvalidRecordError
+            raise InvalidFireRecordException(f"Record {id} is an empty record. Skipping...")
         logger.info(f"Successfully fetch Record #{id}, " + \
                     f"there are {len(aggregated_fire_records_with_id)} aggregated records in this id")
         return aggregated_fire_records_with_id
 
-    def merge_fire_and_insert_history(self, id: int, year: int, name: str, state: str, current_year: int) -> int:
-        '''
+    def merge_fire_and_insert_history(self, id: int, year: int, name: str, state: str) -> int:
+        """
          A sequence of operations after inserting all records of a fire into fire table
          including insertion into fire_merged, fire_history
         :param id: int, id of the fire
         :param year:int
         :param name:str
         :param state:str
-        :param current_year:int
         :return:int
-        '''
-        self._create_table("fire_merged")
+        """
+        self._create_table_if_not_exist("fire_merged")
         try:
             aggregated_records_with_id = self.get_aggregated_fire_with_id(year, name, state, id)
-        except InvalidRecordError:
+        except InvalidFireRecordException:
+            logger.error(f"Met empty fire event, id:{id}")
             return id
         # set a temporary value new_id as id
-        #new_id = id
         new_id = id - 1
         # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
         # then when merged, the return list has more than one records
         # so a for loop is needed to deal with this situation
-        for record_tuple in enumerate(aggregated_records_with_id):
-            #new_id += index_of_aggregated_record
+        for index, record in enumerate(aggregated_records_with_id):
             new_id += 1
             # Most situation, there is only one record, new_id = id
             # if there is more than one, new_id will be id + i
             # create the dictionary for all values in aggregated record
-            fire_info_update_params, fire_merged_insert_params = self._generate_data(record_tuple[1], new_id)
+            fire_info_update_params, fire_merged_insert_params = self._generate_data(record, new_id)
             # update their id in fire_info
             # here, if the new_id is different from id, the fire with that name will be updated with the new id
             self._generate_sql_statement_and_execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
@@ -390,39 +385,6 @@ class FireDumper(DumperBase):
             self._generate_sql_statement_and_execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
             # insert this set into fire_crawl_history, mark it as crawled
             self.insert_history(FireEvent(year, state, name, id))
-        # with Connection() as conn:
-        #     cur = conn.cursor()
-        #     # check if the fire_merged table exists, if not then create it
-        #     # if it exists, do nothing
-        #     self._create_table("fire_merged")
-        #     # get the aggregated record of the last fire inserted into fire table
-        #     try:
-        #         aggregated_with_id = self.get_aggregated_fire_with_id(year, name, state, id, current_year)
-        #     except InvalidRecordError:
-        #         return id
-        #     # set a temporary value new_id as id
-        #     new_id = id
-        #     # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
-        #     # then when merged, the return list has more than one records
-        #     # so a for loop is needed to deal with this situation
-        #     # 用enumerate
-        #     for index_of_aggregated_record in range(len(aggregated_with_id)):
-        #         new_id += index_of_aggregated_record
-        #         # Most situation, there is only one record, new_id = id
-        #         # if there is more than one, new_id will be id + i
-        #         # create the dictionary for all values in aggregated record
-        #         fire_info_update_params, fire_merged_insert_params = self.generate_data(*(aggregated_with_id
-        #                                                                                 [index_of_aggregated_record]),
-        #                                                                                 new_id)
-        #         # update their id in fire_info
-        #         # here, if the new_id is different from id, the fire with that name will be updated with the new id
-        #         cur.execute(self.SQL_UPDATE_FIRE_INFO, fire_info_update_params)
-        #         # insert this set in fire_aggregate
-        #         cur.execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
-        #         # commit the transaction
-        #         conn.commit()
-        #         # insert this set into fire_crawl_history, mark it as crawled
-        #         self.insert_history(year, name, state, id, current_year)
         return new_id
 
 
@@ -430,7 +392,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     test_dumper = FireDumper()
-    # Test for _create_table()
+    # Test for _create_table_if_not_exist()
     # FireDumper.create_history_table("fire_merged")
     # Test for retrieve_all_fires()
     # print(list(map(lambda fire: str(fire), test_dumper.retrieve_all_fires())))

@@ -444,9 +444,9 @@ class TaskManager:
 if __name__ == "__main__":
     logger = TaskManager.initialize_logger()
     logger.addHandler(logging.StreamHandler())
-    logger.info('Task manager is running now!')
+    logger.info('Task manager is starting ...')
     try:
         task_manager = TaskManager()
         task_manager.main_loop()
-    except:
-        logger.error('Invalid Input Cause Error')
+    except Exception as err:
+        logger.error('Invalid Input Cause Error' + str(err))

@@ -3,17 +3,18 @@
 This file contains 1 classes:
 1. class FireCrawler: the crawler class for fire information
 """
+import datetime
+import glob
+import logging
+import os
 import re
+import shutil
+from typing import Dict, Any
+from typing import List, Set, Tuple
+
 import requests
 import rootpath
 import wget
-import os
-import datetime
-import logging
-import shutil
-import glob
-from typing import Dict, Any
-from typing import List, Set, Tuple
 from retrying import retry
 
 rootpath.append()
@@ -33,6 +34,7 @@ class FireEvent:
     """
     This class is to represent a FireEvent object, a fire event is a link on the rmgsc website.
     """
+
     def __init__(self, year: int, state: str, url_name: str, fire_id=-1):
         """
         Takes year, state, url_name and make a new FireEvent object
@@ -73,16 +75,22 @@ class FireEvent:
     def is_invalid(self) -> bool:
         """
         Judges if this fire event is valid. A valid fire event should have reasonable fire name.
+
+        to delete exceptions like:
+
+        "[To Parent Directory]":
+                shows on all pages as the link to the parent page
+        "whatever.zip": some dirty data sources have zip files of all fires in the directory of the year listed among
+                links to fire events
+        "ActivePerim": an useless link which contains metadata over the year, existing in links before 2016 Skip it
+                if a link looks like the above 3 types, is_valid will return False
+
         :return: bool
         """
-        # to delete exceptions like: "[To Parent Directory]": shows on all pages as the link to the parent page
-        # "whatever.zip": some dirty data sources have zip files of all fires in the directory of the year listed among
-        #  links to fire events
-        # "ActivePerim": an useless link which contains metadata over the year, existing in links before 2016 Skip it
-        # if a link looks like the above 3 types, is_valid will return False
+
         return ".zip" in self.url_name or "[To Parent Directory]" == self.url_name or self.url_name == "ActivePerim"
 
-    def __str__(self) -> str:
+    def __str__(self):
         if id != -1:
             return f"Fire Event {self.fire_id}: {self.url_name} in year {self.year}, state {self.state}"
         return f"Fire Event Unknown: {self.url_name} in year {self.year}, state {self.state}"
@@ -107,14 +115,13 @@ class FireEvent:
                 "id": 299,
                 "url":"https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/...."}
         """
-        data = {"year": self.year,
+        return {"year": self.year,
                 "firename": self.url_name,
                 "state": self.state,
                 "id": self.fire_id,
                 "url": self.to_url()}
-        return data
 
-    def to_tuple(self, new_id) -> Tuple[int,int,str, str]:
+    def to_tuple(self, new_id) -> Tuple[int, int, str, str]:
         self.fire_id = new_id if self.fire_id == -1 else self.fire_id
         return self.fire_id, self.year, self.state, self.url_name
 
@@ -132,6 +139,7 @@ class FireCrawler(CrawlerBase):
         :param states: list of states that the crawler needs to crawl, case-insensitive.
                 e.g. ["California", "Nevada"]
         """
+        super().__init__()
         self.states = [state.capitalize() for state in states]
         # states is a list of states that the crawler needs to crawl
         FireCrawler._cleanup()
@@ -158,7 +166,7 @@ class FireCrawler(CrawlerBase):
 
     @staticmethod
     @retry(stop_max_attempt_number=3)
-    def _download_single_file(url: str, file: str, out_path: str):
+    def _download_single_file(url: str, file: str, out_path: str) -> None:
         """
         Downloads a single file from the website to the out_path.
         :param url: url of the fire event.
@@ -196,7 +204,7 @@ class FireCrawler(CrawlerBase):
         return list(map(lambda single_fire_name: FireEvent(year, state, single_fire_name), fire_names_in_this_state))
 
     @staticmethod
-    def _filter_out_invalid_fire_events(fires: List[FireEvent]):
+    def _filter_out_invalid_fire_events(fires: List[FireEvent]) -> None:
         """
         Find those invalid FireEvent objects and remove them from the input list
         :param fires: list of FireEvent objects.
@@ -231,12 +239,12 @@ class FireCrawler(CrawlerBase):
             each_year_sub_links = FireCrawler.RE_EXTRACT_ALL_FIRES.findall(main_page)[:-1]
             # sub_links_of_each_year are now fire data of a certain year or current year
             # e.g. '2010_fire_data', 'current_year_fire_data'
-            fires = []
+            fires: List = []
             for each_year_sub_link in each_year_sub_links:
                 # sub_link_of_each_year: e.g. '2010_fire_data'
                 # to change "current_year" to the real year as an integer
                 year_as_int = current_year if each_year_sub_link == "current_year_fire_data" \
-                                         else int(each_year_sub_link.split("_")[0])
+                    else int(each_year_sub_link.split("_")[0])
                 # ignore years that before the start year
                 # filter out links that is too old
                 if year_as_int >= start_year:
@@ -248,7 +256,7 @@ class FireCrawler(CrawlerBase):
             return fires
 
     @staticmethod
-    def _download_fire_record(single_file_name: str, used_folder_names: Set[str], url_of_fire_event: str):
+    def _download_fire_record(single_file_name: str, used_folder_names: Set[str], url_of_fire_event: str) -> None:
         """
         Downloads a single fire record from the website and puts its sub-files into a folder.
         :param single_file_name: e.g. "ca_cedar_20170810_0000_dd83.CPG"
@@ -266,7 +274,7 @@ class FireCrawler(CrawlerBase):
             out_path = os.path.join(FIRE_DATA_DIR, folder_name)
             FireCrawler._download_single_file(url_of_fire_event, single_file_name, out_path)
         else:
-            logger.info(f"Skipping downlading useless zip file {single_file_name}")
+            logger.info(f"Skipping downloading useless zip file {single_file_name}")
 
     @staticmethod
     @retry(retry_on_exception=requests.exceptions.RequestException, stop_max_attempt_number=3)
@@ -281,7 +289,7 @@ class FireCrawler(CrawlerBase):
         return FireCrawler.RE_EXTRACT_FILES_IN_FIRE_EVENTS.findall(fire_page)
 
     @staticmethod
-    def _extract_one_folder(abs_path: str, is_sequential: bool, fire_id: int, state: str):
+    def _extract_one_folder(abs_path: str, is_sequential: bool, fire_id: int, state: str) -> Dict[str, str]:
         """
         Calls fire extractor and extracts one fire_record
         :param abs_path: str, name of the folder
@@ -347,7 +355,7 @@ class FireCrawler(CrawlerBase):
         return list_of_records
 
     @staticmethod
-    def _cleanup():
+    def _cleanup() -> None:
         """
         Cleans up the temp data folder
         """

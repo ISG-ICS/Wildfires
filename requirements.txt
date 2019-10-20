@@ -1,3 +1,4 @@
+wget
 requests
 flask
 deprecated
@@ -23,3 +24,6 @@ fiona
 gdal==2.4.2
 mypy
 retrying
+psycopg2
+shapely
+pyshp

@@ -3,15 +3,18 @@
 This file has 1 class:
 DataFromFire: data pipeline for fire data.
 """
-import os
-import logging
-from datetime import datetime
 import datetime
-import rootpath
-import psycopg2
-from paths import FIRE_DATA_DIR
-from typing import Tuple, List
+import logging
+import os
 import time
+from datetime import datetime
+from typing import Tuple, List
+
+import psycopg2
+import rootpath
+from psycopg2 import errors
+
+from paths import FIRE_DATA_DIR
 
 rootpath.append()
 
@@ -27,11 +30,14 @@ class DataFromFireRunnable(Runnable):
     """
     Run once per day/week/, not any time
     """
-    def __init__(self, states=["California"], start_time=2015):
+
+    def __init__(self, states=None, start_time=2015):
         """
         Initialize runnable object
         """
         # crawler object initialization: can add more state names to crawl
+        if states is None:
+            states = ["California"]
         self.crawler = FireCrawler(states)
         # extractor object initialization
         self.extractor = FireExtractor()
@@ -40,7 +46,7 @@ class DataFromFireRunnable(Runnable):
         self.start_time = start_time
 
     @staticmethod
-    def _create_temporary_data_path():
+    def _create_temporary_data_path() -> None:
         """
         Checks if the temporary directory (FIRE_DATA_DIR) exists, if yes, do nothing
         if not, create the temporary directory.
@@ -54,7 +60,8 @@ class DataFromFireRunnable(Runnable):
         else:
             logger.info(f"Temp fire data folder detected, path: {FIRE_DATA_DIR}")
 
-    def merge_fire_and_return_fire_id(self, fire_id: int, year: int, urlname: str,state: str, current_year: int, errors: List[Tuple[int, int, str]]) -> int:
+    def merge_fire_and_return_fire_id(self, fire_id: int, year: int, urlname: str, state: str, current_year: int,
+                                      errors: List[Tuple[int, int, str]]) -> int:
         """
         Merges a set of records of fire records into a single fire record for a time interval.
         :param fire_id: int
@@ -76,7 +83,7 @@ class DataFromFireRunnable(Runnable):
             # fire_id need to increment more than 1
             return self.dumper.merge_fire_and_insert_history(fire_id, year, urlname, state)
         except psycopg2.errors.InternalError_:
-            # Seldomly there is an InternalError_, when Union of geometry cause a self-intersection error
+            # Rarely, an InternalError_ would occur, when Union of geometry cause a self-intersection error
             logger.error(f"Internal Error: {fire_id}, {year}, {urlname}")
             # append this record into error list, for later manually insertion
             errors.append((fire_id, year, urlname))
@@ -103,7 +110,7 @@ class DataFromFireRunnable(Runnable):
         Interface for runnable
         """
         # get the current year, will be useful for converting year numbers from urls
-        current_year = datetime.datetime.now().date().year
+        current_year = datetime.now().date().year
         # check if the FIRE_DATA_DIR exists,
         self._create_temporary_data_path()
         # Here we need to get all useful fire urls
@@ -146,12 +153,13 @@ class DataFromFireRunnable(Runnable):
             # insert the single record into fire table
             for record in single_record:
                 self.dumper.insert(record)
-                logger.info(f"Successfully inserted {record['firename']+str(record['datetime'])} "
+                logger.info(f"Successfully inserted {record['firename'] + str(record['datetime'])} "
                             f"into fire_info.")
             # after the for loop, all records belongs to this fire should be inserted into fire
             # then we can create the merged record and insert it into fire_merged and mark it as crawled in fire_history
             fire_id = self.get_fire_id(fire_event,
-                      self.merge_fire_and_return_fire_id(fire_id, year, urlname, state, current_year, errors))
+                                       self.merge_fire_and_return_fire_id(fire_id, year, urlname, state, current_year,
+                                                                          errors))
             logger.info(f"New fire id : {fire_id}")
         # finished all insertion
         logger.info("Finished running.")
@@ -169,5 +177,3 @@ if __name__ == '__main__':
         # sleep one day
         time.sleep(3600 * 24)
         logger.info("Finished running.")
-
-

@@ -365,7 +365,6 @@ if __name__ == '__main__':
     test_crawler = FireCrawler(["California"])
     # print(list(map(lambda fire: str(fire), test_crawler.extract_all_fires(2015))))
     # used = set()
-    print(test_crawler.crawl("https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/current_year_fire_data/California/Saddle_Ridge/", 10, "California"))
     # test_crawler.cleanup()
     # fire_list = test_crawler.extract_all_fires()
     # random_number = random.randint(0, len(fire_list))

@@ -43,12 +43,6 @@ class FireDumper(DumperBase):
 
     # code for checking if a database exists
     SQL_CHECK_IF_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES'
-    SQL_CHECK_IF_FIRE_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire\''
-    # SQL_CHECK_IF_FIRE_TABLE_EXISTS: check if "fire" table exists
-    SQL_CHECK_IF_HISTORY_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_history\''
-    # SQL_CHECK_IF_HISTORY_TABLE_EXISTS: check if "fire_history" table exists
-    SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS = 'SELECT table_name FROM information_schema.TABLES WHERE table_name = \'fire_merged\''
-    # SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS: check if "fire_merged" table exists
 
     # code for creating a table if it doesn't exist
     SQL_CREATE_HISTORY_TABLE = 'CREATE TABLE IF NOT EXISTS fire_history (id integer, year int4, state VARCHAR(40), ' \

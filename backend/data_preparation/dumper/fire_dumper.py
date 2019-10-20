@@ -4,18 +4,17 @@ This file has 2 classes:
 InvalidFireRecordException
 FireDumper
 """
-from typing import List, Dict, Tuple
 import logging
+from typing import Any
+from typing import List, Dict, Tuple
+
 import rootpath
-from typing import Set, Any, Union
 
 rootpath.append()
 
 from backend.data_preparation.dumper.dumperbase import DumperBase
 from backend.connection import Connection
 from backend.data_preparation.crawler.fire_crawler import FireEvent
-
-
 
 logger = logging.getLogger('TaskManager')
 
@@ -46,49 +45,50 @@ class FireDumper(DumperBase):
 
     # code for creating a table if it doesn't exist
     SQL_CREATE_HISTORY_TABLE = 'CREATE TABLE IF NOT EXISTS fire_history (id integer, year int4, state VARCHAR(40), ' \
-                                   'name VARCHAR (40), url text, PRIMARY KEY (id))'
+                               'name VARCHAR (40), url text, PRIMARY KEY (id))'
     # SQL_CREATE_HISTORY_TABLE: create fire_history table if it doesn't exist
     SQL_CREATE_FIRE_MERGED_TABLE = 'CREATE TABLE IF NOT EXISTS fire_merged (name VARCHAR (40), if_sequence boolean, ' \
-                                       'agency VARCHAR (80), state VARCHAR(15), id INTEGER , start_time timestamp, ' \
-                                       'end_time timestamp, geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, ' \
-                                       'geom_1e2 geometry,geom_center geometry, max_area float, PRIMARY KEY (id))'
+                                   'agency VARCHAR (80), state VARCHAR(15), id INTEGER , start_time timestamp, ' \
+                                   'end_time timestamp, geom_full geometry, geom_1e4 geometry, geom_1e3 geometry, ' \
+                                   'geom_1e2 geometry,geom_center geometry, max_area float, PRIMARY KEY (id))'
     # SQL_CREATE_FIRE_MERGED_TABLE: create fire_merged table if it doesn't exist
     SQL_CREATE_FIRE_TABLE = 'CREATE TABLE IF NOT EXISTS fire (name VARCHAR (40), if_sequence boolean, agency ' \
-                                 'VARCHAR (20), state VARCHAR(15), id INTEGER , time timestamp, geom_full geometry, ' \
-                                 'geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, geom_center geometry, area float, ' \
-                                 'PRIMARY KEY (name, time))'
+                            'VARCHAR (20), state VARCHAR(15), id INTEGER , time timestamp, geom_full geometry, ' \
+                            'geom_1e4 geometry, geom_1e3 geometry, geom_1e2 geometry, geom_center geometry, ' \
+                            'area float, PRIMARY KEY (name, time))'
     # SQL_CREATE_FIRE_TABLE: create fire table if it doesn't exist'
 
     # code for updating records or inserting new records
     # "%(id)s": when this statement is executed with cur.execute(), the second parameter is a dictionary with has "id"
     # as the key and the value of id as the value
     SQL_INSERT_FIRE_HISTORY = 'INSERT INTO fire_history (id, year, state, name,url) VALUES (%(id)s,%(year)s,' \
-                                   '%(state)s, %(firename)s, %(url)s) ON CONFLICT DO NOTHING'
+                              '%(state)s, %(firename)s, %(url)s) ON CONFLICT DO NOTHING'
     # SQL_INSERT_FIRE_HISTORY: insert a new fire record into fire_history
     SQL_INSERT_FIRE = 'INSERT INTO fire (name, if_sequence, agency, state, id, time, geom_full, geom_1e4, ' \
-                        'geom_1e3, geom_1e2, geom_center, area) VALUES (%(firename)s,%(is_sequential)s,%(agency)s,' \
-                        '%(state)s,%(fire_id)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,' \
-                        '%(geopolygon_medium)s,%(geopolygon_small)s, ' \
-                        'st_astext(st_centroid(st_geomfromtext(%(geopolygon_small)s))), %(area)s) ON CONFLICT DO NOTHING'
+                      'geom_1e3, geom_1e2, geom_center, area) VALUES (%(firename)s,%(is_sequential)s,%(agency)s,' \
+                      '%(state)s,%(fire_id)s,%(datetime)s,%(geopolygon_full)s,%(geopolygon_large)s,' \
+                      '%(geopolygon_medium)s,%(geopolygon_small)s, ' \
+                      'st_astext(st_centroid(st_geomfromtext(%(geopolygon_small)s))), %(area)s) ON CONFLICT DO NOTHING'
     # SQL_INSERT_FIRE: insert a new fire record into fire
     SQL_INSERT_FIRE_INTO_MERGED = 'INSERT INTO fire_merged(name, if_sequence, agency, state, id, start_time, ' \
                                   'end_time, geom_full, geom_1e4, geom_1e3, geom_1e2, geom_center, max_area)' \
-                                  'Values (%s, %s, %s,%s, %s, %s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET ' \
-                                  'if_sequence = true, agency = excluded.agency, end_time = excluded.end_time, ' \
-                                  'geom_full = excluded.geom_full,geom_1e4 = Excluded.geom_1e4,geom_1e3 = Excluded.geom_1e3,' \
-                                  'geom_1e2 = Excluded.geom_1e2, geom_center = EXCLUDED.geom_center,max_area=EXCLUDED.max_area'
+                                  'VALUES (%s, %s, %s,%s, %s, %s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO UPDATE SET' \
+                                  ' if_sequence = TRUE, agency = EXCLUDED.agency, end_time = EXCLUDED.end_time, ' \
+                                  'geom_full = EXCLUDED.geom_full, geom_1e4 = EXCLUDED.geom_1e4, ' \
+                                  'geom_1e3 = EXCLUDED.geom_1e3, geom_1e2 = EXCLUDED.geom_1e2, ' \
+                                  'geom_center = EXCLUDED.geom_center,max_area= EXCLUDED.max_area'
     # SQL_INSERT_FIRE_INTO_MERGED: insert a new fire record into fire_merged
     SQL_UPDATE_FIRE_INFO = 'UPDATE fire SET id = %s WHERE name = %s AND time >= %s::timestamp AND ' \
                            'time <= %s::timestamp;'
     # update fire info when: there are one fire in temp folder but records are from fireEvents with different name, one
-    # record will be seperated into two records
+    # record will be separated into two records
     # so id in fire table need to be updated with a larger number
 
     # code for requesting fire information
     # retrieve all fire information
     SQL_RETRIEVE_ALL_FIRES = 'SELECT year,state,name FROM fire_history'
     # get the last id from fire_history table
-    SQL_GET_LASTEST_ID = 'SELECT MAX(id) FROM fire_history'
+    SQL_GET_LATEST_ID = 'SELECT MAX(id) FROM fire_history'
     # get the recent fire whose last record is within 10 days of the current date
     SQL_GET_LATEST_FIRE = 'SELECT a.id,h.year, h.state, h.name ' \
                           'from (SELECT id FROM fire_merged Where abs(DATE_PART(\'day\', ' \
@@ -96,9 +96,12 @@ class FireDumper(DumperBase):
     # return the aggregated fire information with a given id
     SQL_GET_LATEST_AGGREGATION = 'SELECT f.name, f.if_sequence,string_agg(distinct (f.agency), \', \'),f.state,f.id,' \
                                  'min(f.time),Max(f.time), st_astext(st_union(st_makevalid(f.geom_full))) as geom_full,' \
-                                 'st_astext(st_union(st_makevalid(f.geom_1e4))),st_astext(st_union(st_makevalid(f.geom_1e3))),' \
-                                 'st_astext(st_union(st_makevalid(f.geom_1e2))),st_astext(st_centroid(st_union(st_makevalid(f.geom_center)))), ' \
-                                 'max(f.area) FROM (SELECT * FROM fire where id = {}) f Group by f.name, f.if_sequence, f.state, f.id'
+                                 'st_astext(st_union(st_makevalid(f.geom_1e4))),' \
+                                 'st_astext(st_union(st_makevalid(f.geom_1e3))),' \
+                                 'st_astext(st_union(st_makevalid(f.geom_1e2))),' \
+                                 'st_astext(st_centroid(st_union(st_makevalid(f.geom_center)))), ' \
+                                 'max(f.area) FROM (SELECT * FROM fire where id = {}) f ' \
+                                 'Group by f.name, f.if_sequence, f.state, f.id'
 
     def __init__(self):
         super().__init__()
@@ -121,7 +124,7 @@ class FireDumper(DumperBase):
         """
         return sum(1 for _ in Connection.sql_execute(query))
 
-    def _create_table_if_not_exist(self, table_name: str):
+    def _create_table_if_not_exist(self, table_name: str) -> None:
         """
         Checks if the a given table exists,
         Creates fire_history table if not exist
@@ -163,14 +166,14 @@ class FireDumper(DumperBase):
         self._create_table_if_not_exist("fire_history")
         # retrieve all fires in fire_history
         set_of_fire_event_objects = list(map(lambda fire_event_tuple: FireEvent.from_tuple(fire_event_tuple),
-                                        Connection.sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
+                                             Connection.sql_execute(FireDumper.SQL_RETRIEVE_ALL_FIRES)))
         # result now is a set of FireEvent objects
         # e.g. for https://rmgsc.cr.usgs.gov/outgoing/GeoMAC/2015_fire_data/California/Deer_Horn_2/
         # the FireEvent object is: Fire Event: Deer_Horn_2 in year 2015, state California
         return set_of_fire_event_objects
 
     @staticmethod
-    def _generate_sql_statement_and_execute(sql_statement: str, data):
+    def _generate_sql_statement_and_execute(sql_statement: str, data) -> None:
         """
         Generates a SQL statement with the data given as a dictionary and execute, commit the changes.
         :param sql_statement: string
@@ -183,9 +186,8 @@ class FireDumper(DumperBase):
             cur.execute(sql_statement, data)
             conn.commit()
             cur.close()
-        return
 
-    def insert(self, data: Dict[str, Any]):
+    def insert(self, data: Dict[str, Any]) -> None:
         """
         Inserts a single fire record from FireExtractor.extract() into fire table.
         :param data:dict to insert, from extractor.extract()
@@ -222,7 +224,7 @@ class FireDumper(DumperBase):
         # the latest fire id is the first and only entry of the result
         with Connection() as conn:
             cur = conn.cursor()
-            cur.execute(FireDumper.SQL_GET_LASTEST_ID)
+            cur.execute(FireDumper.SQL_GET_LATEST_ID)
             result = cur.fetchone()[0]
             cur.close()
         return result
@@ -256,7 +258,7 @@ class FireDumper(DumperBase):
         :return: Tuple[List[Any], List[Any]]
                 e.g. ([99,"Fire","20190806 15:00", "20190806 16:00"], ["Fire", False, "UFDS"...])
         """
-        columns = ["name", "if_sequence", "agency", "state", "id", "start_time", "end_time","geom_full", "geom_1e4",
+        columns = ["name", "if_sequence", "agency", "state", "id", "start_time", "end_time", "geom_full", "geom_1e4",
                    "geom_1e3", "geom_1e2", "geom_center", "max_area"]
         info = dict(zip(columns, aggregated_record))
         info["id"] = fire_id
@@ -287,8 +289,8 @@ class FireDumper(DumperBase):
             self.insert_history(FireEvent(year, state, name, id))
             # return the latest fire id
             raise InvalidFireRecordException(f"Record {id} is an empty record. Skipping...")
-        logger.info(f"Successfully fetch Record #{id}, " + \
-                    f"there are {len(aggregated_fire_records_with_id)} aggregated records in this id")
+        logger.info(f"Successfully fetch Record #{id}, there are {len(aggregated_fire_records_with_id)} "
+                    f"aggregated records in this id")
         return aggregated_fire_records_with_id
 
     def merge_fire_and_insert_history(self, id: int, year: int, name: str, state: str) -> int:

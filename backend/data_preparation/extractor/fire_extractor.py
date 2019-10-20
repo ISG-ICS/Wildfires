@@ -4,19 +4,19 @@ This file contains 2 classes:
 1. class IncompleteShapefileError: an Exception to be caught in pipeline main function.
 2. class FireExtractor: the object of extractor from shapefile to dictionary with useful information
 """
-import rootpath
-import re
-import shapefile
-import os
-import logging
 import datetime
+import logging
+import os
+import re
 from typing import Dict
+
+import rootpath
+import shapefile
 from shapely.geometry import shape
 from shapely.geometry.multipolygon import MultiPolygon
 
 rootpath.append()
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
-
 
 logger = logging.getLogger('TaskManager')
 
@@ -50,7 +50,7 @@ class FireExtractor(ExtractorBase):
             return int(FireExtractor.RE_EXTRACT_YEAR_ABNORMAL.search(record).group()[:4])
 
     @staticmethod
-    def _get_datetime_before_2016(record: "shapefile._Record") -> datetime:
+    def _get_datetime_before_2016(record: shapefile._Record) -> datetime.datetime:
         """
         Gets the datetime of a certain record before 2016, record schema for datetime is: DATE_ and TIME_
         Sometimes there is only DATE_ but not TIME_
@@ -62,7 +62,7 @@ class FireExtractor(ExtractorBase):
         return datetime.datetime.strptime("{:%m%d%Y}".format(record["DATE_"]) + record["TIME_"], '%m%d%Y%H%M')
 
     @staticmethod
-    def _get_datetime_after_2016(record: "shapefile._Record") -> datetime:
+    def _get_datetime_after_2016(record: shapefile._Record) -> datetime.datetime:
         """
         Gets the datetime of a certain record after 2016, record schema for datetime is: PERDATTIME or perDatTime
         :param record: the whole record of fire, shapefile._Record object.
@@ -136,8 +136,9 @@ class FireExtractor(ExtractorBase):
             # after 2016
             # For some records after 2016, record schema for firename is: FIRENAME, for agency is: AGENCY, for
             # datetime is: PERDATTIME
-            data["firename"] = FireExtractor._clean_name(record.as_dict().get("FIRE_NAME",  record.as_dict().get('fireName',
-                                                                    record.as_dict().get("FIRENAME"))))
+            data["firename"] = FireExtractor._clean_name(
+                record.as_dict().get("FIRE_NAME", record.as_dict().get('fireName',
+                                                                       record.as_dict().get("FIRENAME"))))
             data["agency"] = record.as_dict().get("AGENCY", record.as_dict().get("agency")) \
                 if record.as_dict().get("AGENCY", record.as_dict().get("agency")) != "" else "Unknown"
             data["datetime"] = FireExtractor._get_datetime_after_2016(record)
@@ -149,11 +150,11 @@ class FireExtractor(ExtractorBase):
         # see function extract_full_geom below
         data["geopolygon_full"] = str(geom)
         # geopolygon_full is the full geom of this shapefile record
-        data["geopolygon_large"] = str(FireExtractor._simplify_multipolygon(geom,1.e-04))
+        data["geopolygon_large"] = str(FireExtractor._simplify_multipolygon(geom, 1.e-04))
         # geopolygon_large is the simplified full geom of this shapefile record, threshold is 1.e-04
-        data["geopolygon_medium"] = str(FireExtractor._simplify_multipolygon(geom,1.e-03))
+        data["geopolygon_medium"] = str(FireExtractor._simplify_multipolygon(geom, 1.e-03))
         # geopolygon_medium is the simplified full geom of this shapefile record, threshold is 1.e-03
-        data["geopolygon_small"] = str(FireExtractor._simplify_multipolygon(geom,1.e-02))
+        data["geopolygon_small"] = str(FireExtractor._simplify_multipolygon(geom, 1.e-02))
         # geopolygon_small is the simplified full geom of this shapefile record, threshold is 1.e-02
         data["is_sequential"] = is_sequential
         # is_sequential is passed as a parameter. If in the temp folder, there are more than one set of records, then
@@ -211,4 +212,3 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
     fe = FireExtractor()
     logger.info(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", True, 0, "ss"))
-

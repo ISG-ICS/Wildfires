@@ -76,11 +76,20 @@ class FireExtractor(ExtractorBase):
         return datetime_object
 
     @staticmethod
+    def _clean_name(name: str) -> str:
+        """
+        Cleans up the name of the record which may be typo in data source.
+        :param name: str. e.g. "R-1   Ranch"
+        :return: "R-1 ranch"
+        """
+        return " ".join(name.strip().capitalize().split())
+
+    @staticmethod
     def extract(path: str, is_sequential: bool, fire_id: int, state: str) -> Dict[str, str]:
         """
         Reads a set of records and return the contents.
         This is a messy function since the data source is dirty.
-        :param path: str, path of the folder
+        :param path: str, absolute path of the folder
                 e.g. "C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83"
         :param is_sequential: bool, if this fire is a part of a sequence of fire
         :param fire_id: int
@@ -116,7 +125,7 @@ class FireExtractor(ExtractorBase):
         if data['year'] < 2016:
             # FIRE_NAME, DATE_:  datetime.date(2014, 9, 11), TIME_: 0129, AGENCY: USFS or NULL
             # before 2016, record schema for firename is: FIRE_NAME
-            data["firename"] = record["FIRE_NAME"].capitalize()
+            data["firename"] = FireExtractor._clean_name(record["FIRENAME"])
             # before 2016, record schema for agency is: AGENCY
             data["agency"] = record["AGENCY"] if record["AGENCY"] != "" else "Unknown"
             data["datetime"] = FireExtractor._get_datetime_before_2016(record)
@@ -127,8 +136,8 @@ class FireExtractor(ExtractorBase):
             # after 2016
             # For some records after 2016, record schema for firename is: FIRENAME, for agency is: AGENCY, for
             # datetime is: PERDATTIME
-            data["firename"] = record.as_dict().get("FIRE_NAME",  record.as_dict().get('fireName',
-                                                                                record.as_dict().get("FIRENAME")))
+            data["firename"] = FireExtractor._clean_name(record.as_dict().get("FIRE_NAME",  record.as_dict().get('fireName',
+                                                                    record.as_dict().get("FIRENAME"))))
             data["agency"] = record.as_dict().get("AGENCY", record.as_dict().get("agency")) \
                 if record.as_dict().get("AGENCY", record.as_dict().get("agency")) != "" else "Unknown"
             data["datetime"] = FireExtractor._get_datetime_after_2016(record)
@@ -173,7 +182,7 @@ class FireExtractor(ExtractorBase):
         :param threshold:float, the threshold of simplification
         :return:shapely.geometry.Multipolygon
         """
-        if multipolygon is MultiPolygon:
+        if isinstance(multipolygon, MultiPolygon):
             # if polygon is a shapely.geometry.MultiPolygon, then it can be convert into a list of
             # shapely.geometry.Polygon
             polygons = list(multipolygon)
@@ -201,5 +210,5 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
     fe = FireExtractor()
-    print(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", True, 0, "ss"))
+    logger.info(fe.extract("C:\myResearch\Wildfires\data\\fire-data\ca_trestle_20190605_1200_dd83", True, 0, "ss"))
 

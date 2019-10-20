@@ -158,61 +158,7 @@ class FireDumper(DumperBase):
             self.existing_tables.add(table_name)
             logger.info(f"Table {table_name} created.")
 
-    # def _create_fire_table(self, conn: Connection):
-    #     """
-    #     Checks if the fire table exists
-    #     Creates fire table if not exist
-    #     If it exists, the function does nothing
-    #     :param conn: Connection object
-    #     """
-    #     logger.info("Looking for fire table in database...")
-    #     # create a cursor
-    #     cur = conn.cursor()
-    #     # check if the fire_history table exists
-    #     # if the pipeline is run for the first time
-    #     # then the fire_history table will not exist
-    #     cur.execute(self.SQL_CHECK_IF_FIRE_TABLE_EXISTS)
-    #     tables = cur.fetchall()
-    #     # table is the result of the statement: sql_check_if_history_table_exists
-    #     if len(tables) == 0:
-    #         # if table is empty, which means the fire_history table does not exists
-    #         logger.info("No fire table exists. Creating a new one.")
-    #         cur.execute(FireDumper.SQL_CREATE_FIRE_TABLE)
-    #         # create the fire_history table
-    #         conn.commit()
-    #         # commit the transaction so the change will be saved
-    #         logger.info("Fire table created.")
-    #     else:
-    #         logger.info("Find the fire table, continue >..")
-    #     cur.close()
-    #
-    # def _create_fire_merged_table(self, conn: Connection):
-    #     """
-    #     Checks if the fire_merged table exists,
-    #     Creates fire_merged table if not exist
-    #     If it exists, the function does nothing
-    #     :param conn: Connection object
-    #     """
-    #     logger.info("Looking for fire_merged table in database...")
-    #     # create a cursor
-    #     cur = conn.cursor()
-    #     # check if the fire_merged table exists
-    #     # if the pipeline is run for the first time
-    #     # then the fire_merged table will not exist
-    #     # table is the result of the statement: sql_check_if_history_table_exists
-    #     if len(list(Connection.sql_execute(self.SQL_CHECK_IF_FIRE_MERGED_TABLE_EXISTS))) == 0:
-    #         # if table is empty, which means the fire_history table does not exists
-    #         logger.info("No fire_merged table exists. Creating a new one.")
-    #         cur.execute(FireDumper.SQL_CREATE_HISTORY_TABLE)
-    #         # create the fire_history table
-    #         conn.commit()
-    #         # commit the transaction so the change will be saved
-    #         logger.info("fire_merged table created.")
-    #     else:
-    #         logger.info("Find the fire_merged table, continue >..")
-    #     cur.close()
-
-    def retrieve_all_fires(self) -> Set[FireEvent]:
+    def retrieve_all_fires(self) -> List[FireEvent]:
         """
         Retrieves all fires in the database.
         :return: set of FireEvent objects
@@ -230,7 +176,7 @@ class FireDumper(DumperBase):
         return set_of_fire_event_objects
 
     @staticmethod
-    def _generate_sql_statement_and_execute(sql_statement: str, data: Union[List[str, Any],Dict[str, Any]]):
+    def _generate_sql_statement_and_execute(sql_statement: str, data):
         """
         Generates a SQL statement with the data given as a dictionary and execute, commit the changes.
         :param sql_statement: string
@@ -367,13 +313,14 @@ class FireDumper(DumperBase):
         except InvalidFireRecordException:
             logger.error(f"Met empty fire event, id:{id}")
             return id
-        # set a temporary value new_id as id
-        new_id = id - 1
         # the records can be dirty. Sometimes the folder of one fire includes fire with a different name
         # then when merged, the return list has more than one records
         # so a for loop is needed to deal with this situation
+        # if the number of records is 0 then return the last id
+        new_id = id
         for index, record in enumerate(aggregated_records_with_id):
-            new_id += 1
+            # if the number of records is larger than 1 then the id need to be updated
+            new_id = id + index
             # Most situation, there is only one record, new_id = id
             # if there is more than one, new_id will be id + i
             # create the dictionary for all values in aggregated record
@@ -384,7 +331,7 @@ class FireDumper(DumperBase):
             # insert this set in fire_aggregate
             self._generate_sql_statement_and_execute(self.SQL_INSERT_FIRE_INTO_MERGED, fire_merged_insert_params)
             # insert this set into fire_crawl_history, mark it as crawled
-            self.insert_history(FireEvent(year, state, name, id))
+            self.insert_history(FireEvent(year, state, name, new_id))
         return new_id
 
 

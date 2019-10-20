@@ -15,10 +15,9 @@ import time
 
 rootpath.append()
 
-
 from backend.task.runnable import Runnable
 from backend.data_preparation.crawler.fire_crawler import FireCrawler, FireEvent
-from backend.data_preparation.extractor.fire_extractor import FireExtractor, IncompleteShapefileError
+from backend.data_preparation.extractor.fire_extractor import FireExtractor
 from backend.data_preparation.dumper.fire_dumper import FireDumper
 
 logger = logging.getLogger('TaskManager')
@@ -28,17 +27,17 @@ class DataFromFireRunnable(Runnable):
     """
     Run once per day/week/, not any time
     """
-    def __init__(self):
+    def __init__(self, states=["California"], start_time=2015):
         """
         Initialize runnable object
         """
         # crawler object initialization: can add more state names to crawl
-        self.crawler = FireCrawler(["California"])
+        self.crawler = FireCrawler(states)
         # extractor object initialization
         self.extractor = FireExtractor()
         # dumper object initialization
         self.dumper = FireDumper()
-        self.start_time = 2018
+        self.start_time = start_time
 
     @staticmethod
     def _create_temporary_data_path():
@@ -75,7 +74,7 @@ class DataFromFireRunnable(Runnable):
             # insert the merged record into fire into fire_merged and fire_history
             # update the fire_id, since if there are actually multiple records,
             # fire_id need to increment more than 1
-            return self.dumper.merge_fire_and_insert_history(fire_id, year, urlname, state, current_year)
+            return self.dumper.merge_fire_and_insert_history(fire_id, year, urlname, state)
         except psycopg2.errors.InternalError_:
             # Seldomly there is an InternalError_, when Union of geometry cause a self-intersection error
             logger.error(f"Internal Error: {fire_id}, {year}, {urlname}")
@@ -91,7 +90,7 @@ class DataFromFireRunnable(Runnable):
         :return: int
         """
         if fire_event.fire_id != -1:
-            # if it is an updation for existing records, we need to access the latest fire id because the current
+            # if it is an update for existing records, we need to access the latest fire id because the current
             # fire id is not the latest
             logger.info(f"Updated recent records: id {fire_id}, next fire id:{self.dumper.get_latest_fire_id() + 1}")
             return self.dumper.get_latest_fire_id() + 1
@@ -129,8 +128,6 @@ class DataFromFireRunnable(Runnable):
         to_crawl += recent_records
         logger.info(f"Total number of fire urls needed to be crawled: {len(to_crawl)}")
         logger.info(f"To be crawled urls:{[str(fire_event) for fire_event in to_crawl]}")
-        # clean up the temporary directory, in case of a dirty directory
-        self.crawler.cleanup()
         # records with errors are stored in errors list for a backup
         errors = []
         # get the latest fire_id, if there is no fire id exists, then fire_id = 0
@@ -144,31 +141,20 @@ class DataFromFireRunnable(Runnable):
             logger.info(f"Now working on: {fire_event}")
             fire_id, year, state, urlname = fire_event.to_tuple(fire_id)
             # generate the url from known information
-            # download all records to temporary directory
-            self.crawler.crawl(fire_event.to_url())
-            # for each record in the temporary directory:
-            for record in [f for f in os.listdir(FIRE_DATA_DIR) if not f.startswith('.')]: # glob
-                absolute_path_folder = os.path.join(FIRE_DATA_DIR, record)
-                # extract the shapefile into a dictionary called single_record
-                try:
-                    single_record = self.extractor.extract(absolute_path_folder, if_sequence, fire_id, state)
-                except IncompleteShapefileError as err:
-                    # the extractor result can be empty when the record is incomplete and cannot be decoded
-                    # in this situation, skip the record
-                    logger.warning(str(err))
-                    continue
-                # insert the single record into fire table
-                self.dumper.insert(single_record)
-                logger.info(f"Successfully inserted {record} into fire_info.")
+            # download all records to temporary directory and extract the list of records
+            single_record = self.crawler.crawl(fire_event.to_url(), fire_id, state)
+            # insert the single record into fire table
+            for record in single_record:
+                self.dumper.insert(record)
+                logger.info(f"Successfully inserted {record['firename']+str(record['datetime'])} "
+                            f"into fire_info.")
             # after the for loop, all records belongs to this fire should be inserted into fire
             # then we can create the merged record and insert it into fire_merged and mark it as crawled in fire_history
             fire_id = self.get_fire_id(fire_event,
                       self.merge_fire_and_return_fire_id(fire_id, year, urlname, state, current_year, errors))
             logger.info(f"New fire id : {fire_id}")
-            # clean up the temporary directory for crawling the next fire record
-            self.crawler.cleanup()
         # finished all insertion
-        logger.info("Finished running. Waiting for one day.")
+        logger.info("Finished running.")
         logger.info(f"Error in : {errors}")
         return
 
@@ -182,6 +168,6 @@ if __name__ == '__main__':
         DataFromFireRunnable().run()
         # sleep one day
         time.sleep(3600 * 24)
-        logger.info("Finished running. Waiting for one day.")
+        logger.info("Finished running.")
 
 

@@ -31,13 +31,10 @@ def search_administrative_boundaries():
         SELECT st_asgeojson(t.geom) as geojson from us_cities t where city_id = {region_id}
         '''
 
-        with Connection() as conn:
-            cur = conn.cursor()
-            cur.execute(query)
-            resp = make_response(jsonify(
-                [json.loads(geom) for geom, in cur.fetchall()]
+        return make_response(jsonify(
+            [json.loads(geom) for geom, in Connection.sql_execute(query)]
             ))
-            cur.close()
+
 
     else:
         # load abbreviation

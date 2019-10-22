@@ -162,12 +162,12 @@ def region_temp():
     # generate date series. values are set to None/null
     date_series = gen_date_series(days, timestamp_str)
 
-    query = '''
+    query = f'''
     select date(rft.reftime), avg(tmp) from noaa0p25 noaa,
     (
         SELECT reftime, tid from noaa0p25_reftime rft
-        where rft.reftime < TIMESTAMP '{timestamp}'
-        and rft.reftime > TIMESTAMP '{timestamp}' - interval '{days} day'
+        where rft.reftime < TIMESTAMP '{timestamp_str}'
+        and rft.reftime > TIMESTAMP '{timestamp_str}' - interval '{days} day'
     ) as rft,
     (
         SELECT geometry.gid from noaa0p25_geometry_neg geometry,
@@ -185,13 +185,9 @@ def region_temp():
     GROUP BY date(rft.reftime)
     '''
 
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
-        resp = make_response(jsonify(
-            fill_series(date_series, cur.fetchall())
-        ))
-    return resp
+    return make_response(jsonify(
+        fill_series(date_series, Connection.sql_execute(query))))
+
 
 
 @bp.route('region-moisture', methods=['GET'])
@@ -208,12 +204,12 @@ def region_moisture():
     # generate date series. values are set to None/null
     date_series = gen_date_series(days, timestamp_str)
 
-    query = '''
+    query = f'''
     select date(rft.reftime), avg(soilw) from noaa0p25 noaa,
     (
         SELECT reftime, tid from noaa0p25_reftime rft
-        where rft.reftime < TIMESTAMP '{timestamp}'
-        and rft.reftime > TIMESTAMP '{timestamp}' - interval '{days} day'
+        where rft.reftime < TIMESTAMP '{timestamp_str}'
+        and rft.reftime > TIMESTAMP '{timestamp_str}' - interval '{days} day'
     ) as rft,
     (
         SELECT geometry.gid from noaa0p25_geometry_neg geometry,
@@ -231,13 +227,10 @@ def region_moisture():
     GROUP BY date(rft.reftime)
     '''
 
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
-        resp = make_response(jsonify(
-            fill_series(date_series, cur.fetchall())
-        ))
-    return resp
+    return make_response(jsonify(
+        fill_series(date_series,
+                    Connection.sql_execute(query))))
+
 
 
 @bp.route("/temp", methods=['POST'])
@@ -322,7 +315,7 @@ def send_temperature_data():
 
         :returns: a list of temp objects, with lat, long, and temp value
     """
-    temperature_fetch = Connection().sql_execute("select t.lat, t.long, t.temperature from recent_temperature t "
+    temperature_fetch = Connection.sql_execute("select t.lat, t.long, t.temperature from recent_temperature t "
                                                  "where t.endtime = (select max(t.endtime) from recent_temperature t"
                                                  " where t.endtime <(select max(t.endtime) from recent_temperature t))")
 

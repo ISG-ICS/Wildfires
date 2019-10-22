@@ -28,7 +28,7 @@ def send_wildfire():
 
     resp = make_response(
         jsonify([{"long": lon, "lat": lat, "nlp": True, "text": text} for lon, lat, nlp_text, text in
-                 Connection().sql_execute(
+                 Connection.sql_execute(
                      f"select l.top_left_long, l.top_left_lat, r.text, r.text from locations l, images i, records r "
                      f"where l.id = i.id and r.id = l.id and i.wildfire_prob>0.9 and "
                      f"l.top_left_long>{west} and l.top_left_lat<{north} "

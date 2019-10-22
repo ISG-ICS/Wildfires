@@ -1,15 +1,13 @@
 import rootpath
-from flask import Flask
-from flask_cors import CORS
 
+rootpath.append()
 import router.data_router
 import router.dropDownMenu_router
 import router.search_router
 import router.tweet_router
-
-rootpath.append()
-
 import router.root_router
+from flask import Flask
+from flask_cors import CORS
 
 
 def create_app(test_config=None):

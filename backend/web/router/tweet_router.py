@@ -9,7 +9,6 @@ import requests
 import rootpath
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
-
 from router.data_router import fill_series, gen_date_series
 
 rootpath.append()
@@ -67,7 +66,7 @@ def send_tweet_count_data():
     """
     resp = make_response(
         jsonify({date.isoformat(): count for date, count in
-                 Connection().sql_execute(
+                 Connection.sql_execute(
                      "select m.t_date, count(*) from "
                      "(select r.create_at::timestamp::date as t_date from records r,locations l where r.id=l.id  group by(r.create_at)) "
                      "as m group by m.t_date order by m.t_date")}))
@@ -84,7 +83,7 @@ def send_fire_tweet_data():
     """
     resp = make_response(
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
-                 Connection().sql_execute(
+                 Connection.sql_execute(
                      "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, r.id "
                      "from records r,locations l where r.id=l.id AND create_at>now()-interval '30 day'")]))
     return resp
@@ -98,20 +97,14 @@ def send_recent_tweet_data():
 
         :returns: a list of tweet objects, each with time, lat, long, text, id
     """
-    with Connection() as conn:
-        cur = conn.cursor()
-        livetweet_query = "select it.create_at, it.top_left_long, it.top_left_lat, it.bottom_right_long, it.bottom_right_lat, it.id, it.text, i.image_url, it.profile_pic, it.user_name " \
-                          "from (select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, l.id, r.text, r.profile_pic, r.user_name " \
-                          "from records r, locations l where r.id=l.id and r.profile_pic is not null and r.create_at between (SELECT current_timestamp - interval '10 month') and current_timestamp) AS it LEFT JOIN images i on i.id = it.id where i.image_url is not null "
-        cur.execute(livetweet_query)
-        resp = make_response(
-            jsonify(
-                [{"create_at": time.isoformat(), "long": long, "lat": lat, "id": id, "text": text, "image": image,
-                  "profilePic": profilePic, "user": user} for
-                 time, long, lat, _, _, id, text, image, profilePic, user in
-                 cur.fetchall()]))
-        cur.close()
-    return resp
+    livetweet_query = "select it.create_at, it.top_left_long, it.top_left_lat, it.bottom_right_long, it.bottom_right_lat, it.id, it.text, i.image_url, it.profile_pic, it.user_name " \
+                      "from (select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, l.id, r.text, r.profile_pic, r.user_name " \
+                      "from records r, locations l where r.id=l.id and r.profile_pic is not null and r.create_at between (SELECT current_timestamp - interval '10 month') and current_timestamp) AS it LEFT JOIN images i on i.id = it.id where i.image_url is not null "
+    return make_response(jsonify(
+        [{"create_at": time.isoformat(), "long": long, "lat": lat, "id": id, "text": text, "image": image,
+          "profilePic": profilePic, "user": user}
+         for time, long, lat, _, _, id, text, image, profilePic, user in
+         Connection.sql_execute(livetweet_query)]))
 
 
 @bp.route('/region-tweet')
@@ -199,31 +192,26 @@ def tweet_from_id():
     """
     tweet_id = int(flask_request.args.get('tweet_id'))
 
-    query = '''
+    query = f'''
     select records.id, create_at, text,user_name,profile_pic,image_url from
     (
-        SELECT id, create_at, text,user_name,profile_pic   from records
-        WHERE id = %s
+        SELECT id, create_at, text,user_name,profile_pic from records
+        WHERE id = {tweet_id}
     ) as records
-    LEFT JOIN
-    images
+    LEFT JOIN images
     on records.id = images.id
     LIMIT 1
     '''
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query, (tweet_id,))
-        if cur.rowcount:
-            id_, create_at, text, user_name, profile_pic, image_url = cur.fetchone()
-            resp = make_response(jsonify({
-                'id': str(id_),  # Javascript cannot handle int8, sending as string
-                'create_at': create_at,
-                'text': text,
-                'user': user_name,
-                'profilePic': profile_pic,
-                'image': image_url
-            }))
-        else:
-            resp = ''
 
-    return resp
+    try:
+        id_, create_at, text, user_name, profile_pic, image_url = next(Connection.sql_execute(query))
+        return make_response(jsonify({
+            'id': str(id_),  # Javascript cannot handle int8, sending as string
+            'create_at': create_at,
+            'text': text,
+            'user': user_name,
+            'profilePic': profile_pic,
+            'image': image_url
+        }))
+    except StopIteration:
+        return ""

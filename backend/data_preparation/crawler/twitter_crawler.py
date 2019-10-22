@@ -34,7 +34,8 @@ class TweetCrawler(CrawlerBase):
         self.crawled_id_set: Set[int] = set()
         self.data_from_db_count = 0
 
-    def start(self, keywords: List[str], batch_number: int, fetch_from_db: bool = False, end_clause=None) -> None:
+    def start(self, keywords: List[str], batch_number: int, fetch_from_db: bool = False, end_clause=None,
+              using_sample_API: bool = False) -> None:
         self.keywords = keywords
 
         if not self.extractor:
@@ -53,7 +54,7 @@ class TweetCrawler(CrawlerBase):
             while not end_clause:
                 # starts crawling information to in-memory structure self.data
 
-                self.crawl(self.keywords, batch_number, fetch_from_db)
+                self.crawl(self.keywords, batch_number, fetch_from_db, using_sample_API)
                 self.total_crawled_count += len(self.data)
                 # call extractor to extract from self.data
                 extracted_data = self.extractor.extract(self.data)
@@ -62,7 +63,8 @@ class TweetCrawler(CrawlerBase):
         except StopIteration:
             logger.info("Crawler Finished")
 
-    def crawl(self, keywords: List, batch_number: int, fetch_from_db: bool) -> Union[Dict, List]:
+    def crawl(self, keywords: List, batch_number: int, fetch_from_db: bool,
+              using_sample_API: bool) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
 
         if not fetch_from_db:
@@ -83,7 +85,7 @@ class TweetCrawler(CrawlerBase):
             ids = list(self.crawled_id_set)
         elif not using_sample_API:
             ids = []
-            for t in (api.GetStreamSample()):
+            for t in (self.api.GetStreamSample()):
                 if "delete" not in t.keys():  # ignore deleted tweets. Sometime API gives deleted tweet.
                     for word in keywords:
                         if re.compile(r'\b({})\b'.format(word), flags=re.IGNORECASE).search(t["text"]):
@@ -154,4 +156,5 @@ class TweetCrawler(CrawlerBase):
 if __name__ == '__main__':
     crawler = TweetCrawler(TweetExtractor(), TweetDumper())
 
-    crawler.start(['wildfire'], 100, fetch_from_db=True, end_clause=None)
+    # Make sure at most one is set True, either fetch_from_db or using_sample_API
+    crawler.start(['wildfire'], 100, fetch_from_db=False, end_clause=None, using_sample_API=True)

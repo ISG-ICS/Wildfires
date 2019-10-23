@@ -1,15 +1,14 @@
 import rootpath
 
-from flask import Blueprint, make_response, jsonify, request as flask_request
-
 rootpath.append()
+from flask import Blueprint, make_response, jsonify, request as flask_request
 from backend.connection import Connection
 
 bp = Blueprint('dropdownMenu', __name__, url_prefix='/dropdownMenu')
 
 
-@bp.route('', methods=['GET'])
-def dropBox():
+@bp.route('')
+def drop_box():
     """
     auto-completion relies on this API.
     frontend send user types through userInput,
@@ -18,14 +17,9 @@ def dropBox():
     return a list/array: [ (city, county, state, id), ... ]
     :return:
     """
-    userInput = flask_request.args.get('userInput')
+    user_input = flask_request.args.get('userInput')
     # request_json = flask_request.get_json(force=True)
-    # userInput = request_json['userInput']
-    name_list = "select * from fuzzy_search(%s);"
+    # user_input = request_json['userInput']
+    name_list_query = f"select * from fuzzy_search('{user_input + '%'}')"
 
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(name_list, (userInput + "%",))
-        resp = make_response(jsonify(cur.fetchall()))
-        cur.close()
-    return resp
+    return make_response(jsonify(list(Connection.sql_execute(name_list_query))))

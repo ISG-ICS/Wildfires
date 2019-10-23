@@ -182,7 +182,7 @@ def tweet_by_date():
     return resp
 
 
-@bp.route("/tweet-from-id", methods=['GET'])
+@bp.route("/tweet-from-id")
 def tweet_from_id():
     """
     get detail of specific tweet

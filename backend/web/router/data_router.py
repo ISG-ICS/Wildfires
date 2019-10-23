@@ -148,7 +148,7 @@ def aggregation():
     return resp
 
 
-@bp.route('region-temp', methods=['GET'])
+@bp.route('region-temp')
 def region_temp():
     """
     (unused) average temperature in a administrative boundary
@@ -189,8 +189,7 @@ def region_temp():
         fill_series(date_series, Connection.sql_execute(query))))
 
 
-
-@bp.route('region-moisture', methods=['GET'])
+@bp.route('region-moisture')
 def region_moisture():
     """
     (unused) average soil moisture in a administrative boundary
@@ -228,9 +227,7 @@ def region_moisture():
     '''
 
     return make_response(jsonify(
-        fill_series(date_series,
-                    Connection.sql_execute(query))))
-
+        fill_series(date_series, Connection.sql_execute(query))))
 
 
 @bp.route("/temp", methods=['POST'])

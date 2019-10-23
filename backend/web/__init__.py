@@ -2,7 +2,7 @@ import rootpath
 
 rootpath.append()
 import router.data_router
-import router.dropDownMenu_router
+import router.dropdown_menu_router
 import router.search_router
 import router.tweet_router
 import router.root_router
@@ -32,7 +32,7 @@ def create_app(test_config=None):
     app.register_blueprint(router.data_router.bp)
     app.register_blueprint(router.tweet_router.bp)
     app.register_blueprint(router.root_router.bp)
-    app.register_blueprint(router.dropDownMenu_router.bp)
+    app.register_blueprint(router.dropdown_menu_router.bp)
 
     return app
 

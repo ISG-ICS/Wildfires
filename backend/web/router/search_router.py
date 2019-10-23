@@ -10,7 +10,7 @@ from backend.connection import Connection
 bp = Blueprint('search', __name__, url_prefix='/search')
 
 
-@bp.route('', methods=['GET'])
+@bp.route('', )
 def search_administrative_boundaries():
     """
     search administrative boundaries

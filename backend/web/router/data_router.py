@@ -1,6 +1,10 @@
 """
 @author: Yuan Fu, Yichi Zhang
 """
+import rootpath
+
+rootpath.append()
+
 import json
 import os
 from copy import deepcopy
@@ -9,11 +13,8 @@ from typing import List, Dict, Union, Tuple
 
 import matplotlib.path as mplPath
 import numpy as np
-import rootpath
 from dateutil import parser
 from flask import Blueprint, make_response, jsonify, send_from_directory, request as flask_request
-
-rootpath.append()
 from backend.connection import Connection
 from paths import BOUNDARY_PATH
 
@@ -140,12 +141,10 @@ def aggregation():
         # ppt from PRISM
         cur.execute(query4_ppt, (timestamp_str, timestamp_str, days, lng, lat, radius))
         ppt = cur.fetchall()
-        ppt_series = fill_series(date_series, ppt)
-        resp = make_response(jsonify({'tmp': temp_series, 'soilw': mois_series, 'cnt_tweet': tweet_series,
-                                      'ppt': ppt_series}))
-
         cur.close()
-    return resp
+        ppt_series = fill_series(date_series, ppt)
+    return make_response(jsonify({'tmp': temp_series, 'soilw': mois_series, 'cnt_tweet': tweet_series,
+                                      'ppt': ppt_series}))
 
 
 @bp.route('region-temp')
@@ -290,8 +289,7 @@ def wind():
     :return:
     """
     # TODO: replace source of wind data to db
-    resp = make_response(send_from_directory('static/data', 'latest.json'))
-    return resp
+    return make_response(send_from_directory('static/data', 'latest.json'))
 
 
 @bp.route("/rain_fall")
@@ -300,8 +298,7 @@ def rainfall():
     (unused) rain fall data from a static .csv file
     """
     # TODO: replace source of rain fall data to db
-    resp = make_response(send_from_directory('data', 'rain_fall_sample.csv'))
-    return resp
+    return make_response(send_from_directory('data', 'rain_fall_sample.csv'))
 
 
 @bp.route("/recent-temp")
@@ -378,14 +375,13 @@ def fire():
             f"AND ('{end_date}'::date >= f.end_time::date) )) " \
             f"AND (st_contains(ST_GeomFromText('{poly}'),f.{size_getters[size]}) " \
             f"OR st_overlaps(ST_GeomFromText('{poly}'),f.{size_getters[size]}))"
-    resp = make_response(jsonify([{"type": "Feature",
+    return make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "starttime": start_time,
                                                   "endtime": end_time, "density": 520, "area": max_area},
                                    "geometry": json.loads(geom)}
-                                  for fid, name, agency, start_time, end_time, geom, max_area in
-                                  Connection.sql_execute(query)]))
-    return resp
+                                  for fid, name, agency, start_time, end_time, geom, max_area
+                                  in Connection.sql_execute(query)]))
 
 
 @bp.route("/fire-with-id", methods=['POST'])
@@ -399,7 +395,7 @@ def fire_with_id():
             f"id, name, if_sequence, agency, state, start_time, end_time, st_asgeojson({size_getters[size]}) as geom," \
             f" st_asgeojson(st_envelope({size_getters[size]})) as bbox, " \
             f"max_area FROM fire_merged where id = {id}"
-    resp = make_response(jsonify([{"type": "Feature",
+    return make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
                                                   "starttime": start_time,
@@ -409,9 +405,7 @@ def fire_with_id():
                                    "bbox": json.loads(bbox)
                                    }
                                   for fid, name, if_sequence, agency, state, start_time, end_time, geom, bbox, max_area
-                                  in
-                                  Connection.sql_execute(query)]))
-    return resp
+                                  in Connection.sql_execute(query)]))
 
 
 @bp.route("/fire-with-id-seperated", methods=['POST'])
@@ -425,7 +419,7 @@ def fire_with_id_seperated():
             f"f.id, f.name, f.if_sequence, f.agency, f.state, f.time,st_asgeojson(f.{size_getters[size]}) as geom," \
             f" st_asgeojson(st_envelope(m.{size_getters[size]})) as bbox," \
             f" f.area FROM fire_merged m, fire f where f.id = {id} and m.id = f.id"
-    resp = make_response(jsonify([{"type": "Feature",
+    return make_response(jsonify([{"type": "Feature",
                                    "id": fid,
                                    "properties": {"name": name, "agency": agency, "if_sequence": if_sequence,
                                                   "time": time,
@@ -433,7 +427,5 @@ def fire_with_id_seperated():
                                    "geometry": json.loads(geom),
                                    "bbox": json.loads(bbox)
                                    }
-                                  for fid, name, if_sequence, agency, state, time, geom, bbox, max_area in
-                                  Connection.sql_execute(query)]))
-
-    return resp
+                                  for fid, name, if_sequence, agency, state, time, geom, bbox, max_area
+                                  in Connection.sql_execute(query)]))

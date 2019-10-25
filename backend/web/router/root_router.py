@@ -1,9 +1,9 @@
-import time
-
 import rootpath
-from flask import Blueprint, make_response, jsonify, request as flask_request
 
 rootpath.append()
+
+import time
+from flask import Blueprint, make_response, jsonify, request as flask_request
 from backend.connection import Connection
 
 bp = Blueprint('root', __name__, url_prefix='/')
@@ -26,7 +26,7 @@ def send_wildfire():
     start = time.mktime(time.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ"))
     end = time.mktime(time.strptime(end, "%Y-%m-%dT%H:%M:%S.%fZ"))
 
-    resp = make_response(
+    return make_response(
         jsonify([{"long": lon, "lat": lat, "nlp": True, "text": text} for lon, lat, nlp_text, text in
                  Connection.sql_execute(
                      f"select l.top_left_long, l.top_left_lat, r.text, r.text from locations l, images i, records r "
@@ -34,4 +34,3 @@ def send_wildfire():
                      f"l.top_left_long>{west} and l.top_left_lat<{north} "
                      f"and l.bottom_right_long<{east} and l.bottom_right_lat>{south} "
                      f"and extract(epoch from r.create_at) >{start} and extract(epoch from r.create_at) <{end}")]))
-    return resp

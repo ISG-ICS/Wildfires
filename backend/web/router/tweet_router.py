@@ -1,17 +1,17 @@
 """
 @author: Yuan Fu, Yichi Zhang
 """
+import rootpath
+
+rootpath.append()
+
 import json
 import re
 import string
-
 import requests
-import rootpath
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
 from router.data_router import fill_series, gen_date_series
-
-rootpath.append()
 from backend.connection import Connection
 from paths import TWITTER_API_CONFIG_PATH
 from backend.utilities.ini_parser import parse
@@ -53,8 +53,7 @@ def send_live_tweet():
             center = [(x + y) / 2.0 for x, y in zip(left, right)]
             id_set.add(obj["id"])
             return_dict.append({"lat": center[1], "long": center[0], "id": id})
-    resp = make_response(jsonify(return_dict))
-    return resp
+    return make_response(jsonify(return_dict))
 
 
 @bp.route("/tweet-count")
@@ -64,14 +63,12 @@ def send_tweet_count_data():
 
         :returns: a list of tweet objects, each with time, lat, long, id
     """
-    resp = make_response(
+    return make_response(
         jsonify({date.isoformat(): count for date, count in
                  Connection.sql_execute(
                      "select m.t_date, count(*) from "
                      "(select r.create_at::timestamp::date as t_date from records r,locations l where r.id=l.id  group by(r.create_at)) "
                      "as m group by m.t_date order by m.t_date")}))
-
-    return resp
 
 
 @bp.route("/fire-tweet")
@@ -81,12 +78,11 @@ def send_fire_tweet_data():
 
         :returns: a list of tweet objects, each with time, lat, long, id
     """
-    resp = make_response(
+    return make_response(
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
                  Connection.sql_execute(
                      "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, r.id "
                      "from records r,locations l where r.id=l.id AND create_at>now()-interval '30 day'")]))
-    return resp
 
 
 @bp.route("/recent-tweet")
@@ -124,13 +120,13 @@ def region_tweet():
     # generate date series. values are set to None/null
     date_series = gen_date_series(days, timestamp_str)
 
-    query = '''
+    query = f'''
     select date(rft.create_at), count(rft."id") from
     (
         SELECT id, create_at from records rec
-        where rec.create_at < TIMESTAMP '{timestamp}' -- UTC timezong
-        -- returning PDT without timezong label
-        and rec.create_at > TIMESTAMP '{timestamp}' - interval '{days} day'
+        where rec.create_at < TIMESTAMP '{timestamp_str}' -- UTC time zone
+        -- returning PDT without time zone label
+        and rec.create_at > TIMESTAMP '{timestamp_str}' - interval '{days} day'
     ) as rft,
     (
         SELECT id from locations loc,
@@ -147,13 +143,8 @@ def region_tweet():
     GROUP BY date(rft.create_at)
     '''
 
-    with Connection() as conn:
-        cur = conn.cursor()
-        cur.execute(query.format(region_id=region_id, timestamp=timestamp_str, days=days))
-        resp = make_response(jsonify(
-            fill_series(date_series, cur.fetchall())
-        ))
-    return resp
+    return make_response(jsonify(
+        fill_series(date_series, Connection.sql_execute(query))))
 
 
 @bp.route('/tweet-by-date')
@@ -173,13 +164,11 @@ def tweet_by_date():
     from records r, locations l where r.id = l.id and r.create_at <  to_timestamp({end_date_str}) and r.create_at >  to_timestamp({start_date_str})
     '''
 
-    resp = make_response(
+    return make_response(
         jsonify(
             [{'create_at':create_at, 'id': id, 'lat': (top_left_lat + bottom_right_lat) / 2, 'long': (top_left_long + bottom_right_long) / 2}
              for create_at, id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat in
              Connection.sql_execute(query)]))
-
-    return resp
 
 
 @bp.route("/tweet-from-id")

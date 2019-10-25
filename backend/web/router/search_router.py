@@ -1,10 +1,10 @@
-import json
-import random
-
 import rootpath
-from flask import Blueprint, make_response, jsonify, request as flask_request
 
 rootpath.append()
+
+import json
+import random
+from flask import Blueprint, make_response, jsonify, request as flask_request
 from backend.connection import Connection
 
 bp = Blueprint('search', __name__, url_prefix='/search')
@@ -54,9 +54,8 @@ def search_administrative_boundaries():
             if not results:
                 cur.execute(search_city, (keyword,))
                 results = [json.loads(geom) for geom, in cur.fetchall()]
-            resp = make_response(jsonify(results))
             cur.close()
-    return resp
+        return make_response(jsonify(results))
 
 
 @bp.route("/boundaries", methods=['POST'])
@@ -90,10 +89,8 @@ def send_boundaries_data():
             result_list.extend(_get_geometry(cur, select_counties, poly))
         if cities:
             result_list.extend(_get_geometry(cur, select_cities, poly))
-
-    resp = make_response(jsonify(result_list))
-    cur.close()
-    return resp
+        cur.close()
+    return make_response(jsonify(result_list))
 
 
 def _get_geometry(cur, sql, poly) -> list:

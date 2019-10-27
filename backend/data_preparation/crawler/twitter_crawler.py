@@ -35,37 +35,15 @@ class TweetCrawler(CrawlerBase):
         self.data_from_db_count = 0
 
     def start(self, keywords: List[str], batch_number: int, fetch_from_db: bool = False, end_clause=None,
-              using_sample_API: bool = False) -> None:
-        self.keywords = keywords
-
-        if not self.extractor:
-            logger.error('Extractor not found')
-            raise ExtractorException('Extractor not found')
-
-        if not self.dumper:
-            logger.error('Dumper not found')
-            raise DumperException('Dumper not found')
-
-        # TODO: check for exceptions raised from extractor and dumper
-        if fetch_from_db:
-            self.id_generator = self.fetch_status_id_from_db()
-
-        try:
-            while not end_clause:
-                # starts crawling information to in-memory structure self.data
-
-                self.crawl(self.keywords, batch_number, fetch_from_db, using_sample_API)
-                self.total_crawled_count += len(self.data)
-                # call extractor to extract from self.data
-                extracted_data = self.extractor.extract(self.data)
-                # calls dumper to data from self.data to database
-                self.dumper.insert(extracted_data)
-        except StopIteration:
-            logger.info("Crawler Finished")
+              using_sample_api: bool = False) -> None:
+        pass
 
     def crawl(self, keywords: List, batch_number: int, fetch_from_db: bool,
-              using_sample_API: bool) -> Union[Dict, List]:
+              using_sample_api: bool) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
+
+        if fetch_from_db or using_sample_api:
+            assert fetch_from_db != using_sample_api, "Only one of fetch_from_db and using_sample_API can be set True"
 
         if not fetch_from_db:
             # crawl status ids
@@ -83,7 +61,7 @@ class TweetCrawler(CrawlerBase):
 
             # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
             ids = list(self.crawled_id_set)
-        elif not using_sample_API:
+        elif using_sample_api:
             ids = []
             for t in (self.api.GetStreamSample()):
                 if "delete" not in t.keys():  # ignore deleted tweets. Sometime API gives deleted tweet.
@@ -157,4 +135,4 @@ if __name__ == '__main__':
     crawler = TweetCrawler(TweetExtractor(), TweetDumper())
 
     # Make sure at most one is set True, either fetch_from_db or using_sample_API
-    crawler.start(['wildfire'], 100, fetch_from_db=False, end_clause=None, using_sample_API=True)
+    crawler.start(['wildfire'], 100, fetch_from_db=True, end_clause=None, using_sample_api=True)

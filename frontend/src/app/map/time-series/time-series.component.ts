@@ -53,7 +53,7 @@ export class TimeSeriesComponent implements OnInit {
         Object.keys(dateAndCount).forEach(key => {
              chartData.push([new Date(key).getTime(), dateAndCount[key]]);
          });
-        console.log(chartData);
+        // console.log(chartData);
         // const chartData = [];
         // const dailyCount = {};
         // for (const tweet of tweets) {
@@ -101,6 +101,7 @@ export class TimeSeriesComponent implements OnInit {
                             this.currentTick = tick;
                             this.hasPlotBand = true;
                             this.timeService.setCurrentDate(dateSelectedInYMD);
+
                         } else if (dateSelectedInYMD !== this.timeService.getCurrentDate()) {
                             timeseries.xAxis[0].removePlotBand('plotBand');
                             timeseries.xAxis[0].addPlotBand({

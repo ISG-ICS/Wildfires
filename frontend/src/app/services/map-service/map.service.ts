@@ -26,9 +26,9 @@ export class MapService {
     }
 
 
-    getFireTweetData(): Observable<Tweet[]> {
-        return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/fire-tweet`);
-    }
+    // getFireTweetData(): Observable<Tweet[]> {
+    //     return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/fire-tweet`);
+    // }
 
      getDateCountData(): Observable<Tweet[]> {
         return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/tweet-count`);
@@ -57,6 +57,21 @@ export class MapService {
             return {type: 'FeatureCollection', features: data};
         }));
     }
+
+
+    getFireTweetData(northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
+        console.log('hhhh');
+        console.log(northEastBoundaries);
+        console.log(start, end);
+        console.log('hhhh');
+        return this.http.post(`http://${environment.host}:${environment.port}/tweet/tweet-by-date`, JSON.stringify({
+            northEast: northEastBoundaries,
+            southWest: southWestBoundaries,
+            startDate: start,
+            endDate: end,
+        }));
+    }
+
 
 
     getWindData(): Observable<Wind[]> {

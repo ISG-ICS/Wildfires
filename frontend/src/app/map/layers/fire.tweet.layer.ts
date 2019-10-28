@@ -27,7 +27,15 @@ export class FireTweetLayer {
     constructor(private mainControl, private mapService: MapService, private map, private timeService: TimeService) {
         // This is the overlay controller defined in constructor
         // rewrite
-        this.mapService.getFireTweetData().subscribe(this.tweetDataHandler);
+        this.timeService.timeRangeChange.subscribe(this.timeRangeChangeFirePolygonHandler);
+        this.map.on('zoomend, moveend', () => {
+            const [start, end] = this.timeService.getRangeDate();
+            const bound = this.map.getBounds();
+            const boundNE = {lat: bound._northEast.lat, lon: bound._southWest.lng};
+            const boundSW = {lat: bound._southWest.lat, lon: bound._northEast.lng};
+            console.log('sending ' + bound);
+            this.mapService.getFireTweetData(boundNE, boundSW, start, end).subscribe(this.tweetDataHandler);
+        });
 
         this.map.on('overlayadd', (event) => {
             if (event.name === 'Fire tweet') {
@@ -40,7 +48,26 @@ export class FireTweetLayer {
                 this.currentMarker = undefined;
             }
         });
+
+
     }
+
+    timeRangeChangeFirePolygonHandler = () => {
+        const [start, end] = this.timeService.getRangeDate();
+        console.log([start, end]);
+        this.getFireTweet(start, end);
+        if (this.tweetLayer) {
+            this.map.removeLayer(this.tweetLayer);
+            this.mainControl.removeLayer(this.tweetLayer);
+        }
+    };
+
+    getFireTweet = (start, end) => {
+        const bound = this.map.getBounds();
+        const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
+        const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
+        this.mapService.getFireTweetData(boundNE, boundSW, start, end).subscribe(this.tweetDataHandler);
+    };
 
     // TODO: REWRITE IT!!!!!!
     static translateTweetDataToShow(tweetJSON) {
@@ -156,6 +183,10 @@ export class FireTweetLayer {
          *
          *  @param {Object} list of tweet object with geolocation, time of tweet, id of tweet
          */
+        if (this.tweetLayer) {
+            this.map.removeLayer(this.tweetLayer);
+            this.mainControl.removeLayer(this.tweetLayer);
+        }
         this.tweetData = tweets;
         console.log(this.tweetData);
         this.tweetLayer = L.TileLayer.maskCanvas({
@@ -170,45 +201,38 @@ export class FireTweetLayer {
 
         this.tweetData.forEach(tweet => {
                 tempData.push([tweet.lat, tweet.long]);
+                this.tempDataWithID.push([tweet.lat, tweet.long, Number(tweet.id).toFixed()]);
             }
         );
 
         this.tweetLayer.setData(tempData);
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
-        this.timeRangeChangeHandler();
+        this.map.addLayer(this.tweetLayer);
     }
 
-    timeRangeChangeHandler = () => {
-        /**
-         *  Set tweetLayer data satisfy the time range
-         *
-         *  Filter out tweets which not satisfy the time range selection;
-         *  store qualified tweets with their id in list 'tempDataWithID' for later content display usage
-         */
-        this.tempDataWithID = [];
-        const [startDateInMs, endDateInMs] = this.timeService.getRangeDate();
-        this.timeService.getTweetByDate(startDateInMs, endDateInMs).subscribe(tweets => {
-                const tempData = [];
-                tweets.forEach(tweet => {
-                        tempData.push([tweet.lat, tweet.long]);
-                    }
-                );
-                this.tweetLayer.setData(tempData);
-            }
-        );
-        // console.log(startDateInMs);
-        // console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
 
-        // this.tweetData.forEach(tweet => {
-        //     const time = new Date(tweet.create_at).getTime();
-        //     if (time > startDateInMs && time < endDateInMs) {
-        //         tempData.push([tweet.lat, tweet.long]);
-        //         this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
-        //     }
-        // });
-        // console.log(tempData);
-        // this.tweetLayer.setData(tempData); //draw on twittermap
-    }
+    // this.timeService.getTweetByDate(boundNE, boundSW, startDateInMs, endDateInMs).subscribe(tweets => {
+    //         const tempData = [];
+    //         tweets.forEach(tweet => {
+    //                 tempData.push([tweet.lat, tweet.long]);
+    //             }
+    //         );
+    //         this.tweetLayer.setData(tempData);
+    //     }
+    // );
+
+    // console.log(startDateInMs);
+    // console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
+
+    // this.tweetData.forEach(tweet => {
+    //     const time = new Date(tweet.create_at).getTime();
+    //     if (time > startDateInMs && time < endDateInMs) {
+    //         tempData.push([tweet.lat, tweet.long]);
+    //         this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
+    //     }
+    // });
+    // console.log(tempData);
+    // this.tweetLayer.setData(tempData); //draw on twittermap
 
     idOverPoint(x, y) {
         /**
@@ -228,6 +252,7 @@ export class FireTweetLayer {
             const distY = Math.abs((this.tempDataWithID[i][1] - y) / this.scaleY);
             // if the mouse almost over a tweet dot, use this to rescale the distance
             if (distX <= 0.001 && distY <= 0.001) {
+                console.log("wowowo", [i, this.tempDataWithID[i][2]]);
                 return [i, this.tempDataWithID[i][2]];
             }
         }

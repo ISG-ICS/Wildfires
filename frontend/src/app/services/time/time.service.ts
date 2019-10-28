@@ -8,7 +8,7 @@
  * Last modified  : 2019-08-27 15:31:40
  */
 
-import {Injectable} from '@angular/core';
+import {Injectable, EventEmitter} from '@angular/core';
 import {Observable} from 'rxjs';
 import {environment} from '../../../environments/environment';
 import {HttpClient, HttpParams} from '@angular/common/http';
@@ -28,6 +28,7 @@ import {Tweet} from "../../models/tweet.model";
  *
  */
 export class TimeService {
+    public timeRangeChange = new EventEmitter();
     private currentDateInYMD = undefined;
     private rangeStartDateInMS = new Date().getTime() - 6 * 30 * 24 * 3600 * 1000;
     private rangeEndDateInMS = new Date().getTime();
@@ -43,6 +44,7 @@ export class TimeService {
     setRangeDate(startInMs: number, endInMs: number): void {
         this.rangeStartDateInMS = startInMs;
         this.rangeEndDateInMS = endInMs;
+        this.timeRangeChange.next({start: this.rangeStartDateInMS, end: this.rangeEndDateInMS});
     }
 
     getCurrentDate(): string {
@@ -53,9 +55,5 @@ export class TimeService {
         return [this.rangeStartDateInMS, this.rangeEndDateInMS];
     }
 
-    getTweetByDate(startDate, endDate): Observable<Tweet[]> {
-        return this.http.get<Tweet[]>(`http://${environment.host}:${environment.port}/tweet/tweet-by-date`,
-            {params: new HttpParams().set('start-date', startDate).set('end-date', endDate)});
-    }
 }
 

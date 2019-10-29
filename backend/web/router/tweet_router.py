@@ -208,14 +208,7 @@ def tweet_by_date():
                        and r.create_at >  to_timestamp({start_date_float}/1000)
                        and ST_CONTAINS(st_geomfromtext('{poly}') ,ST_MAKEPOINT(((l.top_left_long + l.bottom_right_long) /2), ((l.top_left_lat + l.bottom_right_lat)/2)))
             """
-    # query = f""" select r.id, r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat
-    #                     from records r, locations l
-    #                      where r.id = l.id
-    #                        and r.create_at <  to_timestamp({end_date_float}/1000)
-    #                        and r.create_at >  to_timestamp({start_date_float}/1000)
-    #                        and  l.top_left_long + l.bottom_right_long / 2 < {west} and  l.top_left_long + l.bottom_right_long  / 2 > {east}
-    #                        and  l.bottom_right_lat + l.top_left_lat /2 > {south} and l.bottom_right_lat + l.top_left_lat /2 < {north}
-    #                        """
+
 
     return make_response(
         jsonify(

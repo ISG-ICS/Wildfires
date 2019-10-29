@@ -59,12 +59,10 @@ export class MapService {
     }
 
 
-    getFireTweetData(northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
-        console.log('hhhh');
-        console.log(northEastBoundaries);
-        console.log(start, end);
-        console.log('hhhh');
+    getFireTweetData(OldnorthEastBoundaries, OldsouthWestBoundaries,northEastBoundaries, southWestBoundaries, start, end): Observable<any> {
         return this.http.post(`http://${environment.host}:${environment.port}/tweet/tweet-by-date`, JSON.stringify({
+            oldnorthEast: OldnorthEastBoundaries,
+            oldsouthWest: OldsouthWestBoundaries,
             northEast: northEastBoundaries,
             southWest: southWestBoundaries,
             startDate: start,

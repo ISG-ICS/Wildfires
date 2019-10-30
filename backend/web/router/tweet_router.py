@@ -146,46 +146,6 @@ def region_tweet():
     return make_response(jsonify(
         fill_series(date_series, Connection.sql_execute(query))))
 
-
-# @bp.route('/tweet-by-date',  methods=['POST'])
-# def tweet_by_date():
-#     """
-#     tweet count within specific date range
-#
-#     @:param start-date: ISO string
-#     @:param end-date: ISO string
-#     :return: [ {create_at, id, lat, lon}, ... ]
-#     """
-#     # start_date_str = flask_request.args.get('startDate').split('.')[0][:-3]
-#     # end_date_str = flask_request.args.get('endDate').split('.')[0][:-3]
-#     # north = flask_request.args.get('northEast')
-#     # east = flask_request.args.get('northEast')['lon']
-#     # south = flask_request.args.get('southWest')['lat']
-#     # west = flask_request.args.get('southWest')['lon']
-#     request_json = flask_request.get_json(force=True)
-#     start_date_str = request_json['startDate'].split('.')
-#     end_date_str = request_json['endDate'].split('.')
-#     # north = request_json['northEast']['lat']
-#     # east = request_json['northEast']['lon']
-#     # south = request_json['southWest']['lat']
-#     # west = request_json['southWest']['lon']
-#     # print(north)
-#
-#     # poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
-#
-#     query = f'''
-#     select r.create_at, r.id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat
-#     from records r, locations l where r.id = l.id and r.create_at <  to_timestamp({end_date_str}) and r.create_at >  to_timestamp({start_date_str})
-#     '''
-#
-#     resp = make_response(
-#         jsonify(
-#             [{'create_at':create_at, 'id': id, 'lat': (top_left_lat + bottom_right_lat) / 2, 'long': (top_left_long + bottom_right_long) / 2}
-#              for create_at, id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat in
-#              Connection.sql_execute(query)]))
-#
-#     return resp
-
 @bp.route('/tweet-by-date', methods=['POST'])
 def tweet_by_date():
     request_json = flask_request.get_json(force=True)
@@ -195,8 +155,7 @@ def tweet_by_date():
     west = request_json['southWest']['lon']
     start_date_float = request_json['startDate']
     end_date_float = request_json['endDate']
-    # size_getters = {0: "geom_full", 1: "geom_1e4", 2: "geom_1e3", 3: "geom_1e2",
-    #                 4: "geom_center"}
+
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
     print(poly)
 

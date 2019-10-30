@@ -217,24 +217,6 @@ export class HeatmapComponent implements OnInit {
 
     }
 
-    // fireEventHandler = (data) => {
-    //
-    //     const fireEventList = [];
-    //
-    //     for (const ev of data.fireEvents) {
-    //         const point = [ev.lat, ev.long];
-    //         const size = 40;
-    //         const fireIcon = L.icon({
-    //             iconUrl: 'assets/image/pixelfire.gif',
-    //             iconSize: [size, size],
-    //         });
-    //         const marker = L.marker(point, {icon: fireIcon}).bindPopup('I am on fire(image>40%). My evidence is:<br/>' + ev.text);
-    //         fireEventList.push(marker);
-    //
-    //     }
-    //     const fireEvents = L.layerGroup(fireEventList);
-    //     this.mainControl.addOverlay(fireEvents, 'Fire event');
-    // };
 
     heatmapDataHandler = (data) => {
         /**

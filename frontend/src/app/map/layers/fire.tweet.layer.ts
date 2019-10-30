@@ -45,8 +45,6 @@ export class FireTweetLayer {
             }
             this.boundNE = boundNEnow;
             this.boundSW = boundSWnow;
-            // console.log('sending ', bound._northEast.lat, bound._southWest.lng, bound._southWest.lat, bound._northEast.lng);
-            // this.mapService.getFireTweetData(this.boundNE, this.boundSW, start, end).subscribe(this.tweetDataHandler);
             if (this.tweetLayer) {
             this.map.removeLayer(this.tweetLayer);
             this.mainControl.removeLayer(this.tweetLayer);
@@ -249,30 +247,6 @@ export class FireTweetLayer {
         this.mainControl.addOverlay(this.tweetLayer, 'Fire tweet');
         this.map.addLayer(this.tweetLayer);
     }
-
-
-    // this.timeService.getTweetByDate(boundNE, boundSW, startDateInMs, endDateInMs).subscribe(tweets => {
-    //         const tempData = [];
-    //         tweets.forEach(tweet => {
-    //                 tempData.push([tweet.lat, tweet.long]);
-    //             }
-    //         );
-    //         this.tweetLayer.setData(tempData);
-    //     }
-    // );
-
-    // console.log(startDateInMs);
-    // console.log(this.timeService.getTweetByDate(startDateInMs, endDateInMs));
-
-    // this.tweetData.forEach(tweet => {
-    //     const time = new Date(tweet.create_at).getTime();
-    //     if (time > startDateInMs && time < endDateInMs) {
-    //         tempData.push([tweet.lat, tweet.long]);
-    //         this.tempDataWithID.push([tweet.lat, tweet.long, tweet.id]);
-    //     }
-    // });
-    // console.log(tempData);
-    // this.tweetLayer.setData(tempData); //draw on twittermap
 
     idOverPoint(x, y) {
         /**

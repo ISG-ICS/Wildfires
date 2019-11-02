@@ -67,7 +67,10 @@ class TweetMediaExtractor(ExtractorBase):
                 if not img_urls:
                     img_urls = [url for url in all_urls_unique if  # ins video
                                 "https://scontent-lax3-1.cdninstagram.com" and "mp4" in url and "s150x150" not in url]
-                return [img_urls[0]]
+                if img_urls:  # the url does not contain image or video
+                    return [img_urls[0]]
+                else:
+                    return []
             else:
                 logger.error('invalid url: ' + str(response.status_code))
                 return list()

@@ -63,14 +63,10 @@ class TweetCrawler(CrawlerBase):
             ids = list(self.crawled_id_set)
         elif using_sample_api:
             ids = set()
-            for t in (self.api.GetStreamSample()):
-                if "delete" not in t.keys():  # ignore deleted tweets. Sometime API gives deleted tweet.
-                    for word in keywords:
-                        if re.compile(r'\b({})\b'.format(word), flags=re.IGNORECASE).search(t["text"]):
-                            ids.add(t["id"])
-                            break  # Find one word in the text is enough.
-                    if len(ids) > batch_number:
-                        break
+            for t in (self.api.GetStreamFilter(None, keywords)):
+                ids.add(t["id"])
+                if len(ids) > batch_number:
+                    break
         else:
             # reprocess the crawled status ids that are stored in db
             ids = next(self.id_generator)

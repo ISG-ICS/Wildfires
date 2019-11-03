@@ -27,7 +27,7 @@ class TextFromTwitter(Runnable):
     def run(self, keywords: list = None, batch_num: int = 100, fetch_from_db: bool = False,
             using_sample_api: bool = False):
         if keywords is None:
-            keywords = ['wildfire']
+            keywords = ['wildfire', 'fire', 'smoke']
         logger.info('start crawling')
         self.crawler.keywords = keywords
         if fetch_from_db:

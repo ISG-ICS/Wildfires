@@ -16,8 +16,8 @@ from backend.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.dumper.twitter_dumper import TweetDumper
 from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
-from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
-from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
+from backend.data_preparation.dumper.dumperbase import DumperBase
+from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from backend.utilities.ini_parser import parse
 
 logger = logging.getLogger('TaskManager')
@@ -62,12 +62,12 @@ class TweetCrawler(CrawlerBase):
             # gets status with the list that has batch number (can be a bit more than the batch#) amount of tweets
             ids = list(self.crawled_id_set)
         elif using_sample_api:
-            ids = []
+            ids = set()
             for t in (self.api.GetStreamSample()):
                 if "delete" not in t.keys():  # ignore deleted tweets. Sometime API gives deleted tweet.
                     for word in keywords:
                         if re.compile(r'\b({})\b'.format(word), flags=re.IGNORECASE).search(t["text"]):
-                            ids.append(t["id"])
+                            ids.add(t["id"])
                             break  # Find one word in the text is enough.
                     if len(ids) > batch_number:
                         break

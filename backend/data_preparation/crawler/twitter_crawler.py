@@ -16,8 +16,8 @@ from backend.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.data_preparation.dumper.twitter_dumper import TweetDumper
 from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
-from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
-from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
+from backend.data_preparation.dumper.dumperbase import DumperBase
+from backend.data_preparation.extractor.extractorbase import ExtractorBase
 from backend.utilities.ini_parser import parse
 
 logger = logging.getLogger('TaskManager')
@@ -44,6 +44,8 @@ class TweetCrawler(CrawlerBase):
 
         if fetch_from_db or using_sample_api:
             assert fetch_from_db != using_sample_api, "Only one of fetch_from_db and using_sample_API can be set True"
+
+        keywords += self._fetch_new_fire_from_db()
 
         if not fetch_from_db:
             # crawl status ids
@@ -114,6 +116,13 @@ class TweetCrawler(CrawlerBase):
 
         return ids
 
+    def _fetch_new_fire_from_db(self):
+        result = set()
+        names = Connection.sql_execute(f"SELECT name FROM fire WHERE time > current_date - interval '7' day")
+        for name in names:
+            result.add(name)
+        return result
+
     @staticmethod
     def fetch_status_id_from_db():
         """a generator which generates 100 id list at a time"""
@@ -135,4 +144,4 @@ if __name__ == '__main__':
     crawler = TweetCrawler(TweetExtractor(), TweetDumper())
 
     # Make sure at most one is set True, either fetch_from_db or using_sample_API
-    crawler.start(['wildfire'], 100, fetch_from_db=True, end_clause=None, using_sample_api=True)
+    crawler.start(['wildfire'], 100, fetch_from_db=False, end_clause=None, using_sample_api=True)

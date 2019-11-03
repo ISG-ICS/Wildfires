@@ -120,7 +120,7 @@ class TweetCrawler(CrawlerBase):
         result = set()
         names = Connection.sql_execute(f"SELECT name FROM fire WHERE time > current_date - interval '7' day")
         for name in names:
-            result.add(name)
+            result.add(name[0])
         return result
 
     @staticmethod

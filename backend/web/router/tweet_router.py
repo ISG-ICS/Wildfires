@@ -71,18 +71,28 @@ def send_tweet_count_data():
                      "as m group by m.t_date order by m.t_date")}))
 
 
-@bp.route("/fire-tweet")
+@bp.route("/fire-tweet", methods=['post'])
 def send_fire_tweet_data():
     """
         This func gives all historical tweets objects with id
 
         :returns: a list of tweet objects, each with time, lat, long, id
     """
+
+    request_json = flask_request.get_json(force=True)
+    north = request_json['northEast']['lat']
+    east = request_json['northEast']['lon']
+    south = request_json['southWest']['lat']
+    west = request_json['southWest']['lon']
+
+    poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
+
     return make_response(
         jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
                  Connection.sql_execute(
-                     "select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, r.id "
-                     "from records r,locations l where r.id=l.id AND create_at>now()-interval '30 day'")]))
+                     f"select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, "
+                     f"r.id from records r join locations l on r.id=l.id AND ST_CONTAINS(st_geomfromtext({repr(poly)}) "
+                     f", geom_center) ")]))
 
 
 @bp.route("/recent-tweet")

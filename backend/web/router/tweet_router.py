@@ -67,7 +67,8 @@ def send_tweet_count_data():
         jsonify({date.isoformat(): count for date, count in
                  Connection.sql_execute(
                      "select m.t_date, count(*) from "
-                     "(select r.create_at::timestamp::date as t_date from records r,locations l where r.id=l.id  group by(r.create_at)) "
+                     "      (select r.create_at::timestamp::date as t_date "
+                     "          from records r,locations l where r.id=l.id  group by(r.create_at)) "
                      "as m group by m.t_date order by m.t_date")}))
 
 
@@ -84,15 +85,23 @@ def send_fire_tweet_data():
     east = request_json['northEast']['lon']
     south = request_json['southWest']['lat']
     west = request_json['southWest']['lon']
+    start_date_float = request_json['startDate']
+    end_date_float = request_json['endDate']
 
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
 
     return make_response(
-        jsonify([{"create_at": time.isoformat(), "long": lon, "lat": lat, "id": str(id)} for time, lon, lat, _, _, id in
+        jsonify([{"create_at": time.isoformat(), "long": (top_left_long + bottom_right_long) / 2,
+                  "lat": (top_left_lat + bottom_right_lat) / 2, "id": str(id)} for
+                 time, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat, id in
                  Connection.sql_execute(
                      f"select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, "
-                     f"r.id from records r join locations l on r.id=l.id AND ST_CONTAINS(st_geomfromtext({repr(poly)}) "
-                     f", geom_center) ")]))
+                     f"r.id "
+                     f"from records r join locations l "
+                     f"on r.id=l.id "
+                     f"AND ST_CONTAINS(st_geomfromtext({repr(poly)}) , geom_center) "
+                     f"and r.create_at between to_timestamp({start_date_float / 1000}) "
+                     f"                 and to_timestamp({end_date_float / 1000})")]))
 
 
 @bp.route("/recent-tweet")
@@ -176,7 +185,8 @@ def tweet_by_date():
 
     return make_response(
         jsonify(
-            [{'create_at':create_at, 'id': id, 'lat': (top_left_lat + bottom_right_lat) / 2, 'long': (top_left_long + bottom_right_long) / 2}
+            [{'create_at': create_at, 'id': id, 'lat': (top_left_lat + bottom_right_lat) / 2,
+              'long': (top_left_long + bottom_right_long) / 2}
              for create_at, id, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat in
              Connection.sql_execute(query)]))
 

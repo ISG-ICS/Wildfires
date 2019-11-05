@@ -95,13 +95,16 @@ def send_fire_tweet_data():
                   "lat": (top_left_lat + bottom_right_lat) / 2, "id": str(id)} for
                  time, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat, id in
                  Connection.sql_execute(
-                     f"select r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, "
-                     f"r.id "
-                     f"from records r join locations l "
-                     f"on r.id=l.id "
-                     f"AND ST_CONTAINS(st_geomfromtext({repr(poly)}) , geom_center) "
-                     f"and r.create_at between to_timestamp({start_date_float / 1000}) "
-                     f"                 and to_timestamp({end_date_float / 1000})")]))
+                     f"""
+                        SELECT r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, 
+                        r.id 
+                        FROM records r JOIN locations l
+                        ON r.id=l.id 
+                        AND r.create_at BETWEEN to_timestamp({start_date_float / 1000}) 
+                                     AND to_timestamp({end_date_float / 1000})
+                        AND ST_CONTAINS(st_geomfromtext({repr(poly)}) , geom_center) 
+                        """
+                 )]))
 
 
 @bp.route("/recent-tweet")

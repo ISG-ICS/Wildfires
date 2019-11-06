@@ -1,7 +1,7 @@
 import logging
 import threading
 from datetime import datetime
-from typing import Generator, Tuple, Any, List
+from typing import Tuple, Any, List, Iterator
 
 import psycopg2.pool
 import rootpath
@@ -74,29 +74,22 @@ class Connection:
         cursor.close()
 
     @staticmethod
-    def sql_execute(sql: str) -> Generator[Tuple[Any], None, None]:
-        """to execute an SQL query and iterate the output"""
+    def sql_execute(sql: str) -> Iterator:
+        """to execute an SQL query and fetch all results"""
         logger.info(f"SQL: {sql}")
         if any([keyword in sql.upper() for keyword in ["INSERT", "UPDATE"]]):
             logger.error("You are running INSERT or UPDATE without committing, transaction aborted. Please retry with "
                          "sql_execute_commit")
-            return
+            return iter([])
         with Connection() as connection:
             cursor = connection.cursor()
             cursor.execute(sql)
-
-            try:
-                one_row = cursor.fetchone()
-                while one_row:
-                    yield one_row
-                    one_row = cursor.fetchone()
-            except psycopg2.ProgrammingError:
-                pass
-            finally:
-                cursor.close()
+            rows = cursor.fetchall()
+            cursor.close()
+            return iter(rows)
 
     @staticmethod
-    def sql_execute_commit(sql: object) -> object:
+    def sql_execute_commit(sql: object) -> None:
         """to execute and commit an SQL query"""
         logger.info(f"SQL: {sql}")
         with Connection() as connection:

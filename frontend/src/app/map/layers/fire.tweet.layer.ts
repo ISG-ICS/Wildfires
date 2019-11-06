@@ -30,6 +30,8 @@ export class FireTweetLayer {
         // This is the overlay controller defined in constructor
         // rewrite
 
+        const [start, end] = this.timeService.getRangeDate();
+        this.getFireTweet(start, end);
         this.timeService.timeRangeChange.subscribe(this.timeRangeChangeFirePolygonHandler);
         this.map.on('zoomend', () => {
             const [start, end] = this.timeService.getRangeDate();
@@ -38,18 +40,17 @@ export class FireTweetLayer {
             const boundSWnow = {lat: bound._southWest.lat, lon: bound._northEast.lng};
 
             if (this.boundNE !== null) {
-                 if (boundNEnow.lat > this.boundNE.lat) { //means you zoom out
-                     // sending old polygon and new polygon
-                    this.mapService.getFireTweetData(this.boundNE, this.boundSW, boundNEnow, boundSWnow, start, end).subscribe(this.tweetDataHandler);
-                 }
+                if (boundNEnow.lat > this.boundNE.lat) { // means you zoom out
+                    // sending old polygon and new polygon
+                    this.mapService.getFireTweetData(boundNEnow, boundSWnow, start, end).subscribe(this.tweetDataHandler);
+                }
             }
             this.boundNE = boundNEnow;
             this.boundSW = boundSWnow;
             if (this.tweetLayer) {
-            this.map.removeLayer(this.tweetLayer);
-            this.mainControl.removeLayer(this.tweetLayer);
-            this.tweetLayer = null;
-        }
+                this.map.removeLayer(this.tweetLayer);
+                this.mainControl.removeLayer(this.tweetLayer);
+            }
         });
 
         this.map.on('dragend', () => {
@@ -58,20 +59,19 @@ export class FireTweetLayer {
             const boundNEnow = {lat: bound._northEast.lat, lon: bound._southWest.lng};
             const boundSWnow = {lat: bound._southWest.lat, lon: bound._northEast.lng};
 
-            if (this.boundNE !== null){
-                  // sending old polygon and new polygon
-                  this.mapService.getFireTweetData(this.boundNE, this.boundSW, boundNEnow, boundSWnow, start, end).subscribe(this.tweetDataHandler);
+            if (this.boundNE !== null) {
+                // sending old polygon and new polygon
+                this.mapService.getFireTweetData(boundNEnow, boundSWnow, start, end).subscribe(this.tweetDataHandler);
             }
 
             this.boundNE = boundNEnow;
             this.boundSW = boundSWnow;
 
             // this.mapService.getFireTweetData(this.boundNE, this.boundSW, start, end).subscribe(this.tweetDataHandler);
-            if (this.tweetLayer) {
-            this.map.removeLayer(this.tweetLayer);
-            this.mainControl.removeLayer(this.tweetLayer);
-            this.tweetLayer = null;
-        }
+            if (this.tweetLayer === null) {
+                this.map.removeLayer(this.tweetLayer);
+                this.mainControl.removeLayer(this.tweetLayer);
+            }
         });
 
         this.map.on('overlayadd', (event) => {
@@ -88,24 +88,6 @@ export class FireTweetLayer {
 
 
     }
-
-    timeRangeChangeFirePolygonHandler = () => {
-        const [start, end] = this.timeService.getRangeDate();
-        console.log([start, end]);
-        this.getFireTweet(start, end);
-        if (this.tweetLayer) {
-            this.map.removeLayer(this.tweetLayer);
-            this.mainControl.removeLayer(this.tweetLayer);
-            this.tweetLayer = null;
-        }
-    };
-
-    getFireTweet = (start, end) => {
-        const bound = this.map.getBounds();
-        const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
-        const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
-        this.mapService.getFireTweetData(boundNE, boundSW, boundNE, boundSW, start, end).subscribe(this.tweetDataHandler);
-    };
 
     // TODO: REWRITE IT!!!!!!
     static translateTweetDataToShow(tweetJSON) {
@@ -213,6 +195,24 @@ export class FireTweetLayer {
         return tweetTemplate;
     }
 
+    timeRangeChangeFirePolygonHandler = () => {
+        const [start, end] = this.timeService.getRangeDate();
+        console.log([start, end]);
+        if (this.tweetLayer) {
+            this.map.removeLayer(this.tweetLayer);
+            this.mainControl.removeLayer(this.tweetLayer);
+        }
+        this.getFireTweet(start, end);
+
+    };
+
+    getFireTweet = (start, end) => {
+        const bound = this.map.getBounds();
+        const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
+        const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
+        this.mapService.getFireTweetData(boundNE, boundSW, start, end).subscribe(this.tweetDataHandler);
+    };
+
     tweetDataHandler = (tweets: Tweet[]) => {
         /**
          *  Display current tweet data as red dots on canvas
@@ -266,7 +266,6 @@ export class FireTweetLayer {
             const distY = Math.abs((this.tempDataWithID[i][1] - y) / this.scaleY);
             // if the mouse almost over a tweet dot, use this to rescale the distance
             if (distX <= 0.001 && distY <= 0.001) {
-                console.log("wowowo", [i, this.tempDataWithID[i][2]]);
                 return [i, this.tempDataWithID[i][2]];
             }
         }

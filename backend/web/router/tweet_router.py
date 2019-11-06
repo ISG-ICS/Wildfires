@@ -1,6 +1,7 @@
 """
 @author: Yuan Fu, Yichi Zhang
 """
+
 import rootpath
 
 rootpath.append()
@@ -90,21 +91,16 @@ def send_fire_tweet_data():
 
     poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
 
-    return make_response(
-        jsonify([{"create_at": time.isoformat(), "long": (top_left_long + bottom_right_long) / 2,
-                  "lat": (top_left_lat + bottom_right_lat) / 2, "id": str(id)} for
-                 time, top_left_long, top_left_lat, bottom_right_long, bottom_right_lat, id in
-                 Connection.sql_execute(
-                     f"""
-                        SELECT r.create_at, l.top_left_long, l.top_left_lat, l.bottom_right_long, l.bottom_right_lat, 
-                        r.id 
-                        FROM records r JOIN locations l
-                        ON r.id=l.id 
-                        AND r.create_at BETWEEN to_timestamp({start_date_float / 1000}) 
-                                     AND to_timestamp({end_date_float / 1000})
-                        AND ST_CONTAINS(st_geomfromtext({repr(poly)}) , geom_center) 
-                        """
-                 )]))
+    return make_response(jsonify(
+        [{"create_at": t.isoformat(), "long": long, "lat": lat, "id": str(id)} for t, id, long, lat in
+         Connection.sql_execute(
+             f"""
+                SELECT r.create_at, r.id , st_x(location), st_y(location)
+                FROM records r 
+                where r.create_at BETWEEN to_timestamp({start_date_float / 1000}) 
+                                    AND to_timestamp({end_date_float / 1000})
+                and ST_CONTAINS(st_geomfromtext({repr(poly)}) , location)"""
+         )]))
 
 
 @bp.route("/recent-tweet")

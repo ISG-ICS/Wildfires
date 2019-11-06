@@ -9,15 +9,16 @@ import 'leaflet-velocity-ts';
 import {of} from 'rxjs';
 import {Tweet} from '../../models/tweet.model';
 import {TimeService} from '../../services/time/time.service';
+import {isNotNullOrUndefined} from "codelyzer/util/isNotNullOrUndefined";
 
 declare let L;
 
 export class FireTweetLayer {
 
-    private tweetLayer;
+    private tweetLayer = undefined;
     private tweetData: Tweet[] = [];
     private currentBounds = null;
-    private currentMarker = null;
+    private currentMarker = undefined;
     private scaleX = 0;
     private scaleY = 0;
     private mouseOverPointI = 0;
@@ -34,6 +35,7 @@ export class FireTweetLayer {
         this.getFireTweet(start, end);
         this.timeService.timeRangeChange.subscribe(this.timeRangeChangeFirePolygonHandler);
         this.map.on('zoomend', () => {
+            console.log("zoomin");
             const [start, end] = this.timeService.getRangeDate();
             const bound = this.map.getBounds();
             const boundNEnow = {lat: bound._northEast.lat, lon: bound._southWest.lng};
@@ -47,13 +49,11 @@ export class FireTweetLayer {
             }
             this.boundNE = boundNEnow;
             this.boundSW = boundSWnow;
-            if (this.tweetLayer) {
-                this.map.removeLayer(this.tweetLayer);
-                this.mainControl.removeLayer(this.tweetLayer);
-            }
+            this.removeTweetLayer();
         });
 
         this.map.on('dragend', () => {
+            console.log("draged");
             const [start, end] = this.timeService.getRangeDate();
             const bound = this.map.getBounds();
             const boundNEnow = {lat: bound._northEast.lat, lon: bound._southWest.lng};
@@ -68,10 +68,7 @@ export class FireTweetLayer {
             this.boundSW = boundSWnow;
 
             // this.mapService.getFireTweetData(this.boundNE, this.boundSW, start, end).subscribe(this.tweetDataHandler);
-            if (this.tweetLayer === null) {
-                this.map.removeLayer(this.tweetLayer);
-                this.mainControl.removeLayer(this.tweetLayer);
-            }
+            this.removeTweetLayer();
         });
 
         this.map.on('overlayadd', (event) => {
@@ -80,13 +77,21 @@ export class FireTweetLayer {
             }
         });
         this.map.on('overlayremove', (event) => {
-            if (event.name === 'Fire tweet') {
+            if (event.name === 'Fire tweet' && this.currentMarker !== undefined) {
                 this.map.removeLayer(this.currentMarker);
                 this.currentMarker = undefined;
             }
         });
 
 
+    }
+
+    removeTweetLayer = () => {
+        if (this.tweetLayer !== undefined) {
+                this.map.removeLayer(this.tweetLayer);
+                this.mainControl.removeLayer(this.tweetLayer);
+                this.tweetLayer = undefined;
+            }
     }
 
     // TODO: REWRITE IT!!!!!!
@@ -198,10 +203,7 @@ export class FireTweetLayer {
     timeRangeChangeFirePolygonHandler = () => {
         const [start, end] = this.timeService.getRangeDate();
         console.log([start, end]);
-        if (this.tweetLayer) {
-            this.map.removeLayer(this.tweetLayer);
-            this.mainControl.removeLayer(this.tweetLayer);
-        }
+        this.removeTweetLayer();
         this.getFireTweet(start, end);
 
     };
@@ -221,10 +223,7 @@ export class FireTweetLayer {
          *
          *  @param {Object} list of tweet object with geolocation, time of tweet, id of tweet
          */
-        if (this.tweetLayer) {
-            this.map.removeLayer(this.tweetLayer);
-            this.mainControl.removeLayer(this.tweetLayer);
-        }
+        this.removeTweetLayer();
         this.tweetData = tweets;
         console.log(this.tweetData);
         this.tweetLayer = L.TileLayer.maskCanvas({
@@ -319,8 +318,9 @@ export class FireTweetLayer {
         if (i >= 0 && this.mouseOverPointI !== i) {
             this.mouseOverPointI = i;
             // (1) If previous Marker is not null, destroy it.
-            if (this.currentMarker != null) {
+            if (this.currentMarker !== undefined) {
                 this.map.removeLayer(this.currentMarker);
+                this.currentMarker = undefined;
             }
             // (2) Create a new Marker to highlight the point.
             this.currentMarker = L.circleMarker(e.latlng, {

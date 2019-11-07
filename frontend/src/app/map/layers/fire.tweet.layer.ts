@@ -9,7 +9,6 @@ import 'leaflet-velocity-ts';
 import {of} from 'rxjs';
 import {Tweet} from '../../models/tweet.model';
 import {TimeService} from '../../services/time/time.service';
-import {isNotNullOrUndefined} from "codelyzer/util/isNotNullOrUndefined";
 
 declare let L;
 

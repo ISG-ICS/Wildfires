@@ -1,4 +1,6 @@
 import rootpath
+from flask import Flask
+from flask_cors import CORS
 
 rootpath.append()
 import router.data_router
@@ -6,8 +8,6 @@ import router.dropdown_menu_router
 import router.search_router
 import router.tweet_router
 import router.root_router
-from flask import Flask
-from flask_cors import CORS
 
 
 def create_app(test_config=None):
@@ -38,5 +38,16 @@ def create_app(test_config=None):
 
 
 if __name__ == '__main__':
+    from argparse import ArgumentParser
+    from waitress import serve
+
     server_app = create_app()
-    server_app.run(port=2333, debug=True)
+
+    parser = ArgumentParser()
+    parser.add_argument("--deploy", help="deploy server in production mode",
+                        action="store_true")
+    args = parser.parse_args()
+    if args.deploy:
+        serve(server_app, host='0.0.0.0', port=2333)
+    else:
+        server_app.run(port=5000, debug=True)

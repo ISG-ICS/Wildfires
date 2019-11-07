@@ -1,26 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Union, Optional, List
+from typing import Dict, Union, List
 
 import numpy as np
-import rootpath
-
-rootpath.append()
-from backend.data_preparation.dumper.dumperbase import DumperBase
-from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
 
 class CrawlerBase(ABC):
-    def __init__(self, extractor: ExtractorBase = None, dumper: DumperBase = None):
+    def __init__(self):
         super().__init__()
         self.data: Union[List, Dict, None] = None
-        self.extractor: Optional[ExtractorBase] = extractor
-        self.dumper: Optional[DumperBase] = dumper
-
-    def set_extractor(self, extractor: ExtractorBase):
-        self.extractor = extractor
-
-    def set_dumper(self, dumper: DumperBase):
-        self.dumper = dumper
 
     @abstractmethod
     def crawl(self, *args, **kwargs) -> Union[List, Dict, np.array]:
@@ -35,4 +22,4 @@ class CrawlerBase(ABC):
     def __str__(self):
         return f'{self.__class__.__name__}'
 
-    __repr = __str__
+    __repr__ = __str__

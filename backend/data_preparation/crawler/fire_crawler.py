@@ -3,6 +3,7 @@
 This file contains 1 classes:
 1. class FireCrawler: the crawler class for fire information
 """
+
 import datetime
 import glob
 import logging

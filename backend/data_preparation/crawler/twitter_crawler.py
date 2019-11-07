@@ -14,10 +14,6 @@ rootpath.append()
 from paths import TWITTER_API_CONFIG_PATH
 from backend.connection import Connection
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
-from backend.data_preparation.dumper.twitter_dumper import TweetDumper
-from backend.data_preparation.extractor.twitter_extractor import TweetExtractor
-from backend.data_preparation.dumper.dumperbase import DumperBase, DumperException
-from backend.data_preparation.extractor.extractorbase import ExtractorBase, ExtractorException
 from backend.utilities.ini_parser import parse
 
 logger = logging.getLogger('TaskManager')
@@ -25,8 +21,8 @@ logger = logging.getLogger('TaskManager')
 
 class TweetCrawler(CrawlerBase):
 
-    def __init__(self, extractor: ExtractorBase = None, dumper: DumperBase = None):
-        super().__init__(extractor, dumper)
+    def __init__(self):
+        super().__init__()
         self.api = twitter.Api(**parse(TWITTER_API_CONFIG_PATH, 'twitter-API'))
         self.data = []
         self.keywords = []
@@ -34,37 +30,9 @@ class TweetCrawler(CrawlerBase):
         self.crawled_id_set: Set[int] = set()
         self.data_from_db_count = 0
 
-    def start(self, keywords: List[str], batch_number: int, fetch_from_db: bool = False, end_clause=None) -> None:
-        self.keywords = keywords
-
-        if not self.extractor:
-            logger.error('Extractor not found')
-            raise ExtractorException('Extractor not found')
-
-        if not self.dumper:
-            logger.error('Dumper not found')
-            raise DumperException('Dumper not found')
-
-        # TODO: check for exceptions raised from extractor and dumper
-        if fetch_from_db:
-            self.id_generator = self.fetch_status_id_from_db()
-
-        try:
-            while not end_clause:
-                # starts crawling information to in-memory structure self.data
-
-                self.crawl(self.keywords, batch_number, fetch_from_db)
-                self.total_crawled_count += len(self.data)
-                # call extractor to extract from self.data
-                extracted_data = self.extractor.extract(self.data)
-                # calls dumper to data from self.data to database
-                self.dumper.insert(extracted_data)
-        except StopIteration:
-            logger.info("Crawler Finished")
-
     def crawl(self, keywords: List, batch_number: int, fetch_from_db: bool) -> Union[Dict, List]:
         """crawl the tweets and save them into self.data"""
-
+        self.keywords = keywords
         if not fetch_from_db:
             # crawl status ids
             logger.info(f"Online Mode: Total crawled count {self.total_crawled_count}")
@@ -104,6 +72,7 @@ class TweetCrawler(CrawlerBase):
         """helper function for crawling tweets, collecting all tweet ids"""
 
         ids = set()
+
         for keyword in self.keywords:
             # allows the input to be a keyword list
             headers = {
@@ -129,19 +98,19 @@ class TweetCrawler(CrawlerBase):
         """a generator which generates 100 id list at a time"""
         count = 0
         result = list()
-        for id, in Connection.sql_execute(f"SELECT id FROM records WHERE user_id IS NULL order by create_at desc"):
+        for id, in Connection.sql_execute(f"SELECT id FROM records WHERE user_id IS NULL ORDER BY create_at DESC"):
             count += 1
             result.append(id)
             if count >= 100:
                 yield result
-                time.sleep(20)
-                # set sleep time to prevent the twitter api from being banned
                 result.clear()
                 count = 0
-        #  connect to the database, only need to get the status id
 
 
 if __name__ == '__main__':
-    crawler = TweetCrawler(TweetExtractor(), TweetDumper())
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
 
-    crawler.start(['wildfire'], 100, fetch_from_db=True, end_clause=None)
+    # online mode
+    raw_tweets = TweetCrawler().crawl(['wildfires'], batch_number=100, fetch_from_db=False)
+    print(raw_tweets)

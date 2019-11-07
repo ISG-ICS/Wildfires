@@ -3,7 +3,7 @@
 
 # Wildfires
 
-[Wildfires](http://wildfires.ics.uci.edu:2333):fire: is an innovative and well-designed platform implemented by [these contributors](https://github.com/Yicong-Huang/Wildfires/graphs/contributors).
+[Wildfires](http://wildfires.ics.uci.edu):fire: is an innovative and well-designed platform implemented by [these contributors](https://github.com/ISG-ICS/Wildfires/graphs/contributors).
 
 # About
 

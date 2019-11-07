@@ -51,11 +51,13 @@ class TweetCrawler(CrawlerBase):
             ids = list(self.crawled_id_set)
         else:
             # reprocess the crawled status ids that are stored in db
-            ids = next(self.id_generator)
+            ids = next(self.fetch_status_id_from_db())
+            self.total_crawled_count += len(ids)
             logger.info(f'DB Mode: ids taken from db length {len(ids)}')
             logger.info(f'DB Mode: Total crawled count {self.total_crawled_count}')
         try:
             self.data = self.api.GetStatuses(ids)
+
             # reset the set to empty so that the id will not accumulate
             # in the case that the twitter API works
         except Exception:
@@ -98,7 +100,9 @@ class TweetCrawler(CrawlerBase):
         """a generator which generates 100 id list at a time"""
         count = 0
         result = list()
-        for id, in Connection.sql_execute(f"SELECT id FROM records WHERE user_id IS NULL ORDER BY create_at DESC"):
+        for id, in Connection.sql_execute(
+                f"SELECT id FROM records WHERE user_id IS NULL ORDER BY create_at DESC"):
+            print(id)
             count += 1
             result.append(id)
             if count >= 100:
@@ -113,4 +117,8 @@ if __name__ == '__main__':
 
     # online mode
     raw_tweets = TweetCrawler().crawl(['wildfires'], batch_number=100, fetch_from_db=False)
+    print(raw_tweets)
+
+    # fetch_from_db mode
+    raw_tweets = TweetCrawler().crawl(['wildfires'], batch_number=100, fetch_from_db=True)
     print(raw_tweets)

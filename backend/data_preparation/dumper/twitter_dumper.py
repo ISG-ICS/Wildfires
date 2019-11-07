@@ -50,7 +50,7 @@ class TweetDumper(DumperBase):
     @staticmethod
     def _insert_ids(ids=List[Tuple[int]]):
         """insert given id list into the database"""
-        logger.info("Inserting ids as step one")
+        logger.info("Inserting ids")
         with Connection() as connection:
             cur = connection.cursor()
             extras.execute_values(cur, "insert into records (id) values %s on conflict(id) do nothing", ids)
@@ -81,7 +81,7 @@ class TweetDumper(DumperBase):
                                                   data['followers_count'], data['favourites_count'],
                                                   data['friends_count'],
                                                   data['user_id'], data['user_location'], data['statuses_count'], geom))
-                    self.inserted_locations_count += 1
+
                 else:
                     records_without_location.append((data['id'], data['date_time'], data['full_text'],
                                                      ', '.join(data['hashtags']) if data['hashtags'] else None,
@@ -91,16 +91,18 @@ class TweetDumper(DumperBase):
                                                      data['friends_count'],
                                                      data['user_id'], data['user_location'], data['statuses_count']))
 
-                self.inserted_count += 1
+
 
             try:
                 with Connection() as connection:
                     cur = connection.cursor()
                     if records_with_location:
                         extras.execute_values(cur, self.INSERT_WITH_LOCATION_QUERY, records_with_location)
+                        self.inserted_locations_count += cur.rowcount
 
                     if records_without_location:
                         extras.execute_values(cur, self.INSERT_WITHOUT_LOCATION_QUERY, records_without_location)
+                        self.inserted_count += cur.rowcount
                     # if the data is fetched from db and reprocessed,
                     # the values will be updated with the help of the ON CONFLICT DO UPDATE
                     # if the data is just crawled, the sql statement will just simply insert data into db

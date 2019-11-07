@@ -170,8 +170,6 @@ export class TimeSeriesComponent implements OnInit {
                      *  updating information of date.
                      */
                     setExtremes: (event) => {
-                        console.log(event.min);
-                        console.log(event.max);
                         this.timeService.setRangeDate(event.min, event.max);
                         /** this.timeService.getTweetByDate(event.min, event.max).subscribe((data)=>{});*/
 

@@ -9,7 +9,7 @@
  */
 
 import {Injectable, EventEmitter} from '@angular/core';
-import {Observable} from 'rxjs';
+import {Observable, of} from 'rxjs';
 import {environment} from '../../../environments/environment';
 import {HttpClient, HttpParams} from '@angular/common/http';
 import {Tweet} from "../../models/tweet.model";
@@ -32,9 +32,9 @@ export class TimeService {
     private currentDateInYMD = undefined;
     private rangeStartDateInMS = new Date().getTime() - 6 * 30 * 24 * 3600 * 1000;
     private rangeEndDateInMS = new Date().getTime();
+    private timer;
 
     constructor(private http: HttpClient) {
-
     }
 
     setCurrentDate(dateInYMD: string): void {
@@ -44,7 +44,16 @@ export class TimeService {
     setRangeDate(startInMs: number, endInMs: number): void {
         this.rangeStartDateInMS = startInMs;
         this.rangeEndDateInMS = endInMs;
-        this.timeRangeChange.next({start: this.rangeStartDateInMS, end: this.rangeEndDateInMS});
+        const duration = 1000;
+        if (this.timer !== null) {
+            clearTimeout(this.timer);
+            this.timer = null;
+        }
+        this.timer = setTimeout(L.Util.bind(() => {
+            of(event).subscribe(() => this.timeRangeChange.next({start: this.rangeStartDateInMS, end: this.rangeEndDateInMS}));
+            this.timer = null;
+        }, this), duration);
+        //this.timeRangeChange.next({start: this.rangeStartDateInMS, end: this.rangeEndDateInMS});
     }
 
     getCurrentDate(): string {

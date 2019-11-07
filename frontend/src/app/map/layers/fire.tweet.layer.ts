@@ -45,11 +45,11 @@ export class FireTweetLayer {
                 if (boundNEnow.lat > this.boundNE.lat) { // means you zoom out
                     // sending old polygon and new polygon
                     this.mapService.getFireTweetData(boundNEnow, boundSWnow, start, end).subscribe(this.tweetDataHandler);
+                    this.removeTweetLayer();
                 }
             }
             this.boundNE = boundNEnow;
             this.boundSW = boundSWnow;
-            this.removeTweetLayer();
         });
 
         this.map.on('dragend', () => {
@@ -208,10 +208,13 @@ export class FireTweetLayer {
 
     };
 
+    // TODO: Timer!!
+
     getFireTweet = (start, end) => {
         const bound = this.map.getBounds();
         const boundNE = {lat: bound._northEast.lat, lon: bound._northEast.lng};
         const boundSW = {lat: bound._southWest.lat, lon: bound._southWest.lng};
+        // TODO: Timer!!
         this.mapService.getFireTweetData(boundNE, boundSW, start, end).subscribe(this.tweetDataHandler);
     };
 

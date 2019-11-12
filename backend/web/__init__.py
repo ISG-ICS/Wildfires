@@ -9,6 +9,7 @@ import router.search_router
 import router.tweet_router
 import router.root_router
 import logging
+from flask_compress import Compress
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -17,6 +18,7 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True, static_url_path='', static_folder='static')
     # Enable CORS, cross-site-access-control
+    Compress().init_app(app)
     CORS(app)
     app.config.from_mapping(
         SECRET_KEY='dev',

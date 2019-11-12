@@ -8,6 +8,9 @@ import router.dropdown_menu_router
 import router.search_router
 import router.tweet_router
 import router.root_router
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def create_app(test_config=None):

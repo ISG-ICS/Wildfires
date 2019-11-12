@@ -128,7 +128,7 @@ def send_fire_tweet_data2():
 
     if old_poly == poly:
         return make_response(jsonify(
-            [{"create_at": t.isoformat(), "long": long, "lat": lat, "id": str(id)} for t, id, long, lat in
+            [{"createAt": t.timestamp(), "lng": long, "lat": lat, "id": str(id)} for t, id, long, lat in
              Connection.sql_execute(
                  f"""
                     SELECT r.create_at, r.id , st_x(location), st_y(location)
@@ -139,7 +139,7 @@ def send_fire_tweet_data2():
              )]))
     else:
         return make_response(jsonify(
-            [{"create_at": t.isoformat(), "long": long, "lat": lat, "id": str(id)} for t, id, long, lat in
+            [{"createAt": t.timestamp(), "lng": long, "lat": lat, "id": str(id)} for t, id, long, lat in
              Connection.sql_execute(
                  f"""
                 SELECT r.create_at, r.id , st_x(location), st_y(location)

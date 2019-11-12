@@ -103,6 +103,53 @@ def send_fire_tweet_data():
          )]))
 
 
+@bp.route("/fire-tweet2", methods=['post'])
+def send_fire_tweet_data2():
+    """
+        This func gives all historical tweets objects with id
+
+        :returns: a list of tweet objects, each with time, lat, long, id
+    """
+
+    request_json = flask_request.get_json(force=True)
+    old_north = request_json['oldBound']['_northEast']['lat']
+    old_east = request_json['oldBound']['_northEast']['lng']
+    old_south = request_json['oldBound']['_southWest']['lat']
+    old_west = request_json['oldBound']['_southWest']['lng']
+    north = request_json['newBound']['_northEast']['lat']
+    east = request_json['newBound']['_northEast']['lng']
+    south = request_json['newBound']['_southWest']['lat']
+    west = request_json['newBound']['_southWest']['lng']
+    start_date_float = request_json['startDate']
+    end_date_float = request_json['endDate']
+
+    old_poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(old_east, old_south, old_north, old_west)
+    poly = 'polygon(({0} {1}, {0} {2}, {3} {2}, {3} {1}, {0} {1}))'.format(east, south, north, west)
+
+    if old_poly == poly:
+        return make_response(jsonify(
+            [{"create_at": t.isoformat(), "long": long, "lat": lat, "id": str(id)} for t, id, long, lat in
+             Connection.sql_execute(
+                 f"""
+                    SELECT r.create_at, r.id , st_x(location), st_y(location)
+                    FROM records r 
+                    where r.create_at BETWEEN to_timestamp({start_date_float / 1000}) 
+                                        AND to_timestamp({end_date_float / 1000})
+                    and ST_CONTAINS(st_geomfromtext({repr(poly)}) , location)"""
+             )]))
+    else:
+        return make_response(jsonify(
+            [{"create_at": t.isoformat(), "long": long, "lat": lat, "id": str(id)} for t, id, long, lat in
+             Connection.sql_execute(
+                 f"""
+                SELECT r.create_at, r.id , st_x(location), st_y(location)
+                FROM records r 
+                where r.create_at BETWEEN to_timestamp({start_date_float / 1000}) 
+                                    AND to_timestamp({end_date_float / 1000})
+                and ST_CONTAINS(st_difference(st_geomfromtext({repr(poly)}), st_geomfromtext({repr(old_poly)})) , location)"""
+             )]))
+
+
 @bp.route("/recent-tweet")
 def send_recent_tweet_data():
     """

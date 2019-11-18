@@ -1,7 +1,7 @@
 import datetime
 import logging
 import traceback
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 
 import rootpath
 from psycopg2 import extras
@@ -16,31 +16,29 @@ logger = logging.getLogger('TaskManager')
 
 
 class TweetDumper(DumperBase):
-    INSERT_WITH_LOCATION_QUERY = f"insert into records (id, create_at, text, hash_tag, profile_pic, " \
-                                 f"created_date_time, screen_name, user_name, followers_count, favourites_count, " \
-                                 f"friends_count, user_id, user_location, statuses_count, location) " \
-                                 f"values %s " \
-                                 f"ON CONFLICT(id) DO UPDATE " \
-                                 f"set text = excluded.text, profile_pic = excluded.profile_pic, " \
-                                 f"screen_name = excluded.screen_name, user_name = excluded.user_name, " \
-                                 f"followers_count = excluded.followers_count, " \
-                                 f"favourites_count = excluded.favourites_count, " \
-                                 f"friends_count= excluded.friends_count, user_id= excluded.user_id, " \
-                                 f"user_location= excluded.user_location, " \
-                                 f" statuses_count= excluded.statuses_count, location = excluded.location;"
+    INSERT_WITH_LOCATION_QUERY = f"""
+INSERT INTO records (id, create_at, text, hash_tag, profile_pic, created_date_time, screen_name, user_name, 
+followers_count, favourites_count, friends_count, user_id, user_location, statuses_count, location) 
+VALUES %s 
+ON CONFLICT(id) DO UPDATE 
+SET create_at = excluded.create_at, text = excluded.text, hash_tag = excluded.hash_tag,  
+profile_pic = excluded.profile_pic, created_date_time = excluded.created_date_time,
+screen_name = excluded.screen_name, user_name = excluded.user_name, followers_count = excluded.followers_count, 
+favourites_count = excluded.favourites_count, friends_count= excluded.friends_count, user_id= excluded.user_id, 
+user_location= excluded.user_location, statuses_count= excluded.statuses_count, location = excluded.location;"""
 
-    INSERT_WITHOUT_LOCATION_QUERY = f"insert into records (id, create_at, text, hash_tag, profile_pic, " \
-                                    f"created_date_time, screen_name, user_name, followers_count, favourites_count, " \
-                                    f"friends_count, user_id, user_location, statuses_count) " \
-                                    f"values %s " \
-                                    f"ON CONFLICT(id) DO UPDATE " \
-                                    f"set text = excluded.text, profile_pic = excluded.profile_pic, " \
-                                    f"screen_name = excluded.screen_name, user_name = excluded.user_name, " \
-                                    f"followers_count = excluded.followers_count, " \
-                                    f"favourites_count = excluded.favourites_count, " \
-                                    f"friends_count= excluded.friends_count, user_id= excluded.user_id, " \
-                                    f"user_location= excluded.user_location, " \
-                                    f" statuses_count= excluded.statuses_count;"
+    INSERT_WITHOUT_LOCATION_QUERY = f"""
+INSERT INTO records (id, create_at, text, hash_tag, profile_pic, created_date_time, screen_name, user_name, 
+followers_count, favourites_count, friends_count, user_id, user_location, statuses_count) 
+VALUES %s 
+ON CONFLICT(id) DO UPDATE 
+SET create_at = excluded.create_at, text = excluded.text, hash_tag = excluded.hash_tag,  
+profile_pic = excluded.profile_pic, created_date_time = excluded.created_date_time,
+screen_name = excluded.screen_name, user_name = excluded.user_name, followers_count = excluded.followers_count, 
+favourites_count = excluded.favourites_count, friends_count= excluded.friends_count, user_id= excluded.user_id, 
+user_location= excluded.user_location, statuses_count= excluded.statuses_count;"""
+
+    INSERT_LOCATION_QUERY = "INSERT INTO records (id) VALUES %s ON CONFLICT(id) DO NOTHING"
 
     def __init__(self):
         super().__init__()
@@ -53,16 +51,16 @@ class TweetDumper(DumperBase):
         logger.info("Inserting ids")
         with Connection() as connection:
             cur = connection.cursor()
-            extras.execute_values(cur, "insert into records (id) values %s on conflict(id) do nothing", ids)
+            extras.execute_values(cur, TweetDumper.INSERT_LOCATION_QUERY, ids)
             connection.commit()
             cur.close()
 
-    def insert(self, data_list: List[Dict], id_mode=False) -> None:
+    def insert(self, data_list: List[Union[Dict, int]], id_mode=False) -> None:
         """inserts the given list into the database"""
         # construct sql statement to insert data into the records db table
         if id_mode:
             # only insert ids without other data when id_mode == True
-            self._insert_ids([(dic['id'],) for dic in data_list])
+            self._insert_ids([(i,) for i in data_list])
         else:
             records_with_location = []
             records_without_location = []
@@ -90,8 +88,6 @@ class TweetDumper(DumperBase):
                                                      data['followers_count'], data['favourites_count'],
                                                      data['friends_count'],
                                                      data['user_id'], data['user_location'], data['statuses_count']))
-
-
 
             try:
                 with Connection() as connection:
@@ -131,7 +127,7 @@ if __name__ == '__main__':
     tweet_dumper = TweetDumper()
 
     # id mode tests:
-    tweet_dumper.insert([{'id': 114578942456235}, {'id': 908436598589243}, {'id': 459872893571623}], id_mode=True)
+    tweet_dumper.insert([114578942456235, 908436598589243, 459872893571623], id_mode=True)
 
     # normal mode tests:
     extracted_tweets = [{'id': 1192227287204290560,

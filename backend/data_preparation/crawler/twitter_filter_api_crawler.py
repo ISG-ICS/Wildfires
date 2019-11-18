@@ -53,7 +53,8 @@ class TweetFilterAPICrawler(CrawlerBase):
             logger.info(f'Sending a Request to Twitter Filter API')
             try:
 
-                for tweet in self.api.GetStreamFilter(track=keywords):
+                for tweet in self.api.GetStreamFilter(track=keywords,
+                                                      locations=map(str, [-127.86, 19.55, -55.15, 47.92])):
                     self.reset_wait_time()
                     self.crawled_tweet_id_set.add(tweet['id'])
                     count = len(self.crawled_tweet_id_set)
@@ -95,5 +96,5 @@ if __name__ == '__main__':
 
     tweet_filter_api_crawler = TweetFilterAPICrawler()
     for _ in range(2):
-        raw_tweets = tweet_filter_api_crawler.crawl(['fire'], batch_number=100)
+        raw_tweets = tweet_filter_api_crawler.crawl(['wildfire'], batch_number=100)
         print(raw_tweets)

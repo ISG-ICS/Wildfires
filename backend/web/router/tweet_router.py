@@ -64,13 +64,9 @@ def send_tweet_count_data():
 
         :returns: a list of tweet objects, each with time, lat, long, id
     """
-    return make_response(
-        jsonify({date.isoformat(): count for date, count in
-                 Connection.sql_execute(
-                     "select m.t_date, count(*) from "
-                     "      (select r.create_at::timestamp::date as t_date "
-                     "          from records r,locations l where r.id=l.id  group by(r.create_at)) "
-                     "as m group by m.t_date order by m.t_date")}))
+    return make_response(jsonify({date.isoformat(): count for date, count in Connection().sql_execute("""
+    select r.create_at::timestamp::date, count(*) from records r where r.location is not null
+    and r.create_at is not null group by r.create_at::timestamp::date""")}))
 
 
 @bp.route("/fire-tweet", methods=['post'])
@@ -247,6 +243,7 @@ def tweet_from_id():
     """
     tweet_id = int(flask_request.args.get('tweet_id'))
 
+    # TODO: change the query to support multiple images in a tweet
     query = f'''
     select records.id, create_at, text,user_name,profile_pic,image_url from
     (

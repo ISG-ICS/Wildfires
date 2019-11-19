@@ -19,6 +19,11 @@ TWITTER_API_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'twitter.ini')
 # path of the config file for logging in task manager
 LOG_CONFIG_PATH = os.path.join(CONFIGS_DIR, 'logger-conf.json')
 
+# dir for all cache
+CACHE_DIR = os.path.join(ROOT_DIR, 'cache')
+
+TWITTER_TEXT_CACHE = os.path.join(CACHE_DIR, 'twitter.cache.pickle')
+
 MODELS_SAVE_PATH = os.path.join(ROOT_DIR, 'backend', 'models')
 
 NLTK_MODEL_PATH = os.path.join(MODELS_SAVE_PATH, 'nltk_model.pickle')

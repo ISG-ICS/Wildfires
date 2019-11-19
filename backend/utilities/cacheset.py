@@ -6,8 +6,12 @@ class CacheSet(set):
     """
     MAX = 1e6
 
+    def __init__(self, s=(), maximum_size=MAX):
+        super(CacheSet, self).__init__(s)
+        self.maximum_size = maximum_size
+
     def add(self, element):
-        if self.__len__() >= self.MAX:
+        if self.__len__() >= self.maximum_size:
             self.pop()
         set.add(self, element)
 

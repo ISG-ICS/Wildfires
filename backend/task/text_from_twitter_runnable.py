@@ -2,12 +2,16 @@
 @author: Tingxuan Gu, Rose Du, Yicong Huang
 """
 import logging
+import pickle
 import time
 
 import rootpath
 
+from paths import TWITTER_TEXT_CACHE
+
 rootpath.append()
 from backend.connection import Connection
+from backend.utilities.cacheset import CacheSet
 from backend.data_preparation.crawler.twitter_filter_api_crawler import TweetFilterAPICrawler
 from backend.data_preparation.crawler.twitter_id_mode_crawler import TweetIDModeCrawler
 from backend.data_preparation.crawler.twitter_search_api_crawler import TweetSearchAPICrawler
@@ -27,6 +31,10 @@ class TextFromTwitter(Runnable):
         self.crawler = TweetSearchAPICrawler()
         self.extractor = TweetExtractor()
         self.dumper = TweetDumper()
+        try:
+            self.cache: CacheSet[int] = pickle.load(open(TWITTER_TEXT_CACHE, 'rb'))
+        except:
+            self.cache = CacheSet()
 
     def run(self, keywords: list = None, batch_num: int = 100, using_filter_api: bool = False,
             fetch_from_db: bool = False, time_interval: int = 2):
@@ -52,29 +60,29 @@ class TextFromTwitter(Runnable):
     def _run_fetch_from_db_mode(self, time_interval):
         if not isinstance(self.crawler, TweetIDModeCrawler):
             self.crawler = TweetIDModeCrawler()
-        for ids in self._fetch_id_from_db():
+        while True:
             logger.info('Running Fetch From DB mode')
-            status = self.crawler.crawl(ids)
-            tweets = self.extractor.extract(status)
-            self.dumper.insert(tweets)
+            for ids in self._fetch_id_from_db():
+                status = self.crawler.crawl(ids)
+                tweets = self.extractor.extract(status)
+                self.dumper.insert(tweets)
 
-            # prevent API from being banned
+                # prevent API from being banned
+                time.sleep(time_interval)
             time.sleep(time_interval)
-        logger.info("Crawler Finished")
 
-    @staticmethod
-    def _fetch_id_from_db():
+    def _fetch_id_from_db(self):
         """a generator which generates 100 id list at a time"""
-        count = 0
         result = list()
         for id, in Connection.sql_execute(
                 f"SELECT id FROM records WHERE user_id IS NULL or text is null ORDER BY create_at DESC"):
-            count += 1
-            result.append(id)
-            if count >= 100:
+            if id not in self.cache:
+                self.cache.add(id)
+                result.append(id)
+            if len(result) == 100:
                 yield result
                 result.clear()
-                count = 0
+        pickle.dump(self.cache, open(TWITTER_TEXT_CACHE, 'wb+'))
         yield result
 
 
@@ -82,7 +90,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 
-    # # search API mode
+    # search API mode
     TextFromTwitter().run(keywords=['wildfire'])
 
     # # filter API mode

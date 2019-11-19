@@ -14,26 +14,9 @@ rootpath.append()
 from paths import TWITTER_API_CONFIG_PATH
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.utilities.ini_parser import parse
+from backend.utilities.cacheset import CacheSet
 
 logger = logging.getLogger('TaskManager')
-
-
-class CacheSet(set):
-    """
-    A Simple Set that used for Cache, will have a memory limitation defined by MAX.
-
-    if more than MAX elements are inserted, elements are popped with regard of insertion order.
-    """
-    MAX = 1e6
-
-    def add(self, element):
-        if self.__len__() >= self.MAX:
-            self.pop()
-        set.add(self, element)
-
-    def update(self, elements):
-        for ele in elements:
-            self.add(ele)
 
 
 class TweetSearchAPICrawler(CrawlerBase):

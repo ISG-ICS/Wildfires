@@ -1,16 +1,18 @@
 import logging
 import time
 import traceback
-from typing import List, Set
+from typing import List
 
 import rootpath
 import twitter
+from tokenizer import tokenize, TOK
 
 rootpath.append()
 
 from paths import TWITTER_API_CONFIG_PATH
 from backend.data_preparation.crawler.crawlerbase import CrawlerBase
 from backend.utilities.ini_parser import parse
+from backend.utilities.cacheset import CacheSet
 
 logger = logging.getLogger('TaskManager')
 
@@ -25,7 +27,7 @@ class TweetFilterAPICrawler(CrawlerBase):
         self.data: List = []
         self.keywords = []
         self.total_crawled_count = 0
-        self.crawled_tweet_id_set: Set[int] = set()
+        self.cache: CacheSet[int] = CacheSet()
 
     def crawl(self, keywords: List, batch_number: int = 100) -> List[int]:
         """
@@ -46,40 +48,55 @@ class TweetFilterAPICrawler(CrawlerBase):
              (List[int]): a list of Tweet IDs
 
         """
-
+        self.keywords = keywords + ["#" + keyword for keyword in keywords]
         logger.info(f'Crawler Started')
-        slice_num = batch_number
-        while len(self.crawled_tweet_id_set) < batch_number:
+        self.data = []
+        while len(self.data) < batch_number:
             logger.info(f'Sending a Request to Twitter Filter API')
             try:
 
-                for tweet in self.api.GetStreamFilter(track=keywords,
+                for tweet in self.api.GetStreamFilter(track=keywords, languages=['en'],
                                                       locations=map(str, [-127.86, 19.55, -55.15, 47.92])):
                     self.reset_wait_time()
-                    self.crawled_tweet_id_set.add(tweet['id'])
-                    count = len(self.crawled_tweet_id_set)
+
+                    has_keywords = set(self.keywords) & self._tokenize_tweet_text(tweet)
+                    if tweet.get('retweeted_status') and set(self.keywords) & self._tokenize_tweet_text(
+                            tweet['retweeted_status']):
+                        self._add_to_batch(tweet['retweeted_status']['id'])
+
+                    elif tweet.get('place') and tweet['place']['country_code'] == "US" and has_keywords:
+                        self._add_to_batch(tweet['id'])
+                    else:
+                        continue
+
+                    count = len(self.data)
                     if count % (batch_number // 10) == 0:
                         logger.info(f"Crawled ID count in this batch: {count}")
 
-                    if count > batch_number:
+                    if count >= batch_number:
                         break
 
             except:
                 # in this case the collected twitter id will be recorded and tried again next time
                 logger.error(f'Error: {traceback.format_exc()}')
-                slice_num = len(self.crawled_tweet_id_set)
-
                 self.wait()
-            else:
-                slice_num = batch_number
 
-        self.data = [self.crawled_tweet_id_set.pop() for _ in range(slice_num)]
-        logger.info(f'Outputting {slice_num} Tweet IDs')
-        self.total_crawled_count += len(self.data)
+        count = len(self.data)
+        logger.info(f'Outputting {count} Tweet IDs')
+        self.total_crawled_count += count
         logger.info(f'Total crawled count {self.total_crawled_count}')
         return self.data
 
-    def reset_wait_time(self):
+    @staticmethod
+    def _tokenize_tweet_text(tweet):
+        return set(txt for kind, txt, _ in tokenize(tweet['text']) if kind in [TOK.WORD, TOK.HASHTAG])
+
+    def _add_to_batch(self, tweet_id: int) -> None:
+        if tweet_id not in self.cache:
+            self.data.append(tweet_id)
+            self.cache.add(tweet_id)
+
+    def reset_wait_time(self) -> None:
         """resets the wait time"""
         self.wait_time = 1
 
@@ -95,6 +112,6 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     tweet_filter_api_crawler = TweetFilterAPICrawler()
-    for _ in range(2):
-        raw_tweets = tweet_filter_api_crawler.crawl(['wildfire'], batch_number=100)
+    for _ in range(3):
+        raw_tweets = tweet_filter_api_crawler.crawl(['wildfire', 'fire', 'smoke'], batch_number=100)
         print(raw_tweets)

@@ -48,7 +48,7 @@ class TweetFilterAPICrawler(CrawlerBase):
              (List[int]): a list of Tweet IDs
 
         """
-        self.keywords = keywords + ["#" + keyword for keyword in keywords]
+        self.keywords = list(map(str.lower, keywords + ["#" + keyword for keyword in keywords]))
         logger.info(f'Crawler Started')
         self.data = []
         count = 0
@@ -56,13 +56,13 @@ class TweetFilterAPICrawler(CrawlerBase):
             logger.info(f'Sending a Request to Twitter Filter API')
             try:
 
-                for tweet in self.api.GetStreamFilter(track=keywords, languages=['en'],
+                for tweet in self.api.GetStreamFilter(track=self.keywords, languages=['en'],
                                                       locations=map(str, [-127.86, 19.55, -55.15, 47.92])):
                     self.reset_wait_time()
 
                     has_keywords = set(self.keywords) & self._tokenize_tweet_text(tweet)
-                    if tweet.get('retweeted_status') and set(keyword.lower() for keyword in self.keywords) \
-                            & self._tokenize_tweet_text(tweet['retweeted_status']):
+                    if tweet.get('retweeted_status') and set(self.keywords) & \
+                            self._tokenize_tweet_text(tweet['retweeted_status']):
                         self._add_to_batch(tweet['retweeted_status']['id'])
 
                     # if the tweet is sent within US and contains keywords, add its id to cache and data (for return)
@@ -71,7 +71,7 @@ class TweetFilterAPICrawler(CrawlerBase):
                     else:
                         continue
 
-                    # print Crawling info once every 10 tweets are collected
+                    # print Crawling info
                     if len(self.data) > count:
                         count = len(self.data)
                         if count % (batch_number // 10) == 0:

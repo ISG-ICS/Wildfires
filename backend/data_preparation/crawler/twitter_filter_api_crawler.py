@@ -61,6 +61,8 @@ class TweetFilterAPICrawler(CrawlerBase):
                     self.reset_wait_time()
 
                     has_keywords = set(self.keywords) & self._tokenize_tweet_text(tweet)
+
+                    # if the original tweet has keywords, add its id to cache and data
                     if tweet.get('retweeted_status') and set(self.keywords) & \
                             self._tokenize_tweet_text(tweet['retweeted_status']):
                         self._add_to_batch(tweet['retweeted_status']['id'])
@@ -71,7 +73,7 @@ class TweetFilterAPICrawler(CrawlerBase):
                     else:
                         continue
 
-                    # print Crawling info
+                    # print Crawling info every one tenth of the batch number
                     if len(self.data) > count:
                         count = len(self.data)
                         if count % (batch_number // 10) == 0:

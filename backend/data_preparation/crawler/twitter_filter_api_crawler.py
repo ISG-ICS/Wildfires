@@ -48,30 +48,36 @@ class TweetFilterAPICrawler(CrawlerBase):
              (List[int]): a list of Tweet IDs
 
         """
-        self.keywords = keywords + ["#" + keyword for keyword in keywords]
+        self.keywords = list(map(str.lower, keywords + ["#" + keyword for keyword in keywords]))
         logger.info(f'Crawler Started')
         self.data = []
+        count = 0
         while len(self.data) < batch_number:
             logger.info(f'Sending a Request to Twitter Filter API')
             try:
 
-                for tweet in self.api.GetStreamFilter(track=keywords, languages=['en'],
+                for tweet in self.api.GetStreamFilter(track=self.keywords, languages=['en'],
                                                       locations=map(str, [-127.86, 19.55, -55.15, 47.92])):
                     self.reset_wait_time()
 
                     has_keywords = set(self.keywords) & self._tokenize_tweet_text(tweet)
-                    if tweet.get('retweeted_status') and set(self.keywords) & self._tokenize_tweet_text(
-                            tweet['retweeted_status']):
+
+                    # if the original tweet has keywords, add its id to cache and data
+                    if tweet.get('retweeted_status') and set(self.keywords) & \
+                            self._tokenize_tweet_text(tweet['retweeted_status']):
                         self._add_to_batch(tweet['retweeted_status']['id'])
 
+                    # if the tweet is sent within US and contains keywords, add its id to cache and data (for return)
                     elif tweet.get('place') and tweet['place']['country_code'] == "US" and has_keywords:
                         self._add_to_batch(tweet['id'])
                     else:
                         continue
 
-                    count = len(self.data)
-                    if count % (batch_number // 10) == 0:
-                        logger.info(f"Crawled ID count in this batch: {count}")
+                    # print Crawling info every one tenth of the batch number
+                    if len(self.data) > count:
+                        count = len(self.data)
+                        if count % (batch_number // 10) == 0:
+                            logger.info(f"Crawled ID count in this batch: {count}")
 
                     if count >= batch_number:
                         break
@@ -89,7 +95,7 @@ class TweetFilterAPICrawler(CrawlerBase):
 
     @staticmethod
     def _tokenize_tweet_text(tweet):
-        return set(txt for kind, txt, _ in tokenize(tweet['text']) if kind in [TOK.WORD, TOK.HASHTAG])
+        return set(txt for kind, txt, _ in tokenize(tweet['text'].lower()) if kind in [TOK.WORD, TOK.HASHTAG])
 
     def _add_to_batch(self, tweet_id: int) -> None:
         if tweet_id not in self.cache:

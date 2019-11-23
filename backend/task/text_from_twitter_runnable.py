@@ -51,10 +51,11 @@ class TextFromTwitter(Runnable):
             self.crawler = TweetFilterAPICrawler()
 
         while True:
-            # add fires that happened in the past month and put these fires into the keywords for search 
+            # add fires that happened in the past month and put these fires into the keywords for search
             fire_names = {fire_name.lower() for fire_name, in Connection.sql_execute(
                 f"select name from fire_merged where start_time > now() - interval '1 month'")}
             keywords_with_fire_names = fire_names | (set(keywords))
+            logger.info(f'Full keyword set: {keywords_with_fire_names}')
             logger.info('Running ID mode')
             ids = self.crawler.crawl(list(keywords_with_fire_names), batch_num)
             self.dumper.insert(ids, id_mode=True)

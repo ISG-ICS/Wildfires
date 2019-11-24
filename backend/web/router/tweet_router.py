@@ -1,6 +1,7 @@
 """
 @author: Yuan Fu, Yichi Zhang
 """
+import time
 
 import rootpath
 
@@ -64,9 +65,10 @@ def send_tweet_count_data():
 
         :returns: a list of tweet objects, each with time, lat, long, id
     """
-    return make_response(jsonify({date.isoformat(): count for date, count in Connection().sql_execute("""
+    return make_response(
+        jsonify([{'date': time.mktime(date.timetuple()), 'count': count} for date, count in Connection().sql_execute("""
     select r.create_at::timestamp::date, count(*) from records r where r.location is not null
-    and r.create_at is not null group by r.create_at::timestamp::date""")}))
+    and r.create_at is not null group by r.create_at::timestamp::date""")]))
 
 
 @bp.route("/fire-tweet", methods=['post'])

@@ -11,7 +11,7 @@ import string
 import requests
 import twitter
 from flask import Blueprint, make_response, jsonify, request as flask_request
-from router.data_router import fill_series, gen_date_series
+from backend.utilities.date_info_series import fill_series, gen_date_series
 from backend.connection import Connection
 from paths import TWITTER_API_CONFIG_PATH
 from backend.utilities.ini_parser import parse

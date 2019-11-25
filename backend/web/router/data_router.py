@@ -289,7 +289,7 @@ def wind():
     :return:
     """
     # TODO: replace source of wind data to db
-    return make_response(send_from_directory('static/data', 'latest.json'))
+    return make_response(send_from_directory('data', 'latest.json'))
 
 
 @bp.route("/rain_fall")

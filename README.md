@@ -16,15 +16,16 @@
 ## About
 **Wildfires**    applies machine learning approach to detecting wildfire events based on social media and environmental data. 
 It also plays as a great visualization platform for wildfires with environmental variables as well as social media information, e.g. tweets from Twitter.
+![](./images/wildfires_readme.jpg)
 
-![](./images/overview.jpg)
 
 ##### Project goals:
 * Detecting wildfires early using social media
 * Analytics of wildfires using social media data
 * Visualization of social media and environment data
 
-![](./images/wildfires_readme.jpg)
+##### Research Overiview:
+![](./images/overview.jpg)
 
 ## Developer Start Guidance
 Please follow the [Developer Start Guidance](https://github.com/ISG-ICS/Wildfires/wiki/Developer-Start-Guidance) to contribute to Wildfires.

@@ -3,6 +3,7 @@ import re
 import string
 import time
 import traceback
+import urllib
 from typing import List, Set
 
 import requests
@@ -87,8 +88,9 @@ class TweetSearchAPICrawler(CrawlerBase):
             }  # Simulates request from a mac browser
             try:
                 resp = requests.get(
-                    f'https://twitter.com/i/search/timeline?f=tweets&vertical=news&q={keyword}%20near%3A\"United%20States'
+                    f'https://twitter.com/i/search/timeline?f=tweets&vertical=news&q={urllib.parse.quote(keyword)}%20near%3A\"United%20States'
                     f'\"%20within%3A8000mi&l=en&src=typd', headers=headers)
+
 
             except requests.exceptions.RequestException:
                 logger.error('error: ' + traceback.format_exc())
@@ -112,5 +114,5 @@ if __name__ == '__main__':
     tweet_search_api_crawler = TweetSearchAPICrawler()
 
     for _ in range(10):
-        raw_tweets = tweet_search_api_crawler.crawl(['fire'], batch_number=100)
+        raw_tweets = tweet_search_api_crawler.crawl(['fire'], batch_number=20)
         print(raw_tweets)

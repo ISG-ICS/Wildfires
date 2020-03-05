@@ -72,6 +72,7 @@ class TextFromTwitter(Runnable):
             for ids in self._fetch_id_from_db():
                 status = self.crawler.crawl(ids)
                 tweets = self.extractor.extract(status)
+                self.extractor.export(status, file_name="wildfires")
                 self.dumper.insert(tweets)
 
                 # prevent API from being banned
@@ -98,10 +99,10 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     # search API mode
-    TextFromTwitter().run(keywords=['coronavirus', 'wuhan'])
+    TextFromTwitter().run(keywords=['fire', 'wildfire', 'wildfires', 'smoke'])
 
-    # # # filter API mode
-    # TextFromTwitter().run(keywords=['coronavirus', 'wuhan'], using_filter_api=True)
-    #
-    # # fetch from db mode
-    # TextFromTwitter().run(fetch_from_db=True)
+    # filter API mode
+    TextFromTwitter().run(keywords=['fire', 'wildfire', 'wildfires', 'smoke'], using_filter_api=True)
+
+    # fetch from db mode
+    TextFromTwitter().run(fetch_from_db=True)

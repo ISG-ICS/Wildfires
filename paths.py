@@ -65,3 +65,6 @@ IMAGE_TRAIN_PATH = os.path.join(DATA_PATH, 'image_dataset/train')
 IMAGE_VAL_PATH = os.path.join(DATA_PATH, 'image_dataset/val')
 
 PRISM_DATA_PATH = os.path.join(DATA_PATH, 'prism')
+
+# dir for data backup
+BACKUP_DIR = os.path.join(ROOT_DIR, 'backup')

@@ -1,12 +1,14 @@
 import datetime
+import gzip
 import json
+import os
 from datetime import datetime
 from typing import List, Optional, Dict
 
 import rootpath
 
 rootpath.append()
-
+from paths import BACKUP_DIR
 from backend.data_preparation.extractor.extractorbase import ExtractorBase
 
 
@@ -66,13 +68,16 @@ class TweetExtractor(ExtractorBase):
         return self.data
         # stores self.data and returns a reference of it
 
-    def export(self, file_type: str, file_name: str) -> None:
+    def export(self, data, file_type="gz", file_name="", dir=BACKUP_DIR) -> None:
         """exports data with specified file type"""
-        # for example, json
-        replace_list = list(self.data)
-        # make replace_list equal to self.data and change it
-        if file_type == 'json':
-            for each_extractor_line in replace_list:
-                each_extractor_line['date_time'] = str(each_extractor_line['date_time'])
-                # json does not accept datetime values, does change it into string
-            json.dump(replace_list, open(file_name, 'w'))
+
+        if not os.path.exists(BACKUP_DIR):
+            os.makedirs(BACKUP_DIR)
+        if file_type == 'gz':
+
+            file_name += f"_{datetime.now().strftime('%m-%d-%Y')}.{file_type}"
+            with gzip.open(os.path.join(dir, file_name), 'a+') as file:
+                for one in data:
+                    file.write(bytes(str(one) + '\n', encoding='utf8'))
+        else:
+            raise TypeError(f"not supported export file type {file_type}")

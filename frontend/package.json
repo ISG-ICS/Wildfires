@@ -27,7 +27,7 @@
     "angular-highcharts": "latest",
     "cities": "^2.0.0",
     "hammerjs": "^2.0.8",
-    "highcharts": "^7.2.1",
+    "highcharts": "^9.0.0",
     "install": "^0.12.2",
     "ion-rangeslider": "^2.3.0",
     "jquery": "^3.4.1",
